@@ -113,6 +113,12 @@ void loop() {
 }
 
 // ===== STATE HANDLERS =====
+void changeState(State newState, unsigned long duration = 0) {
+  currentState = newState;
+  lastStateChangeTime = millis();
+  stateDuration = duration;  // If you want a state to last a minimum amount of time, use this
+}
+
 void handleTest() {
   // Code for testing
   
@@ -146,24 +152,27 @@ void handleTest() {
 }
 
 void handleIdle() {
-  // Code for handling idle state
   /*if (conditionToStartFollowingLine) {
-    currentState = FOLLOW_LINE;
+    changeState(FOLLOW_LINE, 5000);  // Stay in FOLLOW_LINE for at least 5000 ms
   }*/
 }
 
+
 void handleFollowLine() {
-  // Code for handling line following
-  /*if (lineLost) {
-    currentState = IDLE;
-  } else if (obstacleDetected) {
-    currentState = AVOID_OBSTACLE;
+  /*if (millis() - lastStateChangeTime > stateDuration) {  // Ensure at least stateDuration has passed
+    if (lineLost) {
+      changeState(IDLE);
+    } else if (obstacleDetected) {
+      changeState(AVOID_OBSTACLE);
+    }
   }*/
 }
 
 void handleAvoidObstacle() {
-  // Code for handling obstacle avoidance
-  /*if (obstacleCleared) {
-    currentState = FOLLOW_LINE;
+  /*// Assume we need to avoid obstacles for a minimum of 3 seconds
+  if (millis() - lastStateChangeTime > 3000) {  // Stay in AVOID_OBSTACLE for at least 3000 ms
+    if (obstacleCleared) {
+      changeState(FOLLOW_LINE);
+    }
   }*/
 }
