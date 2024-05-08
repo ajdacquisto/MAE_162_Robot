@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "DRV8833.h"
+#include "Stepper.h"
 
 // ===== SENSORS =====
 // - Button
@@ -51,7 +52,7 @@ void setup() {
   // Initialize Serial port
   Serial.begin(9600);
   while (!Serial); // Waits for the Serial port to connect.
-  
+
   // Attach motors
   motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
   motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
