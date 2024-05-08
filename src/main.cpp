@@ -38,7 +38,29 @@ DRV8833 motorDriver = DRV8833();
 Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1, STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4);
 Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1, STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4);
 
-// Main setup
+// ===== STATES =====
+// Define states
+enum State {
+  TEST,
+  IDLE,
+  FOLLOW_LINE,
+  AVOID_OBSTACLE
+};
+
+// Current state variable
+State currentState = IDLE;
+
+// ===== TIME CONTROL =====
+unsigned long lastStateChangeTime = 0;  // Tracks the last time the state changed
+unsigned long stateDuration = 0;        // Duration to stay in a particular state, if necessary
+
+// ===== FUNCTION PROTOTYPES =====
+void handleTest();
+void handleIdle();
+void handleFollowLine();
+void handleAvoidObstacle();
+
+// ===== MAIN SETUP =====
 void setup() {
   // Sensors
   pinMode(BUTTON_PIN, INPUT); // Button
@@ -59,6 +81,9 @@ void setup() {
   Serial.begin(9600);
   while (!Serial); // Waits for the Serial port to connect.
 
+  // Set initial state
+  currentState = IDLE;
+
   // Attach servo motors
   motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
   motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
@@ -69,8 +94,28 @@ void setup() {
 
 }
 
-// Main loop
+// ===== MAIN LOOP =====
 void loop() {
+  switch (currentState) {
+    case TEST:
+      handleTest();
+      break;
+    case IDLE:
+      handleIdle();
+      break;
+    case FOLLOW_LINE:
+      handleFollowLine();
+      break;
+    case AVOID_OBSTACLE:
+      handleAvoidObstacle();
+      break;
+  }
+}
+
+// ===== STATE HANDLERS =====
+void handleTest() {
+  // Code for testing
+  
   // read the state of the pushbutton value:
   buttonState = digitalRead(BUTTON_PIN);
 
@@ -98,4 +143,27 @@ void loop() {
     motorDriver.motorAStop();
     motorDriver.motorBStop();
   }
+}
+
+void handleIdle() {
+  // Code for handling idle state
+  /*if (conditionToStartFollowingLine) {
+    currentState = FOLLOW_LINE;
+  }*/
+}
+
+void handleFollowLine() {
+  // Code for handling line following
+  /*if (lineLost) {
+    currentState = IDLE;
+  } else if (obstacleDetected) {
+    currentState = AVOID_OBSTACLE;
+  }*/
+}
+
+void handleAvoidObstacle() {
+  // Code for handling obstacle avoidance
+  /*if (obstacleCleared) {
+    currentState = FOLLOW_LINE;
+  }*/
 }
