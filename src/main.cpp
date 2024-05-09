@@ -1,6 +1,10 @@
+// This is the main Arduino library, which provides the core functionality for Arduino.
 #include <Arduino.h>
+// This library provides an interface for controlling motors using the DRV8833 motor driver.
 #include "DRV8833.h"
+// This library provides an interface for controlling stepper motors.
 #include "Stepper.h"
+// This is the configuration file for this project. It contains definitions for various constants and settings.
 #include "config.h"
 
 // Other Global Variables
