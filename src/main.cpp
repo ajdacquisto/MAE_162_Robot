@@ -36,37 +36,21 @@ void handleTest();
 void handleIdle();
 void handleFollowLine();
 void handleAvoidObstacle();
+void initializePins();
+void initializeSerialPort();
+void attachServoMotors();
 
 // ===== MAIN SETUP =====
 void setup() {
-  // Sensors
-  pinMode(BUTTON_PIN, INPUT); // Button
-  pinMode(ENCODER_PIN_A1, INPUT_PULLUP); // Encoder A
-  pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
-  pinMode(ENCODER_PIN_B1, INPUT_PULLUP); // Encoder B
-  pinMode(ENCODER_PIN_B2, INPUT_PULLUP);
-  pinMode(LINE_SENSOR_PIN_A1, INPUT); // Line Sensor A
-  pinMode(LINE_SENSOR_PIN_A2, INPUT);
-  pinMode(LINE_SENSOR_PIN_A3, INPUT);
-  pinMode(LINE_SENSOR_PIN_B, INPUT); // Line Sensor B
-  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT); // Ultrasonic Sensor
-  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
-  // Outputs
-  pinMode(LED_PIN, OUTPUT); // LED
+  initializePins();
+  initializeSerialPort();
 
-  // Initialize Serial port
-  Serial.begin(9600);
-  while (!Serial); // Waits for the Serial port to connect.
+  currentState = IDLE; // Set initial state
 
-  // Set initial state
-  currentState = IDLE;
-
-  // Attach servo motors
-  motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
-  motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
+  attachServoMotors();
 
   // Set stepper motor speed
-  stepperMotorA.setSpeed(60);  // Set the speed to 60 RPMs
+  stepperMotorA.setSpeed(60);  // Set the speed to 60 RPM
   stepperMotorB.setSpeed(60);
 
 }
@@ -152,4 +136,30 @@ void handleAvoidObstacle() {
       changeState(FOLLOW_LINE);
     }
   }*/
+}
+
+// ===== HELPER FUNCTIONS =====
+void initializePins() {
+  pinMode(BUTTON_PIN, INPUT); // Button
+  pinMode(ENCODER_PIN_A1, INPUT_PULLUP); // Encoder A
+  pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
+  pinMode(ENCODER_PIN_B1, INPUT_PULLUP); // Encoder B
+  pinMode(ENCODER_PIN_B2, INPUT_PULLUP);
+  pinMode(LINE_SENSOR_PIN_A1, INPUT); // Line Sensor A
+  pinMode(LINE_SENSOR_PIN_A2, INPUT);
+  pinMode(LINE_SENSOR_PIN_A3, INPUT);
+  pinMode(LINE_SENSOR_PIN_B, INPUT); // Line Sensor B
+  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT); // Ultrasonic Sensor
+  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT); // LED
+}
+
+void initializeSerialPort() {
+  Serial.begin(9600); // Initialize Serial port
+  while (!Serial); // Waits for the Serial port to connect.
+}
+
+void attachServoMotors() {
+  motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
+  motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
 }
