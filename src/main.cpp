@@ -7,6 +7,8 @@
 // This is the configuration file for this project. It contains definitions for various constants and settings.
 #include "config.h"
 
+#include "Encoder.h"
+
 // Other Global Variables
 int buttonState = 0;   
 
@@ -14,6 +16,8 @@ int buttonState = 0;
 DRV8833 motorDriver = DRV8833();
 Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1, STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4);
 Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1, STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4);
+Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2);
+Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2);
 
 // ===== STATES =====
 // Define states
@@ -42,16 +46,22 @@ void attachServoMotors();
 
 // ===== MAIN SETUP =====
 void setup() {
+  Serial.println("Starting...");
+
   initializePins();
   initializeSerialPort();
 
-  currentState = IDLE; // Set initial state
+  currentState = TEST; // Set initial state
 
   attachServoMotors();
 
   // Set stepper motor speed
   stepperMotorA.setSpeed(60);  // Set the speed to 60 RPM
   stepperMotorB.setSpeed(60);
+
+  // Initilize the encoder
+  encoderA.write(0);
+  //encoderB.write(0);
 
 }
 
@@ -84,9 +94,13 @@ void handleTest() {
   // Code for testing
 
   // read the state of the pushbutton value:
-  bool buttonPressed = !digitalRead(BUTTON_PIN);  // Invert the reading here
+  buttonState = !digitalRead(BUTTON_PIN);  // Invert the reading here
 
-  Serial.println(buttonState);
+  long encoderValue = encoderA.read();
+
+  Serial.print("Encoder Value: ");
+  Serial.println(encoderValue);
+  //Serial.println(buttonState);
 
   // check if the pushbutton is pressed.
   // if it is, the buttonState is HIGH:
@@ -96,11 +110,11 @@ void handleTest() {
 
     // Move motors
     motorDriver.motorAForward();
-    motorDriver.motorBForward();
+    //motorDriver.motorBForward();
 
     // Rotate stepper motor
-    stepperMotorA.step(STEPPER_A_STEPS_PER_REVOLUTION);
-    delay(500);
+    //stepperMotorA.step(STEPPER_A_STEPS_PER_REVOLUTION);
+    
 
   } else {
     // turn LED off:
@@ -108,7 +122,8 @@ void handleTest() {
 
     // Stop motors
     motorDriver.motorAStop();
-    motorDriver.motorBStop();
+    //motorDriver.motorBStop();
+    
   }
 }
 
@@ -161,5 +176,5 @@ void initializeSerialPort() {
 
 void attachServoMotors() {
   motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
-  motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
+  //motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
 }

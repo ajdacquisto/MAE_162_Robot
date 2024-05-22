@@ -4,9 +4,9 @@
 
 // ===== SENSORS =====
 // - Button
-const int BUTTON_PIN = 0; // TODO: Define pins
+const int BUTTON_PIN = 7; // TODO: Define pins
 // - Encoder A
-const int ENCODER_PIN_A1 = 0, ENCODER_PIN_A2 = 0; // TODO: Define pins
+const int ENCODER_PIN_A1 = 2, ENCODER_PIN_A2 = 3; // TODO: Define pins
 // - Encoder B
 const int ENCODER_PIN_B1 = 0, ENCODER_PIN_B2 = 0; // TODO: Define pins
 // - Line Sensor A (front)
@@ -20,7 +20,7 @@ const int ULTRASONIC_TRIG_PIN = 0, ULTRASONIC_ECHO_PIN = 0; // TODO: Define pins
 // - LED
 const int LED_PIN = LED_BUILTIN;
 // - Servo Motor A
-const int SERVO_PIN_A1 = 0, SERVO_PIN_A2 = 0; // TODO: Define pins
+const int SERVO_PIN_A1 = 11, SERVO_PIN_A2 = 12; // TODO: Define pins
 // - Servo Motor B
 const int SERVO_PIN_B1 = 0, SERVO_PIN_B2 = 0; // TODO: Define pins
 // - Stepper Motor A
