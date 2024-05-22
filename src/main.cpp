@@ -82,9 +82,9 @@ void changeState(State newState, unsigned long duration = 0) {
 
 void handleTest() {
   // Code for testing
-  
+
   // read the state of the pushbutton value:
-  buttonState = digitalRead(BUTTON_PIN);
+  bool buttonPressed = !digitalRead(BUTTON_PIN);  // Invert the reading here
 
   Serial.println(buttonState);
 
@@ -140,7 +140,7 @@ void handleAvoidObstacle() {
 
 // ===== HELPER FUNCTIONS =====
 void initializePins() {
-  pinMode(BUTTON_PIN, INPUT); // Button
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // Button
   pinMode(ENCODER_PIN_A1, INPUT_PULLUP); // Encoder A
   pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
   pinMode(ENCODER_PIN_B1, INPUT_PULLUP); // Encoder B
