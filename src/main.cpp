@@ -59,6 +59,8 @@ void attachServoMotors();
 void zeroEncoders();
 void turnLED(LEDState state);
 ButtonState getButtonState();
+void rotateStepperA(int degrees);
+void rotateStepperB(int degrees);
 
 // ===== MAIN SETUP =====
 void setup()
@@ -73,8 +75,8 @@ void setup()
   attachServoMotors();
 
   // Set stepper motor speed
-  stepperMotorA.setSpeed(60); // Set the speed to 60 RPM
-  stepperMotorB.setSpeed(60);
+  stepperMotorA.setSpeed(20); // Set the speed to 60 RPM
+  stepperMotorB.setSpeed(20);
 
   // Zero the encoders
   zeroEncoders();
@@ -119,10 +121,11 @@ void handleTest()
   long encoderValueA = encoderA.read();
   long encoderValueB = encoderB.read();
 
-  Serial.print("Encoder Value: ");
-  Serial.print(encoderValueA);
-  Serial.print(", ");
-  Serial.println(encoderValueB);
+  //Serial.print("Encoder Value: ");
+  //Serial.print(encoderValueA);
+  //Serial.print(", ");
+  //Serial.println(encoderValueB);
+  
   // Serial.println(buttonState);
 
   // check if the pushbutton is pressed.
@@ -135,8 +138,9 @@ void handleTest()
     motorDriver.motorAForward();
     motorDriver.motorBForward();
 
-    // Rotate stepper motor
-    // stepperMotorA.step(STEPPER_A_STEPS_PER_REVOLUTION);
+    // Rotate stepper motor by number of degrees
+    //rotateStepperA(360);
+    rotateStepperB(9);
   }
   else
   {
@@ -219,5 +223,15 @@ void turnLED(LEDState state)
 
 ButtonState getButtonState()
 {
-  return !digitalRead(BUTTON_PIN) == HIGH ? PRESSED : UNPRESSED;
+  return (!digitalRead(BUTTON_PIN)) == HIGH ? PRESSED : UNPRESSED;
+}
+
+void rotateStepperA(int degrees)
+{
+  stepperMotorA.step(degrees / 360.0 * STEPPER_A_STEPS_PER_REVOLUTION);
+}
+
+void rotateStepperB(int degrees)
+{
+  stepperMotorB.step(degrees / 360.0 * STEPPER_B_STEPS_PER_REVOLUTION);
 }
