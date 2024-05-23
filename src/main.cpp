@@ -1,24 +1,27 @@
-// This is the main Arduino library, which provides the core functionality for Arduino.
+// This is the main Arduino library, which provides the core functionality for
+// Arduino.
 #include <Arduino.h>
-// This library provides an interface for controlling motors using the DRV8833 motor driver.
+// This library provides an interface for controlling motors using the DRV8833
+// motor driver.
 #include "DRV8833.h"
 // This library provides an interface for controlling stepper motors.
 #include "Stepper.h"
-// This is the configuration file for this project. It contains definitions for various constants and settings.
+// This is the configuration file for this project. It contains definitions for
+// various constants and settings.
 #include "config.h"
 // This library provides an interface for reading rotary encoders.
 #include "Encoder.h"
 // This library provides an interface for managing the state of the system.
 #include "SystemStateHandler.h"
-
+// This library provides an interface for reading line sensors.
 #include "MovingAverageSensor.h"
-
-#define BUFFER_SIZE 10
 
 // ===== GLOBAL VARIABLES =====
 DRV8833 motorDriver = DRV8833();
-Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1, STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4);
-Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1, STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4);
+Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1,
+                      STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4);
+Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1,
+                      STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4);
 Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2);
 Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2);
 SystemStateHandler systemStateHandler = SystemStateHandler();
@@ -28,17 +31,9 @@ MovingAverageSensor lineSensorA3(LINE_SENSOR_PIN_A3);
 MovingAverageSensor lineSensorB(LINE_SENSOR_PIN_B);
 
 // ===== ENUMS =====
-enum LEDState
-{
-  OFF = LOW,
-  ON = HIGH
-};
+enum LEDState { OFF = LOW, ON = HIGH };
 
-enum ButtonState
-{
-  PRESSED = HIGH,
-  UNPRESSED = LOW
-};
+enum ButtonState { PRESSED = HIGH, UNPRESSED = LOW };
 
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
@@ -61,8 +56,7 @@ void rotateStepperAsteps(int steps);
 void rotateStepperBsteps(int steps);
 
 // ===== MAIN SETUP =====
-void setup()
-{
+void setup() {
   Serial.println("Starting...");
 
   delay(1000);
@@ -77,10 +71,8 @@ void setup()
 }
 
 // ===== MAIN LOOP =====
-void loop()
-{
-  switch (systemStateHandler.getCurrentState())
-  {
+void loop() {
+  switch (systemStateHandler.getCurrentState()) {
   case SystemState::TEST:
     handleTest();
     break;
@@ -103,8 +95,7 @@ void loop()
 }
 
 // ===== OTHER FUNCTIONS =====
-void handleTest()
-{
+void handleTest() {
   // Code for testing
 
   // read the state of the encoder value:
@@ -121,97 +112,71 @@ void handleTest()
   Serial.print(millis() - myTimerStart);
   Serial.print(", ");
 
-  if (getButtonState() == PRESSED)
-  {
+  if (getButtonState() == PRESSED) {
     turnLED(ON);
     logError("Button pressed");
-  }
-  else
-  {
+  } else {
     turnLED(OFF);
 
-    if (millis() - myTimerStart < 1000)
-    {
+    if (millis() - myTimerStart < 1000) {
       Serial.print("Motor A Forward");
       // Test motor A (right) FORWARD
       motorDriver.motorAForward();
       motorDriver.motorBStop();
-    }
-    else if (millis() - myTimerStart < 2000) 
-    {
+    } else if (millis() - myTimerStart < 2000) {
       Serial.print("Motor A Reverse");
       // Test motor A (right) REVERSE
       motorDriver.motorAReverse();
       motorDriver.motorBStop();
-    }
-    else if (millis() - myTimerStart < 3000)
-    {
+    } else if (millis() - myTimerStart < 3000) {
       Serial.print("Motor B Forward");
       // Test motor B (left) FORWARD
       motorDriver.motorBForward();
       motorDriver.motorAStop();
-    }
-    else if (millis() - myTimerStart < 4000)
-    {
+    } else if (millis() - myTimerStart < 4000) {
       Serial.print("Motor B Reverse");
       // Test motor B (left) REVERSE
       motorDriver.motorBReverse();
       motorDriver.motorAStop();
-    }
-    else if (millis() - myTimerStart < 9000)
-    {
+    } else if (millis() - myTimerStart < 9000) {
       Serial.print("Stepper A Forward");
       // Test stepper A (four-bar) FORWARD
       servosOff();
       rotateStepperAsteps(1);
-    }
-    else if (millis() - myTimerStart < 14000)
-    {
+    } else if (millis() - myTimerStart < 14000) {
       Serial.print("Stepper A Reverse");
       // Test stepper A (four-bar) REVERSE
       servosOff();
       rotateStepperAsteps(-1);
-    }
-    else if (millis() - myTimerStart < 16000)
-    {
+    } else if (millis() - myTimerStart < 16000) {
       Serial.print("Stepper B Forward");
       // Test stepper B (lift) FORWARD
       servosOff();
       rotateStepperBsteps(1);
-    }
-    else if (millis() - myTimerStart < 18000)
-    {
+    } else if (millis() - myTimerStart < 18000) {
       Serial.print("Stepper B Reverse");
       // Test stepper B (lift) REVERSE
       servosOff();
       rotateStepperBsteps(-1);
-    }
-    else
-    {
-        Serial.print("Resetting...");
-        delay(5000);
-        myTimerStart = millis();
+    } else {
+      Serial.print("Resetting...");
+      delay(5000);
+      myTimerStart = millis();
     }
   }
   Serial.println();
-
 }
 
-void handleIdle()
-{
+void handleIdle() {
   servosOff();
-  if (getButtonState() == PRESSED)
-  {
+  if (getButtonState() == PRESSED) {
     turnLED(ON);
-  }
-  else
-  {
+  } else {
     turnLED(OFF);
   }
 }
 
-void handlePIDEncoderDrive()
-{
+void handlePIDEncoderDrive() {
   // PID parameters
   float Kp = 1.0;
   float Ki = 0.0;
@@ -223,22 +188,22 @@ void handlePIDEncoderDrive()
   // Read encoder values
   long encoderValueA = encoderA.read();
   long encoderValueB = encoderB.read();
-  
+
   // Calculate error
   long error = encoderValueA - encoderValueB;
-  
+
   // PID control
   integral += error;
   float derivative = error - previousError;
   float output = Kp * error + Ki * integral + Kd * derivative;
-  
+
   // Adjust motor speeds
   int motorSpeedA = constrain(255 - output, 0, 255);
   int motorSpeedB = constrain(255 + output, 0, 255);
-  
+
   motorDriver.motorAForward(motorSpeedA);
   motorDriver.motorBForward(motorSpeedB);
-  
+
   // Debugging output
   Serial.print("Left: ");
   Serial.print(encoderValueA);
@@ -246,16 +211,15 @@ void handlePIDEncoderDrive()
   Serial.print(encoderValueB);
   Serial.print(" Error: ");
   Serial.println(error);
-  
+
   // Update previous error
   previousError = error;
-  
+
   // Short delay to avoid overwhelming the microcontroller
   delay(100);
 }
 
-void handleIRIdle()
-{
+void handleIRIdle() {
   // Read the sensor values
   lineSensorA1.read();
   lineSensorA2.read();
@@ -280,30 +244,24 @@ void handleIRIdle()
   servosOff();
 }
 
-void handleFollowLine()
-{
-  /*if (millis() - lastStateChangeTime > stateDuration) {  // Ensure at least stateDuration has passed
-    if (lineLost) {
-      changeState(IDLE);
-    } else if (obstacleDetected) {
-      changeState(AVOID_OBSTACLE);
+void handleFollowLine() {
+  /*if (millis() - lastStateChangeTime > stateDuration) {  // Ensure at least
+  stateDuration has passed if (lineLost) { changeState(IDLE); } else if
+  (obstacleDetected) { changeState(AVOID_OBSTACLE);
     }
   }*/
 }
 
-void handleAvoidObstacle()
-{
+void handleAvoidObstacle() {
   /*// Assume we need to avoid obstacles for a minimum of 3 seconds
-  if (millis() - lastStateChangeTime > 3000) {  // Stay in AVOID_OBSTACLE for at least 3000 ms
-    if (obstacleCleared) {
-      changeState(FOLLOW_LINE);
+  if (millis() - lastStateChangeTime > 3000) {  // Stay in AVOID_OBSTACLE for at
+  least 3000 ms if (obstacleCleared) { changeState(FOLLOW_LINE);
     }
   }*/
 }
 
 // ===== HELPER FUNCTIONS =====
-void initializePins()
-{
+void initializePins() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);     // Button
   pinMode(ENCODER_PIN_A1, INPUT_PULLUP); // Encoder A
   pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
@@ -318,57 +276,41 @@ void initializePins()
   pinMode(LED_PIN, OUTPUT); // LED
 }
 
-void initializeSerialPort()
-{
+void initializeSerialPort() {
   Serial.begin(9600); // Initialize Serial port
   while (!Serial)
     ; // Waits for the Serial port to connect.
 }
 
-void attachServoMotors()
-{
+void attachServoMotors() {
   motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
   motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
 }
 
-void zeroEncoders()
-{
+void zeroEncoders() {
   encoderA.write(0);
   encoderB.write(0);
 }
 
-void turnLED(LEDState state)
-{
-  digitalWrite(LED_PIN, state);
-}
+void turnLED(LEDState state) { digitalWrite(LED_PIN, state); }
 
-ButtonState getButtonState()
-{
+ButtonState getButtonState() {
   return (!digitalRead(BUTTON_PIN)) == HIGH ? PRESSED : UNPRESSED;
 }
 
-void rotateStepperAdeg(int degrees)
-{
+void rotateStepperAdeg(int degrees) {
   stepperMotorA.step(degrees / 360.0 * STEPPER_A_STEPS_PER_REVOLUTION);
 }
 
-void rotateStepperBdeg(int degrees)
-{
+void rotateStepperBdeg(int degrees) {
   stepperMotorB.step(degrees / 360.0 * STEPPER_B_STEPS_PER_REVOLUTION);
 }
 
-void rotateStepperAsteps(int steps)
-{
-  stepperMotorA.step(steps);
-}
+void rotateStepperAsteps(int steps) { stepperMotorA.step(steps); }
 
-void rotateStepperBsteps(int steps)
-{
-  stepperMotorB.step(steps);
-}
+void rotateStepperBsteps(int steps) { stepperMotorB.step(steps); }
 
-void logError(const char *message)
-{
+void logError(const char *message) {
   systemStateHandler.changeState(SystemState::IDLE);
   turnLED(ON);
   servosOff();
@@ -377,14 +319,12 @@ void logError(const char *message)
     ; // Stop the program
 }
 
-void setStepperMotorSpeedsToMax()
-{
+void setStepperMotorSpeedsToMax() {
   stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED);
   stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
 }
 
-void servosOff()
-{
+void servosOff() {
   motorDriver.motorAStop();
   motorDriver.motorBStop();
 }
