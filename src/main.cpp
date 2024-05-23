@@ -108,7 +108,7 @@ void handleTest()
 
     //motorDriver.motorAForward();
     //motorDriver.motorBForward();
-    rotateStepperAsteps(1);
+    rotateStepperAdeg(360);
     //rotateStepperBdeg(9);
   }
   else
