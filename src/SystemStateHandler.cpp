@@ -2,7 +2,7 @@
 #include <Arduino.h> // Add missing include directive
 
 SystemStateHandler::SystemStateHandler() {
-    currentState = SystemState::TEST;
+    currentState = SystemState::IDLE;
 }
 
 void SystemStateHandler::changeState(SystemState::State newState, unsigned long duration) {

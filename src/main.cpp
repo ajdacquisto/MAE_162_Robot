@@ -61,6 +61,8 @@ void setup()
   attachServoMotors();
   setStepperMotorSpeedsToMax();
   zeroEncoders();
+
+  systemStateHandler.changeState(SystemState::TEST);
 }
 
 // ===== MAIN LOOP =====
