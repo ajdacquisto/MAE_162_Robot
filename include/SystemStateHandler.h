@@ -9,7 +9,8 @@ namespace SystemState
     TEST,
     IDLE,
     FOLLOW_LINE,
-    AVOID_OBSTACLE
+    AVOID_OBSTACLE,
+    IR_IDLE
   };
 }
 

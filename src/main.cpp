@@ -11,6 +11,10 @@
 // This library provides an interface for managing the state of the system.
 #include "SystemStateHandler.h"
 
+#include "MovingAverageSensor.h"
+
+#define BUFFER_SIZE 10
+
 // ===== GLOBAL VARIABLES =====
 DRV8833 motorDriver = DRV8833();
 Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1, STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4);
@@ -18,6 +22,10 @@ Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1, STEPPER_PI
 Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2);
 Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2);
 SystemStateHandler systemStateHandler = SystemStateHandler();
+MovingAverageSensor lineSensorA1(LINE_SENSOR_PIN_A1);
+MovingAverageSensor lineSensorA2(LINE_SENSOR_PIN_A2);
+MovingAverageSensor lineSensorA3(LINE_SENSOR_PIN_A3);
+MovingAverageSensor lineSensorB(LINE_SENSOR_PIN_B);
 
 // ===== ENUMS =====
 enum LEDState
@@ -35,6 +43,7 @@ enum ButtonState
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
+void handleIRIdle();
 void handleFollowLine();
 void handleAvoidObstacle();
 void initializePins();
@@ -64,7 +73,7 @@ void setup()
   setStepperMotorSpeedsToMax();
   zeroEncoders();
 
-  systemStateHandler.changeState(SystemState::TEST);
+  systemStateHandler.changeState(SystemState::IR_IDLE);
 }
 
 // ===== MAIN LOOP =====
@@ -83,6 +92,9 @@ void loop()
     break;
   case SystemState::AVOID_OBSTACLE:
     handleAvoidObstacle();
+    break;
+  case SystemState::IR_IDLE:
+    handleIRIdle();
     break;
   default:
     logError("Invalid state");
@@ -113,10 +125,6 @@ void handleTest()
   {
     turnLED(ON);
     logError("Button pressed");
-    //motorDriver.motorAForward();
-    //motorDriver.motorBForward();
-    //rotateStepperAdeg(360);
-    //rotateStepperBdeg(9);
   }
   else
   {
@@ -150,28 +158,28 @@ void handleTest()
       motorDriver.motorBReverse();
       motorDriver.motorAStop();
     }
-    else if (millis() - myTimerStart < 6000)
+    else if (millis() - myTimerStart < 9000)
     {
       Serial.print("Stepper A Forward");
       // Test stepper A (four-bar) FORWARD
       servosOff();
       rotateStepperAsteps(1);
     }
-    else if (millis() - myTimerStart < 8000)
+    else if (millis() - myTimerStart < 14000)
     {
       Serial.print("Stepper A Reverse");
       // Test stepper A (four-bar) REVERSE
       servosOff();
       rotateStepperAsteps(-1);
     }
-    else if (millis() - myTimerStart < 10000)
+    else if (millis() - myTimerStart < 16000)
     {
       Serial.print("Stepper B Forward");
       // Test stepper B (lift) FORWARD
       servosOff();
       rotateStepperBsteps(1);
     }
-    else if (millis() - myTimerStart < 12000)
+    else if (millis() - myTimerStart < 18000)
     {
       Serial.print("Stepper B Reverse");
       // Test stepper B (lift) REVERSE
@@ -191,18 +199,10 @@ void handleTest()
 
 void handleIdle()
 {
-  /*if (conditionToStartFollowingLine) {
-    changeState(FOLLOW_LINE, 5000);  // Stay in FOLLOW_LINE for at least 5000 ms
-  }*/
-
   servosOff();
-
   if (getButtonState() == PRESSED)
   {
     turnLED(ON);
-    //rotateStepperAsteps(1);
-    motorDriver.motorBForward();
-    //delay(100);
   }
   else
   {
@@ -252,6 +252,32 @@ void handlePIDEncoderDrive()
   
   // Short delay to avoid overwhelming the microcontroller
   delay(100);
+}
+
+void handleIRIdle()
+{
+  // Read the sensor values
+  lineSensorA1.read();
+  lineSensorA2.read();
+  lineSensorA3.read();
+  lineSensorB.read();
+
+  // Calculate the averages
+  int avgA1 = lineSensorA1.average();
+  int avgA2 = lineSensorA2.average();
+  int avgA3 = lineSensorA3.average();
+  int avgB = lineSensorB.average();
+
+  Serial.print("Line sensor: ");
+  Serial.print(avgA1);
+  Serial.print(", ");
+  Serial.print(avgA2);
+  Serial.print(", ");
+  Serial.print(avgA3);
+  Serial.print(", ");
+  Serial.println(avgB);
+
+  servosOff();
 }
 
 void handleFollowLine()
