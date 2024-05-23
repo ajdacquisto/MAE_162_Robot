@@ -56,6 +56,8 @@ void setup()
 {
   Serial.println("Starting...");
 
+  delay(1000);
+
   initializePins();
   initializeSerialPort();
   attachServoMotors();
@@ -94,28 +96,97 @@ void handleTest()
   // Code for testing
 
   // read the state of the encoder value:
-  long encoderValueA = encoderA.read();
+  /*long encoderValueA = encoderA.read();
   long encoderValueB = encoderB.read();
 
   Serial.print("Encoder Value: ");
   Serial.print(encoderValueA);
   Serial.print(", ");
-  Serial.println(encoderValueB);
+  Serial.println(encoderValueB);*/
+
+  static unsigned long myTimerStart = millis();
+  Serial.print("Time: ");
+  Serial.print(millis() - myTimerStart);
+  Serial.print(", ");
 
   if (getButtonState() == PRESSED)
   {
     turnLED(ON);
-
+    logError("Button pressed");
     //motorDriver.motorAForward();
     //motorDriver.motorBForward();
-    rotateStepperAdeg(360);
+    //rotateStepperAdeg(360);
     //rotateStepperBdeg(9);
   }
   else
   {
     turnLED(OFF);
-    servosOff();
+
+    if (millis() - myTimerStart < 1000)
+    {
+      Serial.print("Motor A Forward");
+      // Test motor A (right) FORWARD
+      motorDriver.motorAForward();
+      motorDriver.motorBStop();
+    }
+    else if (millis() - myTimerStart < 2000) 
+    {
+      Serial.print("Motor A Reverse");
+      // Test motor A (right) REVERSE
+      motorDriver.motorAReverse();
+      motorDriver.motorBStop();
+    }
+    else if (millis() - myTimerStart < 3000)
+    {
+      Serial.print("Motor B Forward");
+      // Test motor B (left) FORWARD
+      motorDriver.motorBForward();
+      motorDriver.motorAStop();
+    }
+    else if (millis() - myTimerStart < 4000)
+    {
+      Serial.print("Motor B Reverse");
+      // Test motor B (left) REVERSE
+      motorDriver.motorBReverse();
+      motorDriver.motorAStop();
+    }
+    else if (millis() - myTimerStart < 6000)
+    {
+      Serial.print("Stepper A Forward");
+      // Test stepper A (four-bar) FORWARD
+      servosOff();
+      rotateStepperAsteps(1);
+    }
+    else if (millis() - myTimerStart < 8000)
+    {
+      Serial.print("Stepper A Reverse");
+      // Test stepper A (four-bar) REVERSE
+      servosOff();
+      rotateStepperAsteps(-1);
+    }
+    else if (millis() - myTimerStart < 10000)
+    {
+      Serial.print("Stepper B Forward");
+      // Test stepper B (lift) FORWARD
+      servosOff();
+      rotateStepperBsteps(1);
+    }
+    else if (millis() - myTimerStart < 12000)
+    {
+      Serial.print("Stepper B Reverse");
+      // Test stepper B (lift) REVERSE
+      servosOff();
+      rotateStepperBsteps(-1);
+    }
+    else
+    {
+        Serial.print("Resetting...");
+        delay(5000);
+        myTimerStart = millis();
+    }
   }
+  Serial.println();
+
 }
 
 void handleIdle()
@@ -273,6 +344,8 @@ void rotateStepperBsteps(int steps)
 void logError(const char *message)
 {
   systemStateHandler.changeState(SystemState::IDLE);
+  turnLED(ON);
+  servosOff();
   Serial.println(message);
   while (true)
     ; // Stop the program

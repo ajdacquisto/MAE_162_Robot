@@ -14,3 +14,9 @@ void SystemStateHandler::changeState(SystemState::State newState, unsigned long 
 SystemState::State SystemStateHandler::getCurrentState() {
     return currentState;
 }
+
+unsigned long SystemStateHandler::getLastStateChangeTime() {
+    return lastStateChangeTime;
+}
+
+
