@@ -27,6 +27,8 @@ const int SERVO_PIN_B1 = 9, SERVO_PIN_B2 = 10; // TODO: Define pins
 // - Stepper Motor A (four-bar)
 const int STEPPER_PIN_A1 = 40, STEPPER_PIN_A2 = 41, STEPPER_PIN_A3 = 42, STEPPER_PIN_A4 = 43; // TODO: Define pins
 const int STEPPER_A_STEPS_PER_REVOLUTION = 200;  // TODO: Set this value
+const int STEPPER_A_MAX_SPEED = 30;  // TODO: Set this value
 // - Stepper Motor B (lift)
 const int STEPPER_PIN_B1 = 30, STEPPER_PIN_B2 = 31, STEPPER_PIN_B3 = 32, STEPPER_PIN_B4 = 33; // TODO: Define pins
 const int STEPPER_B_STEPS_PER_REVOLUTION = 200;  // TODO: Set this value
+const int STEPPER_B_MAX_SPEED = 9;  // TODO: Set this value

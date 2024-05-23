@@ -6,29 +6,20 @@
 #include "Stepper.h"
 // This is the configuration file for this project. It contains definitions for various constants and settings.
 #include "config.h"
-
+// This library provides an interface for reading rotary encoders.
 #include "Encoder.h"
+// This library provides an interface for managing the state of the system.
+#include "SystemStateHandler.h"
 
-// Other Global Variables
-int buttonState = 0;
-
-// Objects
+// ===== GLOBAL VARIABLES =====
 DRV8833 motorDriver = DRV8833();
 Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1, STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4);
 Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1, STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4);
 Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2);
 Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2);
+SystemStateHandler systemStateHandler = SystemStateHandler();
 
-// ===== STATES =====
-// Define states
-enum State
-{
-  TEST,
-  IDLE,
-  FOLLOW_LINE,
-  AVOID_OBSTACLE
-};
-
+// ===== ENUMS =====
 enum LEDState
 {
   OFF = LOW,
@@ -40,13 +31,6 @@ enum ButtonState
   PRESSED = HIGH,
   UNPRESSED = LOW
 };
-
-// Current state variable
-State currentState = IDLE;
-
-// ===== TIME CONTROL =====
-unsigned long lastStateChangeTime = 0; // Tracks the last time the state changed
-unsigned long stateDuration = 0;       // Duration to stay in a particular state, if necessary
 
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
@@ -61,6 +45,7 @@ void turnLED(LEDState state);
 ButtonState getButtonState();
 void rotateStepperA(int degrees);
 void rotateStepperB(int degrees);
+void logError(const char *message);
 
 // ===== MAIN SETUP =====
 void setup()
@@ -70,13 +55,11 @@ void setup()
   initializePins();
   initializeSerialPort();
 
-  currentState = TEST; // Set initial state
-
   attachServoMotors();
 
   // Set stepper motor speed
-  stepperMotorA.setSpeed(20); // Set the speed to 60 RPM
-  stepperMotorB.setSpeed(20);
+  stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED); // Set the speed to 60 RPM
+  stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
 
   // Zero the encoders
   zeroEncoders();
@@ -85,31 +68,27 @@ void setup()
 // ===== MAIN LOOP =====
 void loop()
 {
-  switch (currentState)
+  switch (systemStateHandler.getCurrentState())
   {
-  case TEST:
+  case SystemState::TEST:
     handleTest();
     break;
-  case IDLE:
+  case SystemState::IDLE:
     handleIdle();
     break;
-  case FOLLOW_LINE:
+  case SystemState::FOLLOW_LINE:
     handleFollowLine();
     break;
-  case AVOID_OBSTACLE:
+  case SystemState::AVOID_OBSTACLE:
     handleAvoidObstacle();
+    break;
+  default:
+    logError("Invalid state");
     break;
   }
 }
 
-// ===== STATE HANDLERS =====
-void changeState(State newState, unsigned long duration = 0)
-{
-  currentState = newState;
-  lastStateChangeTime = millis();
-  stateDuration = duration; // If you want a state to last a minimum amount of time, use this
-}
-
+// ===== OTHER FUNCTIONS =====
 void handleTest()
 {
   // Code for testing
@@ -121,11 +100,11 @@ void handleTest()
   long encoderValueA = encoderA.read();
   long encoderValueB = encoderB.read();
 
-  //Serial.print("Encoder Value: ");
-  //Serial.print(encoderValueA);
-  //Serial.print(", ");
-  //Serial.println(encoderValueB);
-  
+  // Serial.print("Encoder Value: ");
+  // Serial.print(encoderValueA);
+  // Serial.print(", ");
+  // Serial.println(encoderValueB);
+
   // Serial.println(buttonState);
 
   // check if the pushbutton is pressed.
@@ -139,7 +118,7 @@ void handleTest()
     motorDriver.motorBForward();
 
     // Rotate stepper motor by number of degrees
-    //rotateStepperA(360);
+    // rotateStepperA(360);
     rotateStepperB(9);
   }
   else
@@ -234,4 +213,12 @@ void rotateStepperA(int degrees)
 void rotateStepperB(int degrees)
 {
   stepperMotorB.step(degrees / 360.0 * STEPPER_B_STEPS_PER_REVOLUTION);
+}
+
+void logError(const char *message)
+{
+  systemStateHandler.changeState(SystemState::IDLE);
+  Serial.println(message);
+  while (true)
+    ; // Stop the program
 }
