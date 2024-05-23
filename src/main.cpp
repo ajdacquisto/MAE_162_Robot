@@ -17,23 +17,25 @@
 #include "MovingAverageSensor.h"
 
 // ===== GLOBAL VARIABLES =====
-DRV8833 motorDriver = DRV8833();
+DRV8833 motorDriver = DRV8833(); // Motor driver
 Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1,
-                      STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4);
+                      STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4); // Stepper motor A (four-bar)
 Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1,
-                      STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4);
-Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2);
-Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2);
-SystemStateHandler systemStateHandler = SystemStateHandler();
-MovingAverageSensor lineSensorA1(LINE_SENSOR_PIN_A1);
-MovingAverageSensor lineSensorA2(LINE_SENSOR_PIN_A2);
-MovingAverageSensor lineSensorA3(LINE_SENSOR_PIN_A3);
-MovingAverageSensor lineSensorB(LINE_SENSOR_PIN_B);
+                      STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4); // Stepper motor B (lift)
+Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2); // Encoder A
+Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2); // Encoder B
+SystemStateHandler systemStateHandler = SystemStateHandler(); // System state handler
+MovingAverageSensor lineSensorA1(LINE_SENSOR_PIN_A1); // Line sensor A1
+MovingAverageSensor lineSensorA2(LINE_SENSOR_PIN_A2); // Line sensor A2
+MovingAverageSensor lineSensorA3(LINE_SENSOR_PIN_A3); // Line sensor A3
+MovingAverageSensor lineSensorB1(LINE_SENSOR_PIN_B1); // Line sensor B1
+MovingAverageSensor lineSensorB2(LINE_SENSOR_PIN_B2); // Line sensor B2
+MovingAverageSensor lineSensorB3(LINE_SENSOR_PIN_B3); // Line sensor B3
 
 // ===== ENUMS =====
-enum LEDState { OFF = LOW, ON = HIGH };
+enum LED_STATE { OFF = LOW, ON = HIGH };
 
-enum ButtonState { PRESSED = HIGH, UNPRESSED = LOW };
+enum BUTTON_STATE { PRESSED = HIGH, UNPRESSED = LOW };
 
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
@@ -45,8 +47,8 @@ void initializePins();
 void initializeSerialPort();
 void attachServoMotors();
 void zeroEncoders();
-void turnLED(LEDState state);
-ButtonState getButtonState();
+void turnLED(LED_STATE state);
+BUTTON_STATE getBUTTON_STATE();
 void rotateStepperAdeg(int degrees);
 void rotateStepperBdeg(int degrees);
 void logError(const char *message);
@@ -112,7 +114,7 @@ void handleTest() {
   Serial.print(millis() - myTimerStart);
   Serial.print(", ");
 
-  if (getButtonState() == PRESSED) {
+  if (getBUTTON_STATE() == PRESSED) {
     turnLED(ON);
     logError("Button pressed");
   } else {
@@ -169,7 +171,7 @@ void handleTest() {
 
 void handleIdle() {
   servosOff();
-  if (getButtonState() == PRESSED) {
+  if (getBUTTON_STATE() == PRESSED) {
     turnLED(ON);
   } else {
     turnLED(OFF);
@@ -224,13 +226,17 @@ void handleIRIdle() {
   lineSensorA1.read();
   lineSensorA2.read();
   lineSensorA3.read();
-  lineSensorB.read();
+  lineSensorB1.read();
+  lineSensorB2.read();
+  lineSensorB3.read();
 
   // Calculate the averages
   int avgA1 = lineSensorA1.average();
   int avgA2 = lineSensorA2.average();
   int avgA3 = lineSensorA3.average();
-  int avgB = lineSensorB.average();
+  int avgB1 = lineSensorB1.average();
+  int avgB2 = lineSensorB2.average();
+  int avgB3 = lineSensorB3.average();
 
   Serial.print("Line sensor: ");
   Serial.print(avgA1);
@@ -238,8 +244,12 @@ void handleIRIdle() {
   Serial.print(avgA2);
   Serial.print(", ");
   Serial.print(avgA3);
+  Serial.print("; ");
+  Serial.print(avgB1);
   Serial.print(", ");
-  Serial.println(avgB);
+  Serial.print(avgB2);
+  Serial.print(", ");
+  Serial.println(avgB3);
 
   servosOff();
 }
@@ -270,7 +280,9 @@ void initializePins() {
   pinMode(LINE_SENSOR_PIN_A1, INPUT); // Line Sensor A
   pinMode(LINE_SENSOR_PIN_A2, INPUT);
   pinMode(LINE_SENSOR_PIN_A3, INPUT);
-  pinMode(LINE_SENSOR_PIN_B, INPUT);    // Line Sensor B
+  pinMode(LINE_SENSOR_PIN_B1, INPUT);    // Line Sensor B
+  pinMode(LINE_SENSOR_PIN_B2, INPUT);
+  pinMode(LINE_SENSOR_PIN_B3, INPUT);
   pinMode(ULTRASONIC_TRIG_PIN, OUTPUT); // Ultrasonic Sensor
   pinMode(ULTRASONIC_ECHO_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT); // LED
@@ -292,9 +304,9 @@ void zeroEncoders() {
   encoderB.write(0);
 }
 
-void turnLED(LEDState state) { digitalWrite(LED_PIN, state); }
+void turnLED(LED_STATE state) { digitalWrite(LED_PIN, state); }
 
-ButtonState getButtonState() {
+BUTTON_STATE getBUTTON_STATE() {
   return (!digitalRead(BUTTON_PIN)) == HIGH ? PRESSED : UNPRESSED;
 }
 

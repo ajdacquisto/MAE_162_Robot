@@ -12,7 +12,8 @@ const int ENCODER_PIN_B1 = 20, ENCODER_PIN_B2 = 21; // TODO: Define pins
 // - Line Sensor A (front)
 const int LINE_SENSOR_PIN_A1 = A0, LINE_SENSOR_PIN_A2 = A1, LINE_SENSOR_PIN_A3 = A2; // TODO: Define pins
 // - Line Sensor B (side)
-const int LINE_SENSOR_PIN_B = A3; // TODO: Define pins
+//const int LINE_SENSOR_PIN_B = A3; // TODO: Define pins
+const int LINE_SENSOR_PIN_B1 = A3, LINE_SENSOR_PIN_B2 = A4, LINE_SENSOR_PIN_B3 = A5; // TODO: Define pins
 // - Ultrasonic Sensor
 const int ULTRASONIC_TRIG_PIN = 0, ULTRASONIC_ECHO_PIN = 0; // TODO: Define pins
 
