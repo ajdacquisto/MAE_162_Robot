@@ -19,9 +19,9 @@ const int ULTRASONIC_TRIG_PIN = 0, ULTRASONIC_ECHO_PIN = 0; // TODO: Define pins
 // ===== OUTPUTS =====
 // - LED
 const int LED_PIN = LED_BUILTIN;
-// - Servo Motor A
+// - Servo Motor A (right)
 const int SERVO_PIN_A1 = 11, SERVO_PIN_A2 = 12; // TODO: Define pins
-// - Servo Motor B
+// - Servo Motor B (left)
 const int SERVO_PIN_B1 = 9, SERVO_PIN_B2 = 10; // TODO: Define pins
 
 // - Stepper Motor A (four-bar)

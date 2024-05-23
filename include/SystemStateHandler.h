@@ -23,6 +23,7 @@ public:
   SystemStateHandler();  // constructor declaration
   void changeState(SystemState::State newState, unsigned long duration = 0);  // method declaration
   SystemState::State getCurrentState();  // method declaration
+  
   // Add other methods to get the state if necessary
 };
 

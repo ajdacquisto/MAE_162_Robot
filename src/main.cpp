@@ -43,9 +43,13 @@ void attachServoMotors();
 void zeroEncoders();
 void turnLED(LEDState state);
 ButtonState getButtonState();
-void rotateStepperA(int degrees);
-void rotateStepperB(int degrees);
+void rotateStepperAdeg(int degrees);
+void rotateStepperBdeg(int degrees);
 void logError(const char *message);
+void setStepperMotorSpeedsToMax();
+void servosOff();
+void rotateStepperAsteps(int steps);
+void rotateStepperBsteps(int steps);
 
 // ===== MAIN SETUP =====
 void setup()
@@ -54,14 +58,8 @@ void setup()
 
   initializePins();
   initializeSerialPort();
-
   attachServoMotors();
-
-  // Set stepper motor speed
-  stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED); // Set the speed to 60 RPM
-  stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
-
-  // Zero the encoders
+  setStepperMotorSpeedsToMax();
   zeroEncoders();
 }
 
@@ -93,41 +91,28 @@ void handleTest()
 {
   // Code for testing
 
-  // read the state of the pushbutton value:
-  ButtonState buttonState = getButtonState();
-
   // read the state of the encoder value:
   long encoderValueA = encoderA.read();
   long encoderValueB = encoderB.read();
 
-  // Serial.print("Encoder Value: ");
-  // Serial.print(encoderValueA);
-  // Serial.print(", ");
-  // Serial.println(encoderValueB);
+  Serial.print("Encoder Value: ");
+  Serial.print(encoderValueA);
+  Serial.print(", ");
+  Serial.println(encoderValueB);
 
-  // Serial.println(buttonState);
-
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH:
-  if (buttonState == PRESSED)
+  if (getButtonState() == PRESSED)
   {
     turnLED(ON);
 
-    // Move motors
-    motorDriver.motorAForward();
-    motorDriver.motorBForward();
-
-    // Rotate stepper motor by number of degrees
-    // rotateStepperA(360);
-    rotateStepperB(9);
+    //motorDriver.motorAForward();
+    //motorDriver.motorBForward();
+    rotateStepperAsteps(1);
+    //rotateStepperBdeg(9);
   }
   else
   {
     turnLED(OFF);
-
-    // Stop motors
-    motorDriver.motorAStop();
-    motorDriver.motorBStop();
+    servosOff();
   }
 }
 
@@ -136,6 +121,64 @@ void handleIdle()
   /*if (conditionToStartFollowingLine) {
     changeState(FOLLOW_LINE, 5000);  // Stay in FOLLOW_LINE for at least 5000 ms
   }*/
+
+  servosOff();
+
+  if (getButtonState() == PRESSED)
+  {
+    turnLED(ON);
+    //rotateStepperAsteps(1);
+    motorDriver.motorBForward();
+    //delay(100);
+  }
+  else
+  {
+    turnLED(OFF);
+  }
+}
+
+void handlePIDEncoderDrive()
+{
+  // PID parameters
+  float Kp = 1.0;
+  float Ki = 0.0;
+  float Kd = 0.0;
+
+  // PID variables
+  float integral = 0;
+  float previousError = 0;
+  // Read encoder values
+  long encoderValueA = encoderA.read();
+  long encoderValueB = encoderB.read();
+  
+  // Calculate error
+  long error = encoderValueA - encoderValueB;
+  
+  // PID control
+  integral += error;
+  float derivative = error - previousError;
+  float output = Kp * error + Ki * integral + Kd * derivative;
+  
+  // Adjust motor speeds
+  int motorSpeedA = constrain(255 - output, 0, 255);
+  int motorSpeedB = constrain(255 + output, 0, 255);
+  
+  motorDriver.motorAForward(motorSpeedA);
+  motorDriver.motorBForward(motorSpeedB);
+  
+  // Debugging output
+  Serial.print("Left: ");
+  Serial.print(encoderValueA);
+  Serial.print(" Right: ");
+  Serial.print(encoderValueB);
+  Serial.print(" Error: ");
+  Serial.println(error);
+  
+  // Update previous error
+  previousError = error;
+  
+  // Short delay to avoid overwhelming the microcontroller
+  delay(100);
 }
 
 void handleFollowLine()
@@ -205,14 +248,24 @@ ButtonState getButtonState()
   return (!digitalRead(BUTTON_PIN)) == HIGH ? PRESSED : UNPRESSED;
 }
 
-void rotateStepperA(int degrees)
+void rotateStepperAdeg(int degrees)
 {
   stepperMotorA.step(degrees / 360.0 * STEPPER_A_STEPS_PER_REVOLUTION);
 }
 
-void rotateStepperB(int degrees)
+void rotateStepperBdeg(int degrees)
 {
   stepperMotorB.step(degrees / 360.0 * STEPPER_B_STEPS_PER_REVOLUTION);
+}
+
+void rotateStepperAsteps(int steps)
+{
+  stepperMotorA.step(steps);
+}
+
+void rotateStepperBsteps(int steps)
+{
+  stepperMotorB.step(steps);
 }
 
 void logError(const char *message)
@@ -221,4 +274,16 @@ void logError(const char *message)
   Serial.println(message);
   while (true)
     ; // Stop the program
+}
+
+void setStepperMotorSpeedsToMax()
+{
+  stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED);
+  stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
+}
+
+void servosOff()
+{
+  motorDriver.motorAStop();
+  motorDriver.motorBStop();
 }
