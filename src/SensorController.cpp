@@ -23,11 +23,13 @@ void SensorController::zeroEncoders() {
   encoderB.write(0);
 }
 
-long SensorController::getUltrasonicDistance() { return hc.dist(); }
+long SensorController::readEncoderA() { 
+  return encoderA.read(); 
+}
 
-long SensorController::readEncoderA() { encoderA.read(); }
-
-long SensorController::readEncoderB() { encoderB.read(); }
+long SensorController::readEncoderB() { 
+  return encoderB.read(); 
+}
 
 int SensorController::combineLineResult(int avg1, int avg2, int avg3) {
 

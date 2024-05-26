@@ -10,17 +10,19 @@
 #include "MotorController.h"
 // This library provides an interface for reading sensor values.
 #include "SensorController.h"
+// This library provides an interface for handling control gains.
+#include "ControlGainHandler.h"
 
 // ===== GLOBAL VARIABLES =====
 SystemStateHandler systemStateHandler =
     SystemStateHandler();                               // System state handler
 MotorController motorController = MotorController();    // Motor controller
 SensorController sensorController = SensorController(); // Sensor controller
+ControlGainHandler lineSensorGainHandler =
+    ControlGainHandler(LINE_FOLLOW_REGULAR_KP, LINE_FOLLOW_REGULAR_KD, 0.0); // Line sensor gain handler
+ControlGainHandler encoderGainHandler =
+    ControlGainHandler(ENCODER_DRIVE_KP, ENCODER_DRIVE_KD, ENCODER_DRIVE_KI); // Encoder gain handler
 
-int previousStateflowIndex = 0;
-int lastError_LINE = 0;
-int lastError_ENCODER = 0;
-int integral_ENCODER = 0;
 
 // ===== ENUMS =====
 enum LED_STATE { OFF = LOW, ON = HIGH };
@@ -54,7 +56,6 @@ void handleCalibrate(int componentCode);
 void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
 void resetPIDMemory();
-void resetEncoderPID();
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -330,9 +331,9 @@ void handleUltraSonicIdle() {
 
 void handlePIDEncoderDrive(int baseSpeed) {
   // PID parameters
-  float Kp = ENCODER_DRIVE_KP;
-  float Ki = ENCODER_DRIVE_KI;
-  float Kd = ENCODER_DRIVE_KD;
+  float Kp = encoderGainHandler.getKp();
+  float Ki = encoderGainHandler.getKi();
+  float Kd = encoderGainHandler.getKd();
 
   // Read encoder values
   long encoderValueA = sensorController.readEncoderA();
@@ -342,9 +343,9 @@ void handlePIDEncoderDrive(int baseSpeed) {
   long error = encoderValueA - encoderValueB;
 
   // PID control
-  integral_ENCODER += error;
-  float derivative = error - lastError_ENCODER;
-  float output = Kp * error + Ki * integral_ENCODER + Kd * derivative;
+  encoderGainHandler.incrementIntegral(error);
+  float derivative = error - encoderGainHandler.getLastError();
+  float output = Kp * error + Ki * encoderGainHandler.getIntegral() + Kd * derivative;
 
   // Adjust motor speeds
   int motorSpeedA = constrain(baseSpeed - output, 0, 255);
@@ -362,7 +363,7 @@ void handlePIDEncoderDrive(int baseSpeed) {
   Serial.println(error);
 
   // Update previous error
-  lastError_ENCODER = error;
+  encoderGainHandler.setLastError(error);
 
   // Short delay to avoid overwhelming the microcontroller
   delay(100);
@@ -398,8 +399,10 @@ void handleFollowLine(int mode) {
     int error = sensorController.determineError(resultA);
 
     int P = error;
-    int D = error - lastError_LINE;
-    int output = LINE_FOLLOW_REGULAR_KP * P + LINE_FOLLOW_REGULAR_KD * D;
+    int D = error - lineSensorGainHandler.getLastError();
+    float Kp = lineSensorGainHandler.getKp();
+    float Kd = lineSensorGainHandler.getKd();
+    int output = Kp * P + Kd * D;
 
     int baseSpeed = 150; // Adjust this value as needed
     int rightMotorSpeed = baseSpeed - output;
@@ -413,12 +416,12 @@ void handleFollowLine(int mode) {
     if (rightMotorSpeed == leftMotorSpeed) {
       handlePIDEncoderDrive(rightMotorSpeed);
     } else {
-      resetEncoderPID();
+      encoderGainHandler.reset();
       motorController.motorDriver.motorAForward(rightMotorSpeed);
       motorController.motorDriver.motorBForward(leftMotorSpeed);
     }
 
-    lastError_LINE = error;
+    lineSensorGainHandler.setLastError(error);
     break;
   }
   case DROPOFF: {
@@ -500,11 +503,6 @@ void logError(const char *message) {
 }
 
 void resetPIDMemory() {
-  lastError_LINE = 0;
-  resetEncoderPID();
-}
-
-void resetEncoderPID() {
-  lastError_ENCODER = 0;
-  integral_ENCODER = 0;
+  lineSensorGainHandler.reset();
+  encoderGainHandler.reset();
 }
