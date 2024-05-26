@@ -24,16 +24,18 @@ private:
   SystemState::State currentState;
   unsigned long lastStateChangeTime;
   unsigned long stateDuration;
+  int stateflowIndex;
+  int previousStateflowIndex;
 
 public:
   SystemStateHandler(); // constructor declaration
   void changeState(SystemState::State newState,
                    unsigned long duration = 0); // method declaration
   SystemState::State getCurrentState();         // method declaration
-  unsigned long
-  getLastStateChangeTime(); // Add other methods to get the state if necessary
-
-  // Add other methods to get the state if necessary
+  unsigned long getLastStateChangeTime();
+  int getStateFlowIndex();
+  void advanceStateFlowIndex();
+  bool isNewStateFlowIndex();
 };
 
 #endif // SYSTEMSTATEHANDLER_H

@@ -17,7 +17,6 @@ SystemStateHandler systemStateHandler =
 MotorController motorController = MotorController();    // Motor controller
 SensorController sensorController = SensorController(); // Sensor controller
 
-int stateflowIndex = 0;
 int previousStateflowIndex = 0;
 int lastError_LINE = 0;
 int lastError_ENCODER = 0;
@@ -75,14 +74,13 @@ void setup() {
 // ===== MAIN LOOP =====
 void loop() {
   // On state change.
-  if (stateflowIndex != previousStateflowIndex) {
-    previousStateflowIndex = stateflowIndex;
+  if (systemStateHandler.isNewStateFlowIndex()) {
     resetPIDMemory();
     delay(500);
   }
 
   // Order of operations
-  switch (stateflowIndex) {
+  switch (systemStateHandler.getStateFlowIndex()) {
   case 0:
     systemStateHandler.changeState(SystemState::IDLE);
     break;
@@ -148,15 +146,6 @@ void loop() {
 // ===== OTHER FUNCTIONS =====
 void handleTest() {
   // Code for testing
-
-  // read the state of the encoder value:
-  /*long encoderValueA = encoderA.read();
-  long encoderValueB = encoderB.read();
-
-  Serial.print("Encoder Value: ");
-  Serial.print(encoderValueA);
-  Serial.print(", ");
-  Serial.println(encoderValueB);*/
 
   const int DELAY_BETWEEN_LOOPS = 5000; // 5 seconds
 
@@ -260,7 +249,7 @@ void handleIdle() {
   turnLED(ON);
   if (getBUTTON_STATE() == PRESSED) {
     turnLED(OFF);
-    stateflowIndex++;
+    systemStateHandler.advanceStateFlowIndex();
   }
 }
 
@@ -509,7 +498,6 @@ void logError(const char *message) {
   while (true)
     ; // Stop the program
 }
-
 
 void resetPIDMemory() {
   lastError_LINE = 0;
