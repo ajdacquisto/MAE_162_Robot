@@ -7,21 +7,21 @@
 
 class MotorController {
 private:
-  Stepper stepperMotorA;
-  Stepper stepperMotorB;
-
-public:
-  DRV8833 motorDriver;
-  // Constructor
-  MotorController();
-  ~MotorController();
-  void attachServoMotors();
-  void rotateStepperAdeg(int degrees);
-  void rotateStepperAsteps(int steps);
-  void rotateStepperBdeg(int degrees);
-  void rotateStepperBsteps(int steps);
-  void servosOff();
-  void setStepperMotorSpeedsToMax();
+  public:
+    DRV8833 motorDriver;
+    Stepper stepperMotorA;
+    Stepper stepperMotorB;
+    
+    // Constructor
+    MotorController();
+    ~MotorController();
+    void attachServoMotors();
+    void rotateStepperAdeg(int degrees);
+    void rotateStepperAsteps(int steps);
+    void rotateStepperBdeg(int degrees);
+    void rotateStepperBsteps(int steps);
+    void servosOff();
+    void setStepperMotorSpeedsToMax();
 };
 
 #endif // MOTORCONTROLLER_H

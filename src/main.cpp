@@ -1,38 +1,21 @@
 // This is the main Arduino library, which provides the core functionality for
 // Arduino.
 #include <Arduino.h>
-// This library provides an interface for controlling motors using the DRV8833
-// motor driver.
-#include "DRV8833.h"
-// This library provides an interface for controlling stepper motors.
-#include "Stepper.h"
 // This is the configuration file for this project. It contains definitions for
 // various constants and settings.
 #include "config.h"
-// This library provides an interface for reading rotary encoders.
-#include "Encoder.h"
 // This library provides an interface for managing the state of the system.
 #include "SystemStateHandler.h"
-// This library provides an interface for reading line sensors.
-#include "MovingAverageSensor.h"
-// This library provides an interface for reading ultrasonic sensors.
-#include "HCSR04.h"
 // This library provides an interface for controlling all motors.
 #include "MotorController.h"
+// This library provides an interface for reading sensor values.
+#include "SensorController.h"
 
 // ===== GLOBAL VARIABLES =====
-Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2); // Encoder A
-Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2); // Encoder B
 SystemStateHandler systemStateHandler =
-    SystemStateHandler();                             // System state handler
-MovingAverageSensor lineSensorA1(LINE_SENSOR_PIN_A1); // Line sensor A1
-MovingAverageSensor lineSensorA2(LINE_SENSOR_PIN_A2); // Line sensor A2
-MovingAverageSensor lineSensorA3(LINE_SENSOR_PIN_A3); // Line sensor A3
-MovingAverageSensor lineSensorB1(LINE_SENSOR_PIN_B1); // Line sensor B1
-MovingAverageSensor lineSensorB2(LINE_SENSOR_PIN_B2); // Line sensor B2
-MovingAverageSensor lineSensorB3(LINE_SENSOR_PIN_B3); // Line sensor B3
-HCSR04 hc(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN);  // Ultrasonic sensor
-MotorController motorController = MotorController();       // Motor controller
+    SystemStateHandler();                               // System state handler
+MotorController motorController = MotorController();    // Motor controller
+SensorController sensorController = SensorController(); // Sensor controller
 
 int stateflowIndex = 0;
 int previousStateflowIndex = 0;
@@ -65,15 +48,12 @@ void handleFollowLine(int mode);
 void handleAvoidObstacle();
 void initializePins();
 void initializeSerialPort();
-void zeroEncoders();
 void turnLED(LED_STATE state);
 BUTTON_STATE getBUTTON_STATE();
 void logError(const char *message);
 void handleCalibrate(int componentCode);
 void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
-int combineLineResult(int avg1, int avg2, int avg3);
-int determineError(int lineSensorValue);
 void resetPIDMemory();
 void resetEncoderPID();
 
@@ -87,7 +67,7 @@ void setup() {
   initializeSerialPort();
   motorController.attachServoMotors();
   motorController.setStepperMotorSpeedsToMax();
-  zeroEncoders();
+  sensorController.zeroEncoders();
 
   systemStateHandler.changeState(SystemState::IR_IDLE);
 }
@@ -332,40 +312,23 @@ void handleCalibrate(int componentCode) {
 
 void handleIRIdle() {
   // Read the sensor values
-  lineSensorA1.read();
-  lineSensorA2.read();
-  lineSensorA3.read();
-  lineSensorB1.read();
-  lineSensorB2.read();
-  lineSensorB3.read();
+  sensorController.readLineSensorA();
+  sensorController.readLineSensorB();
 
-  // Calculate the averages
-  int avgA1 = lineSensorA1.average();
-  int avgA2 = lineSensorA2.average();
-  int avgA3 = lineSensorA3.average();
-  int avgB1 = lineSensorB1.average();
-  int avgB2 = lineSensorB2.average();
-  int avgB3 = lineSensorB3.average();
+  int resultsA = sensorController.getLineResultA();
+  int resultsB = sensorController.getLineResultB();
 
-  Serial.print("Line sensor: ");
-  Serial.print(avgA1);
+  Serial.print("Combined Line Sensor Value: ");
+  Serial.print(resultsA, BIN);
   Serial.print(", ");
-  Serial.print(avgA2);
-  Serial.print(", ");
-  Serial.print(avgA3);
-  Serial.print("; ");
-  Serial.print(avgB1);
-  Serial.print(", ");
-  Serial.print(avgB2);
-  Serial.print(", ");
-  Serial.println(avgB3);
+  Serial.println(resultsB, BIN);
 
   motorController.servosOff();
 }
 
 void handleUltraSonicIdle() {
   // Read the ultrasonic sensor
-  long distance = hc.dist();
+  long distance = sensorController.getUltrasonicDistance();
 
   // Print the distance
   Serial.print("Distance: ");
@@ -383,8 +346,8 @@ void handlePIDEncoderDrive(int baseSpeed) {
   float Kd = ENCODER_DRIVE_KD;
 
   // Read encoder values
-  long encoderValueA = encoderA.read();
-  long encoderValueB = encoderB.read();
+  long encoderValueA = sensorController.readEncoderA();
+  long encoderValueB = sensorController.readEncoderB();
 
   // Calculate error
   long error = encoderValueA - encoderValueB;
@@ -421,23 +384,17 @@ void handleFollowLine(int mode) {
   bool isSensorBOn = (mode == PICKUP || mode == DROPOFF);
 
   // Read the sensor values
-  lineSensorA1.read();
-  lineSensorA2.read();
-  lineSensorA3.read();
+  sensorController.readLineSensorA();
   if (isSensorBOn) {
-    lineSensorB1.read();
-    lineSensorB2.read();
-    lineSensorB3.read();
+    sensorController.readLineSensorB();
   }
 
   // Calculate the line result
-  int resultA = combineLineResult(
-      lineSensorA1.average(), lineSensorA2.average(), lineSensorA3.average());
+  int resultA = sensorController.getLineResultA();
 
   int resultB = 0;
   if (isSensorBOn) {
-    resultB = combineLineResult(lineSensorB1.average(), lineSensorB2.average(),
-                                lineSensorB3.average());
+    resultB = sensorController.getLineResultB();
   }
 
   Serial.println("Line sensor A: " + resultA);
@@ -449,7 +406,7 @@ void handleFollowLine(int mode) {
     break;
   case REGULAR: {
     // Code for regular line followin
-    int error = determineError(resultA);
+    int error = sensorController.determineError(resultA);
 
     int P = error;
     int D = error - lastError_LINE;
@@ -538,11 +495,6 @@ void initializeSerialPort() {
     ; // Waits for the Serial port to connect.
 }
 
-void zeroEncoders() {
-  encoderA.write(0);
-  encoderB.write(0);
-}
-
 void turnLED(LED_STATE state) { digitalWrite(LED_PIN, state); }
 
 BUTTON_STATE getBUTTON_STATE() {
@@ -558,62 +510,6 @@ void logError(const char *message) {
     ; // Stop the program
 }
 
-int combineLineResult(int avg1, int avg2, int avg3) {
-  // int threshold = LINE_SENSOR_A_THRESHOLD;
-
-  // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
-  int lineSensorValueA1 = (avg1 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
-  int lineSensorValueA2 = (avg2 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
-  int lineSensorValueA3 = (avg3 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
-
-  // COMBINE values into one variable (e.g. 001, 000, 111, 101, etc)
-  int lineSensorValue =
-      (lineSensorValueA1 << 2) | (lineSensorValueA2 << 1) | lineSensorValueA3;
-
-  return lineSensorValue;
-}
-
-int determineError(int lineSensorValue) {
-  // Determine the error based on the line sensor value
-  int error = 0;
-
-  switch (lineSensorValue) {
-  case 0b000:
-    // Robot is off the line, keep last known direction
-    error = 0;
-    break;
-  case 0b001:
-    // Robot needs to turn left
-    error = +2;
-    break;
-  case 0b010:
-    // Robot is centered
-    error = 0;
-    break;
-  case 0b011:
-    // Robot slightly off center to the right
-    error = +1;
-    break;
-  case 0b100:
-    // Robot needs to turn right
-    error = -2;
-    break;
-  case 0b110:
-    // Robot slightly off center to the left
-    error = -1;
-    break;
-  case 0b101:
-    // Robot is centered
-    error = 0;
-    break;
-  default:
-    // Robot is centered
-    error = 0;
-    break;
-  }
-
-  return error;
-}
 
 void resetPIDMemory() {
   lastError_LINE = 0;
