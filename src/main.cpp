@@ -17,15 +17,10 @@
 #include "MovingAverageSensor.h"
 // This library provides an interface for reading ultrasonic sensors.
 #include "HCSR04.h"
+// This library provides an interface for controlling all motors.
+#include "MotorController.h"
 
 // ===== GLOBAL VARIABLES =====
-DRV8833 motorDriver = DRV8833(); // Motor driver
-Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1,
-                      STEPPER_PIN_A2, STEPPER_PIN_A3,
-                      STEPPER_PIN_A4); // Stepper motor A (four-bar)
-Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1,
-                      STEPPER_PIN_B2, STEPPER_PIN_B3,
-                      STEPPER_PIN_B4);            // Stepper motor B (lift)
 Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2); // Encoder A
 Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2); // Encoder B
 SystemStateHandler systemStateHandler =
@@ -37,6 +32,7 @@ MovingAverageSensor lineSensorB1(LINE_SENSOR_PIN_B1); // Line sensor B1
 MovingAverageSensor lineSensorB2(LINE_SENSOR_PIN_B2); // Line sensor B2
 MovingAverageSensor lineSensorB3(LINE_SENSOR_PIN_B3); // Line sensor B3
 HCSR04 hc(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN);  // Ultrasonic sensor
+MotorController motorController = MotorController();       // Motor controller
 
 int stateflowIndex = 0;
 int previousStateflowIndex = 0;
@@ -69,17 +65,10 @@ void handleFollowLine(int mode);
 void handleAvoidObstacle();
 void initializePins();
 void initializeSerialPort();
-void attachServoMotors();
 void zeroEncoders();
 void turnLED(LED_STATE state);
 BUTTON_STATE getBUTTON_STATE();
-void rotateStepperAdeg(int degrees);
-void rotateStepperBdeg(int degrees);
 void logError(const char *message);
-void setStepperMotorSpeedsToMax();
-void servosOff();
-void rotateStepperAsteps(int steps);
-void rotateStepperBsteps(int steps);
 void handleCalibrate(int componentCode);
 void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
@@ -96,8 +85,8 @@ void setup() {
 
   initializePins();
   initializeSerialPort();
-  attachServoMotors();
-  setStepperMotorSpeedsToMax();
+  motorController.attachServoMotors();
+  motorController.setStepperMotorSpeedsToMax();
   zeroEncoders();
 
   systemStateHandler.changeState(SystemState::IR_IDLE);
@@ -189,6 +178,35 @@ void handleTest() {
   Serial.print(", ");
   Serial.println(encoderValueB);*/
 
+  const int DELAY_BETWEEN_LOOPS = 5000; // 5 seconds
+
+  const int MOTOR_A_FWD_TEST_START = 0;
+  const int MOTOR_A_TEST_LENGTH = 1000; // 1 second
+
+  const int MOTOR_A_REV_TEST_START =
+      MOTOR_A_FWD_TEST_START + MOTOR_A_TEST_LENGTH;
+
+  const int MOTOR_B_FWD_TEST_START =
+      MOTOR_A_REV_TEST_START + MOTOR_A_TEST_LENGTH;
+  const int MOTOR_B_TEST_LENGTH = 1000; // 1 second
+
+  const int MOTOR_B_REV_TEST_START =
+      MOTOR_B_FWD_TEST_START + MOTOR_B_TEST_LENGTH;
+
+  const int STEPPER_A_FWD_TEST_START =
+      MOTOR_B_REV_TEST_START + MOTOR_B_TEST_LENGTH;
+  const int STEPPER_A_TEST_LENGTH = 5000; // 5 seconds
+
+  const int STEPPER_A_REV_TEST_START =
+      STEPPER_A_FWD_TEST_START + STEPPER_A_TEST_LENGTH;
+
+  const int STEPPER_B_FWD_TEST_START =
+      STEPPER_A_REV_TEST_START + STEPPER_A_TEST_LENGTH;
+  const int STEPPER_B_TEST_LENGTH = 5000; // 5 seconds
+
+  const int STEPPER_B_REV_TEST_START =
+      STEPPER_B_FWD_TEST_START + STEPPER_B_TEST_LENGTH;
+
   static unsigned long myTimerStart = millis();
   Serial.print("Time: ");
   Serial.print(millis() - myTimerStart);
@@ -200,49 +218,57 @@ void handleTest() {
   } else {
     turnLED(OFF);
 
-    if (millis() - myTimerStart < 1000) {
+    if (millis() - myTimerStart <
+        MOTOR_A_FWD_TEST_START + MOTOR_A_TEST_LENGTH) {
       Serial.print("Motor A Forward");
       // Test motor A (right) FORWARD
-      motorDriver.motorAForward();
-      motorDriver.motorBStop();
-    } else if (millis() - myTimerStart < 2000) {
+      motorController.motorDriver.motorAForward();
+      motorController.motorDriver.motorBStop();
+    } else if (millis() - myTimerStart <
+               MOTOR_A_REV_TEST_START + MOTOR_A_TEST_LENGTH) {
       Serial.print("Motor A Reverse");
       // Test motor A (right) REVERSE
-      motorDriver.motorAReverse();
-      motorDriver.motorBStop();
-    } else if (millis() - myTimerStart < 3000) {
+      motorController.motorDriver.motorAReverse();
+      motorController.motorDriver.motorBStop();
+    } else if (millis() - myTimerStart <
+               MOTOR_B_FWD_TEST_START + MOTOR_B_TEST_LENGTH) {
       Serial.print("Motor B Forward");
       // Test motor B (left) FORWARD
-      motorDriver.motorBForward();
-      motorDriver.motorAStop();
-    } else if (millis() - myTimerStart < 4000) {
+      motorController.motorDriver.motorBForward();
+      motorController.motorDriver.motorAStop();
+    } else if (millis() - myTimerStart <
+               MOTOR_B_REV_TEST_START + MOTOR_B_TEST_LENGTH) {
       Serial.print("Motor B Reverse");
       // Test motor B (left) REVERSE
-      motorDriver.motorBReverse();
-      motorDriver.motorAStop();
-    } else if (millis() - myTimerStart < 9000) {
+      motorController.motorDriver.motorBReverse();
+      motorController.motorDriver.motorAStop();
+    } else if (millis() - myTimerStart <
+               STEPPER_A_FWD_TEST_START + STEPPER_A_TEST_LENGTH) {
       Serial.print("Stepper A Forward");
       // Test stepper A (four-bar) FORWARD
-      servosOff();
-      rotateStepperAsteps(1);
-    } else if (millis() - myTimerStart < 14000) {
+      motorController.servosOff();
+      motorController.rotateStepperAsteps(1);
+    } else if (millis() - myTimerStart <
+               STEPPER_A_REV_TEST_START + STEPPER_A_TEST_LENGTH) {
       Serial.print("Stepper A Reverse");
       // Test stepper A (four-bar) REVERSE
-      servosOff();
-      rotateStepperAsteps(-1);
-    } else if (millis() - myTimerStart < 16000) {
+      motorController.servosOff();
+      motorController.rotateStepperAsteps(-1);
+    } else if (millis() - myTimerStart <
+               STEPPER_B_FWD_TEST_START + STEPPER_B_TEST_LENGTH) {
       Serial.print("Stepper B Forward");
       // Test stepper B (lift) FORWARD
-      servosOff();
-      rotateStepperBsteps(1);
-    } else if (millis() - myTimerStart < 18000) {
+      motorController.servosOff();
+      motorController.rotateStepperBsteps(1);
+    } else if (millis() - myTimerStart <
+               STEPPER_B_REV_TEST_START + STEPPER_B_TEST_LENGTH) {
       Serial.print("Stepper B Reverse");
       // Test stepper B (lift) REVERSE
-      servosOff();
-      rotateStepperBsteps(-1);
+      motorController.servosOff();
+      motorController.rotateStepperBsteps(-1);
     } else {
       Serial.print("Resetting...");
-      delay(5000);
+      delay(DELAY_BETWEEN_LOOPS);
       myTimerStart = millis();
     }
   }
@@ -250,7 +276,7 @@ void handleTest() {
 }
 
 void handleIdle() {
-  servosOff();
+  motorController.servosOff();
   turnLED(ON);
   if (getBUTTON_STATE() == PRESSED) {
     turnLED(OFF);
@@ -264,7 +290,7 @@ void handleCalibrate(int componentCode) {
     if (getBUTTON_STATE() == PRESSED) {
       // Hold down button until four-bar crank is in lowest position.
       turnLED(ON);
-      rotateStepperAsteps(1);
+      motorController.rotateStepperAsteps(1);
       delay(200);
     } else {
       turnLED(OFF);
@@ -274,7 +300,7 @@ void handleCalibrate(int componentCode) {
     if (getBUTTON_STATE() == PRESSED) {
       // Hold down button until lift is in lowest position.
       turnLED(ON);
-      rotateStepperBsteps(1);
+      motorController.rotateStepperBsteps(1);
       delay(200);
     } else {
       turnLED(OFF);
@@ -282,19 +308,19 @@ void handleCalibrate(int componentCode) {
     break;
   case SERVO_A:
     if (getBUTTON_STATE() == PRESSED) {
-      motorDriver.motorAForward(64); // 25% speed
+      motorController.motorDriver.motorAForward(64); // 25% speed
       turnLED(ON);
     } else {
-      servosOff();
+      motorController.servosOff();
       turnLED(OFF);
     }
     break;
   case SERVO_B:
     if (getBUTTON_STATE() == PRESSED) {
-      motorDriver.motorBForward(64); // 25% speed
+      motorController.motorDriver.motorBForward(64); // 25% speed
       turnLED(ON);
     } else {
-      servosOff();
+      motorController.servosOff();
       turnLED(OFF);
     }
     break;
@@ -334,7 +360,7 @@ void handleIRIdle() {
   Serial.print(", ");
   Serial.println(avgB3);
 
-  servosOff();
+  motorController.servosOff();
 }
 
 void handleUltraSonicIdle() {
@@ -345,7 +371,7 @@ void handleUltraSonicIdle() {
   Serial.print("Distance: ");
   Serial.println(distance);
 
-  servosOff();
+  motorController.servosOff();
 
   delay(100);
 }
@@ -372,8 +398,8 @@ void handlePIDEncoderDrive(int baseSpeed) {
   int motorSpeedA = constrain(baseSpeed - output, 0, 255);
   int motorSpeedB = constrain(baseSpeed + output, 0, 255);
 
-  motorDriver.motorAForward(motorSpeedA);
-  motorDriver.motorBForward(motorSpeedB);
+  motorController.motorDriver.motorAForward(motorSpeedA);
+  motorController.motorDriver.motorBForward(motorSpeedB);
 
   // Debugging output
   Serial.print("Left: ");
@@ -442,8 +468,8 @@ void handleFollowLine(int mode) {
       handlePIDEncoderDrive(rightMotorSpeed);
     } else {
       resetEncoderPID();
-      motorDriver.motorAForward(rightMotorSpeed);
-      motorDriver.motorBForward(leftMotorSpeed);
+      motorController.motorDriver.motorAForward(rightMotorSpeed);
+      motorController.motorDriver.motorBForward(leftMotorSpeed);
     }
 
     lastError_LINE = error;
@@ -462,10 +488,10 @@ void handleFollowLine(int mode) {
 void handleFourBar(int direction) {
   if (direction == LOAD) {
     // Load the four-bar mechanism
-    rotateStepperAdeg(360);
+    motorController.rotateStepperAdeg(360);
   } else if (direction == UNLOAD) {
     // Unload the four-bar mechanism
-    rotateStepperAdeg(-360);
+    motorController.rotateStepperAdeg(-360);
   } else {
     logError("Invalid direction");
   }
@@ -512,11 +538,6 @@ void initializeSerialPort() {
     ; // Waits for the Serial port to connect.
 }
 
-void attachServoMotors() {
-  motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
-  motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
-}
-
 void zeroEncoders() {
   encoderA.write(0);
   encoderB.write(0);
@@ -528,35 +549,13 @@ BUTTON_STATE getBUTTON_STATE() {
   return (!digitalRead(BUTTON_PIN)) == HIGH ? PRESSED : UNPRESSED;
 }
 
-void rotateStepperAdeg(int degrees) {
-  stepperMotorA.step(degrees / 360.0 * STEPPER_A_STEPS_PER_REVOLUTION);
-}
-
-void rotateStepperBdeg(int degrees) {
-  stepperMotorB.step(degrees / 360.0 * STEPPER_B_STEPS_PER_REVOLUTION);
-}
-
-void rotateStepperAsteps(int steps) { stepperMotorA.step(steps); }
-
-void rotateStepperBsteps(int steps) { stepperMotorB.step(steps); }
-
 void logError(const char *message) {
   systemStateHandler.changeState(SystemState::IDLE);
   turnLED(ON);
-  servosOff();
+  motorController.servosOff();
   Serial.println(message);
   while (true)
     ; // Stop the program
-}
-
-void setStepperMotorSpeedsToMax() {
-  stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED);
-  stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
-}
-
-void servosOff() {
-  motorDriver.motorAStop();
-  motorDriver.motorBStop();
 }
 
 int combineLineResult(int avg1, int avg2, int avg3) {
