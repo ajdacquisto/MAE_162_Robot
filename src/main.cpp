@@ -15,6 +15,8 @@
 #include "SystemStateHandler.h"
 // This library provides an interface for reading line sensors.
 #include "MovingAverageSensor.h"
+// This library provides an interface for reading ultrasonic sensors.
+#include "HCSR04.h"
 
 // ===== GLOBAL VARIABLES =====
 DRV8833 motorDriver = DRV8833(); // Motor driver
@@ -34,6 +36,7 @@ MovingAverageSensor lineSensorA3(LINE_SENSOR_PIN_A3); // Line sensor A3
 MovingAverageSensor lineSensorB1(LINE_SENSOR_PIN_B1); // Line sensor B1
 MovingAverageSensor lineSensorB2(LINE_SENSOR_PIN_B2); // Line sensor B2
 MovingAverageSensor lineSensorB3(LINE_SENSOR_PIN_B3); // Line sensor B3
+HCSR04 hc(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN);  // Ultrasonic sensor
 
 int stateflowIndex = 0;
 int previousStateflowIndex = 0;
@@ -61,7 +64,8 @@ enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
 void handleTest();
 void handleIdle();
 void handleIRIdle();
-void handleFollowLine(int mode = REGULAR);
+void handleUltraSonicIdle();
+void handleFollowLine(int mode);
 void handleAvoidObstacle();
 void initializePins();
 void initializeSerialPort();
@@ -76,8 +80,8 @@ void setStepperMotorSpeedsToMax();
 void servosOff();
 void rotateStepperAsteps(int steps);
 void rotateStepperBsteps(int steps);
-void handleCalibrate();
-void handlePIDEncoderDrive(int baseSpeed = 255);
+void handleCalibrate(int componentCode);
+void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
 int combineLineResult(int avg1, int avg2, int avg3);
 int determineError(int lineSensorValue);
@@ -138,9 +142,12 @@ void loop() {
     // Code for idle state with IR sensors active
     handleIRIdle();
     break;
+  case SystemState::ULTRASONIC_IDLE:
+    // Code for idle state with ultrasonic sensor active
+    break;
   case SystemState::PID_ENCODER_DRIVE:
     // Code for PID control of encoder drive
-    handlePIDEncoderDrive();
+    handlePIDEncoderDrive(255);
     break;
   case SystemState::FOLLOW_LINE:
     // Code for simple line following
@@ -330,7 +337,20 @@ void handleIRIdle() {
   servosOff();
 }
 
-void handlePIDEncoderDrive(int baseSpeed = 255) {
+void handleUltraSonicIdle() {
+  // Read the ultrasonic sensor
+  long distance = hc.dist();
+
+  // Print the distance
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  servosOff();
+
+  delay(100);
+}
+
+void handlePIDEncoderDrive(int baseSpeed) {
   // PID parameters
   float Kp = ENCODER_DRIVE_KP;
   float Ki = ENCODER_DRIVE_KI;
@@ -370,24 +390,9 @@ void handlePIDEncoderDrive(int baseSpeed = 255) {
   delay(100);
 }
 
-void handleFollowLine(int mode = REGULAR) {
-  bool isSensorBOn = false;
-
-  // Determine if sensor B should be on
-  switch (mode) {
-  case PICKUP:
-    isSensorBOn = true;
-    break;
-  case REGULAR:
-    isSensorBOn = false;
-    break;
-  case DROPOFF:
-    isSensorBOn = true;
-    break;
-  default:
-    logError("Invalid mode");
-    break;
-  }
+void handleFollowLine(int mode) {
+  // Turn sensor B on for pickup and dropoff modes only.
+  bool isSensorBOn = (mode == PICKUP || mode == DROPOFF);
 
   // Read the sensor values
   lineSensorA1.read();
@@ -403,30 +408,27 @@ void handleFollowLine(int mode = REGULAR) {
   int resultA = combineLineResult(
       lineSensorA1.average(), lineSensorA2.average(), lineSensorA3.average());
 
+  int resultB = 0;
   if (isSensorBOn) {
-    int resultB = combineLineResult(
-        lineSensorB1.average(), lineSensorB2.average(), lineSensorB3.average());
+    resultB = combineLineResult(lineSensorB1.average(), lineSensorB2.average(),
+                                lineSensorB3.average());
   }
 
   switch (mode) {
   case PICKUP:
     // Code for line following in pickup mode
     break;
-  case REGULAR:
-    // Code for regular line following
-
-    float Kp = LINE_FOLLOW_REGULAR_KP; // Proportional gain
-    float Kd = LINE_FOLLOW_REGULAR_KD; // Derivative gain
-
+  case REGULAR: {
+    // Code for regular line followin
     int error = determineError(resultA);
 
     int P = error;
     int D = error - lastError_LINE;
-    int output = Kp * P + Kd * D;
+    int output = LINE_FOLLOW_REGULAR_KP * P + LINE_FOLLOW_REGULAR_KD * D;
 
     int baseSpeed = 150; // Adjust this value as needed
-    int leftMotorSpeed = baseSpeed + output;
     int rightMotorSpeed = baseSpeed - output;
+    int leftMotorSpeed = baseSpeed + output;
 
     // Ensure motor speeds are within valid range (e.g., 0 to 255 for PWM
     // control)
@@ -443,9 +445,11 @@ void handleFollowLine(int mode = REGULAR) {
 
     lastError_LINE = error;
     break;
-  case DROPOFF:
+  }
+  case DROPOFF: {
     // Code for line following in dropoff mode
     break;
+  }
   default:
     logError("Invalid mode");
     break;
