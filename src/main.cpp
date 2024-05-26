@@ -36,7 +36,10 @@ MovingAverageSensor lineSensorB2(LINE_SENSOR_PIN_B2); // Line sensor B2
 MovingAverageSensor lineSensorB3(LINE_SENSOR_PIN_B3); // Line sensor B3
 
 int stateflowIndex = 0;
-int lastError = 0;
+int previousStateflowIndex = 0;
+int lastError_LINE = 0;
+int lastError_ENCODER = 0;
+int integral_ENCODER = 0;
 
 // ===== ENUMS =====
 enum LED_STATE { OFF = LOW, ON = HIGH };
@@ -74,10 +77,12 @@ void servosOff();
 void rotateStepperAsteps(int steps);
 void rotateStepperBsteps(int steps);
 void handleCalibrate();
-void handlePIDEncoderDrive();
+void handlePIDEncoderDrive(int baseSpeed = 255);
 void handleFourBar(int direction);
 int combineLineResult(int avg1, int avg2, int avg3);
 int determineError(int lineSensorValue);
+void resetPIDMemory();
+void resetEncoderPID();
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -96,6 +101,14 @@ void setup() {
 
 // ===== MAIN LOOP =====
 void loop() {
+  // On state change.
+  if (stateflowIndex != previousStateflowIndex) {
+    previousStateflowIndex = stateflowIndex;
+    resetPIDMemory();
+    delay(500);
+  }
+
+  // Order of operations
   switch (stateflowIndex) {
   case 0:
     systemStateHandler.changeState(SystemState::IDLE);
@@ -131,7 +144,13 @@ void loop() {
     break;
   case SystemState::FOLLOW_LINE:
     // Code for simple line following
-    handleFollowLine();
+    handleFollowLine(REGULAR);
+    break;
+  case SystemState::LINE_FOLLOW_PICKUP:
+    handleFollowLine(PICKUP);
+    break;
+  case SystemState::LINE_FOLLOW_DROPOFF:
+    handleFollowLine(DROPOFF);
     break;
   case SystemState::FOUR_BAR_LOAD:
     // Code for four-bar mechanism
@@ -311,15 +330,12 @@ void handleIRIdle() {
   servosOff();
 }
 
-void handlePIDEncoderDrive() {
+void handlePIDEncoderDrive(int baseSpeed = 255) {
   // PID parameters
-  float Kp = 1.0;
-  float Ki = 0.0;
-  float Kd = 0.0;
+  float Kp = ENCODER_DRIVE_KP;
+  float Ki = ENCODER_DRIVE_KI;
+  float Kd = ENCODER_DRIVE_KD;
 
-  // PID variables
-  float integral = 0;
-  float previousError = 0;
   // Read encoder values
   long encoderValueA = encoderA.read();
   long encoderValueB = encoderB.read();
@@ -328,13 +344,13 @@ void handlePIDEncoderDrive() {
   long error = encoderValueA - encoderValueB;
 
   // PID control
-  integral += error;
-  float derivative = error - previousError;
-  float output = Kp * error + Ki * integral + Kd * derivative;
+  integral_ENCODER += error;
+  float derivative = error - lastError_ENCODER;
+  float output = Kp * error + Ki * integral_ENCODER + Kd * derivative;
 
   // Adjust motor speeds
-  int motorSpeedA = constrain(255 - output, 0, 255);
-  int motorSpeedB = constrain(255 + output, 0, 255);
+  int motorSpeedA = constrain(baseSpeed - output, 0, 255);
+  int motorSpeedB = constrain(baseSpeed + output, 0, 255);
 
   motorDriver.motorAForward(motorSpeedA);
   motorDriver.motorBForward(motorSpeedB);
@@ -348,7 +364,7 @@ void handlePIDEncoderDrive() {
   Serial.println(error);
 
   // Update previous error
-  previousError = error;
+  lastError_ENCODER = error;
 
   // Short delay to avoid overwhelming the microcontroller
   delay(100);
@@ -357,6 +373,7 @@ void handlePIDEncoderDrive() {
 void handleFollowLine(int mode = REGULAR) {
   bool isSensorBOn = false;
 
+  // Determine if sensor B should be on
   switch (mode) {
   case PICKUP:
     isSensorBOn = true;
@@ -398,13 +415,13 @@ void handleFollowLine(int mode = REGULAR) {
   case REGULAR:
     // Code for regular line following
 
-    float Kp = 0.5; // Proportional gain
-    float Kd = 0.1; // Derivative gain
+    float Kp = LINE_FOLLOW_REGULAR_KP; // Proportional gain
+    float Kd = LINE_FOLLOW_REGULAR_KD; // Derivative gain
 
     int error = determineError(resultA);
 
     int P = error;
-    int D = error - lastError;
+    int D = error - lastError_LINE;
     int output = Kp * P + Kd * D;
 
     int baseSpeed = 150; // Adjust this value as needed
@@ -416,10 +433,15 @@ void handleFollowLine(int mode = REGULAR) {
     rightMotorSpeed = constrain(rightMotorSpeed, 0, 255);
     leftMotorSpeed = constrain(leftMotorSpeed, 0, 255);
 
-    motorDriver.motorAForward(rightMotorSpeed);
-    motorDriver.motorBForward(leftMotorSpeed);
+    if (rightMotorSpeed == leftMotorSpeed) {
+      handlePIDEncoderDrive(rightMotorSpeed);
+    } else {
+      resetEncoderPID();
+      motorDriver.motorAForward(rightMotorSpeed);
+      motorDriver.motorBForward(leftMotorSpeed);
+    }
 
-    lastError = error;
+    lastError_LINE = error;
     break;
   case DROPOFF:
     // Code for line following in dropoff mode
@@ -428,11 +450,6 @@ void handleFollowLine(int mode = REGULAR) {
     logError("Invalid mode");
     break;
   }
-  /*if (millis() - lastStateChangeTime > stateDuration) {  // Ensure at least
-  stateDuration has passed if (lineLost) { changeState(IDLE); } else if
-  (obstacleDetected) { changeState(AVOID_OBSTACLE);
-    }
-  }*/
 }
 
 void handleFourBar(int direction) {
@@ -590,4 +607,14 @@ int determineError(int lineSensorValue) {
   }
 
   return error;
+}
+
+void resetPIDMemory() {
+  lastError_LINE = 0;
+  resetEncoderPID();
+}
+
+void resetEncoderPID() {
+  lastError_ENCODER = 0;
+  integral_ENCODER = 0;
 }

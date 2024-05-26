@@ -49,6 +49,16 @@ const int STEPPER_PIN_B1 = 30, STEPPER_PIN_B2 = 31, STEPPER_PIN_B3 = 32,
 const int STEPPER_B_STEPS_PER_REVOLUTION = 200; // TODO: Set this value
 const int STEPPER_B_MAX_SPEED = 9;              // TODO: Set this value
 
+
+// ===== CONTROL GAINS =====
+const float ENCODER_DRIVE_KP = 1.0;
+const float ENCODER_DRIVE_KD = 0.0;
+const float ENCODER_DRIVE_KI = 0.0;
+
+const float LINE_FOLLOW_REGULAR_KP = 0.5;
+const float LINE_FOLLOW_REGULAR_KD = 0.1;
+
+
 // All IO list:
 
 // INP button [1 pin]
