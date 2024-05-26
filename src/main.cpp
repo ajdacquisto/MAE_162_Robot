@@ -414,6 +414,9 @@ void handleFollowLine(int mode) {
                                 lineSensorB3.average());
   }
 
+  Serial.println("Line sensor A: " + resultA);
+  Serial.println("Line sensor B: " + resultB);
+
   switch (mode) {
   case PICKUP:
     // Code for line following in pickup mode
