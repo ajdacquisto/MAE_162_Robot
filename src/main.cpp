@@ -35,16 +35,30 @@ MovingAverageSensor lineSensorB1(LINE_SENSOR_PIN_B1); // Line sensor B1
 MovingAverageSensor lineSensorB2(LINE_SENSOR_PIN_B2); // Line sensor B2
 MovingAverageSensor lineSensorB3(LINE_SENSOR_PIN_B3); // Line sensor B3
 
+int stateflowIndex = 0;
+int lastError = 0;
+
 // ===== ENUMS =====
 enum LED_STATE { OFF = LOW, ON = HIGH };
 
 enum BUTTON_STATE { PRESSED = HIGH, UNPRESSED = LOW };
 
+enum componentCode {
+  SERVO_A,   // 0 (right)
+  SERVO_B,   // 1 (left)
+  STEPPER_A, // 2 (four-bar)
+  STEPPER_B, // 3 (lift)
+};
+
+enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
+
+enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
+
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
 void handleIRIdle();
-void handleFollowLine();
+void handleFollowLine(int mode = REGULAR);
 void handleAvoidObstacle();
 void initializePins();
 void initializeSerialPort();
@@ -59,6 +73,11 @@ void setStepperMotorSpeedsToMax();
 void servosOff();
 void rotateStepperAsteps(int steps);
 void rotateStepperBsteps(int steps);
+void handleCalibrate();
+void handlePIDEncoderDrive();
+void handleFourBar(int direction);
+int combineLineResult(int avg1, int avg2, int avg3);
+int determineError(int lineSensorValue);
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -77,10 +96,26 @@ void setup() {
 
 // ===== MAIN LOOP =====
 void loop() {
+  switch (stateflowIndex) {
+  case 0:
+    systemStateHandler.changeState(SystemState::IDLE);
+    break;
+  case 1:
+    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+    break;
+  case 2:
+    systemStateHandler.changeState(SystemState::AVOID_OBSTACLE);
+    break;
+  }
+
   switch (systemStateHandler.getCurrentState()) {
   case SystemState::TEST:
     // Code for testing
     handleTest();
+    break;
+  case SystemState::CALIBRATE:
+    // Code for calibrating stepper positions
+    handleCalibrate(SERVO_A);
     break;
   case SystemState::IDLE:
     // Code for simple idle state
@@ -97,6 +132,14 @@ void loop() {
   case SystemState::FOLLOW_LINE:
     // Code for simple line following
     handleFollowLine();
+    break;
+  case SystemState::FOUR_BAR_LOAD:
+    // Code for four-bar mechanism
+    handleFourBar(LOAD);
+    break;
+  case SystemState::FOUR_BAR_UNLOAD:
+    // Code for four-bar mechanism
+    handleFourBar(UNLOAD);
     break;
   case SystemState::AVOID_OBSTACLE:
     handleAvoidObstacle();
@@ -182,10 +225,56 @@ void handleTest() {
 
 void handleIdle() {
   servosOff();
+  turnLED(ON);
   if (getBUTTON_STATE() == PRESSED) {
-    turnLED(ON);
-  } else {
     turnLED(OFF);
+    stateflowIndex++;
+  }
+}
+
+void handleCalibrate(int componentCode) {
+  switch (componentCode) {
+  case STEPPER_A:
+    if (getBUTTON_STATE() == PRESSED) {
+      // Hold down button until four-bar crank is in lowest position.
+      turnLED(ON);
+      rotateStepperAsteps(1);
+      delay(200);
+    } else {
+      turnLED(OFF);
+    }
+    break;
+  case STEPPER_B:
+    if (getBUTTON_STATE() == PRESSED) {
+      // Hold down button until lift is in lowest position.
+      turnLED(ON);
+      rotateStepperBsteps(1);
+      delay(200);
+    } else {
+      turnLED(OFF);
+    }
+    break;
+  case SERVO_A:
+    if (getBUTTON_STATE() == PRESSED) {
+      motorDriver.motorAForward(64); // 25% speed
+      turnLED(ON);
+    } else {
+      servosOff();
+      turnLED(OFF);
+    }
+    break;
+  case SERVO_B:
+    if (getBUTTON_STATE() == PRESSED) {
+      motorDriver.motorBForward(64); // 25% speed
+      turnLED(ON);
+    } else {
+      servosOff();
+      turnLED(OFF);
+    }
+    break;
+  default:
+    logError("Invalid component code");
+    break;
   }
 }
 
@@ -265,12 +354,97 @@ void handlePIDEncoderDrive() {
   delay(100);
 }
 
-void handleFollowLine() {
+void handleFollowLine(int mode = REGULAR) {
+  bool isSensorBOn = false;
+
+  switch (mode) {
+  case PICKUP:
+    isSensorBOn = true;
+    break;
+  case REGULAR:
+    isSensorBOn = false;
+    break;
+  case DROPOFF:
+    isSensorBOn = true;
+    break;
+  default:
+    logError("Invalid mode");
+    break;
+  }
+
+  // Read the sensor values
+  lineSensorA1.read();
+  lineSensorA2.read();
+  lineSensorA3.read();
+  if (isSensorBOn) {
+    lineSensorB1.read();
+    lineSensorB2.read();
+    lineSensorB3.read();
+  }
+
+  // Calculate the line result
+  int resultA = combineLineResult(
+      lineSensorA1.average(), lineSensorA2.average(), lineSensorA3.average());
+
+  if (isSensorBOn) {
+    int resultB = combineLineResult(
+        lineSensorB1.average(), lineSensorB2.average(), lineSensorB3.average());
+  }
+
+  switch (mode) {
+  case PICKUP:
+    // Code for line following in pickup mode
+    break;
+  case REGULAR:
+    // Code for regular line following
+
+    float Kp = 0.5; // Proportional gain
+    float Kd = 0.1; // Derivative gain
+
+    int error = determineError(resultA);
+
+    int P = error;
+    int D = error - lastError;
+    int output = Kp * P + Kd * D;
+
+    int baseSpeed = 150; // Adjust this value as needed
+    int leftMotorSpeed = baseSpeed + output;
+    int rightMotorSpeed = baseSpeed - output;
+
+    // Ensure motor speeds are within valid range (e.g., 0 to 255 for PWM
+    // control)
+    rightMotorSpeed = constrain(rightMotorSpeed, 0, 255);
+    leftMotorSpeed = constrain(leftMotorSpeed, 0, 255);
+
+    motorDriver.motorAForward(rightMotorSpeed);
+    motorDriver.motorBForward(leftMotorSpeed);
+
+    lastError = error;
+    break;
+  case DROPOFF:
+    // Code for line following in dropoff mode
+    break;
+  default:
+    logError("Invalid mode");
+    break;
+  }
   /*if (millis() - lastStateChangeTime > stateDuration) {  // Ensure at least
   stateDuration has passed if (lineLost) { changeState(IDLE); } else if
   (obstacleDetected) { changeState(AVOID_OBSTACLE);
     }
   }*/
+}
+
+void handleFourBar(int direction) {
+  if (direction == LOAD) {
+    // Load the four-bar mechanism
+    rotateStepperAdeg(360);
+  } else if (direction == UNLOAD) {
+    // Unload the four-bar mechanism
+    rotateStepperAdeg(-360);
+  } else {
+    logError("Invalid direction");
+  }
 }
 
 void handleAvoidObstacle() {
@@ -283,20 +457,29 @@ void handleAvoidObstacle() {
 
 // ===== HELPER FUNCTIONS =====
 void initializePins() {
-  pinMode(BUTTON_PIN, INPUT_PULLUP);     // Button
+  // Initialize button pin as a pull-up input
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  // Initialize encoder pins as pull-up inputs
   pinMode(ENCODER_PIN_A1, INPUT_PULLUP); // Encoder A
   pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
   pinMode(ENCODER_PIN_B1, INPUT_PULLUP); // Encoder B
   pinMode(ENCODER_PIN_B2, INPUT_PULLUP);
+
+  // Initialize line sensor pins as inputs
   pinMode(LINE_SENSOR_PIN_A1, INPUT); // Line Sensor A
   pinMode(LINE_SENSOR_PIN_A2, INPUT);
   pinMode(LINE_SENSOR_PIN_A3, INPUT);
   pinMode(LINE_SENSOR_PIN_B1, INPUT); // Line Sensor B
   pinMode(LINE_SENSOR_PIN_B2, INPUT);
   pinMode(LINE_SENSOR_PIN_B3, INPUT);
-  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT); // Ultrasonic Sensor
+
+  // Initialize ultrasonic sensor pins
+  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
   pinMode(ULTRASONIC_ECHO_PIN, INPUT);
-  pinMode(LED_PIN, OUTPUT); // LED
+
+  // Initialize LED pin as an output
+  pinMode(LED_PIN, OUTPUT);
 }
 
 void initializeSerialPort() {
@@ -350,4 +533,61 @@ void setStepperMotorSpeedsToMax() {
 void servosOff() {
   motorDriver.motorAStop();
   motorDriver.motorBStop();
+}
+
+int combineLineResult(int avg1, int avg2, int avg3) {
+  // int threshold = LINE_SENSOR_A_THRESHOLD;
+
+  // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
+  int lineSensorValueA1 = (avg1 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
+  int lineSensorValueA2 = (avg2 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
+  int lineSensorValueA3 = (avg3 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
+
+  // COMBINE values into one variable (e.g. 001, 000, 111, 101, etc)
+  int lineSensorValue =
+      (lineSensorValueA1 << 2) | (lineSensorValueA2 << 1) | lineSensorValueA3;
+
+  return lineSensorValue;
+}
+
+int determineError(int lineSensorValue) {
+  // Determine the error based on the line sensor value
+  int error = 0;
+
+  switch (lineSensorValue) {
+  case 0b000:
+    // Robot is off the line, keep last known direction
+    error = 0;
+    break;
+  case 0b001:
+    // Robot needs to turn left
+    error = +2;
+    break;
+  case 0b010:
+    // Robot is centered
+    error = 0;
+    break;
+  case 0b011:
+    // Robot slightly off center to the right
+    error = +1;
+    break;
+  case 0b100:
+    // Robot needs to turn right
+    error = -2;
+    break;
+  case 0b110:
+    // Robot slightly off center to the left
+    error = -1;
+    break;
+  case 0b101:
+    // Robot is centered
+    error = 0;
+    break;
+  default:
+    // Robot is centered
+    error = 0;
+    break;
+  }
+
+  return error;
 }
