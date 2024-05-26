@@ -1,7 +1,7 @@
 #ifndef MOVINGAVERAGESENSOR_H
 #define MOVINGAVERAGESENSOR_H
 
-#define BUFFER_SIZE 25  // Define the buffer size here
+#define BUFFER_SIZE 25 // Define the buffer size here
 
 class MovingAverageSensor {
 private:

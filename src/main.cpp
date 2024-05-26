@@ -19,12 +19,15 @@
 // ===== GLOBAL VARIABLES =====
 DRV8833 motorDriver = DRV8833(); // Motor driver
 Stepper stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1,
-                      STEPPER_PIN_A2, STEPPER_PIN_A3, STEPPER_PIN_A4); // Stepper motor A (four-bar)
+                      STEPPER_PIN_A2, STEPPER_PIN_A3,
+                      STEPPER_PIN_A4); // Stepper motor A (four-bar)
 Stepper stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION, STEPPER_PIN_B1,
-                      STEPPER_PIN_B2, STEPPER_PIN_B3, STEPPER_PIN_B4); // Stepper motor B (lift)
+                      STEPPER_PIN_B2, STEPPER_PIN_B3,
+                      STEPPER_PIN_B4);            // Stepper motor B (lift)
 Encoder encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2); // Encoder A
 Encoder encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2); // Encoder B
-SystemStateHandler systemStateHandler = SystemStateHandler(); // System state handler
+SystemStateHandler systemStateHandler =
+    SystemStateHandler();                             // System state handler
 MovingAverageSensor lineSensorA1(LINE_SENSOR_PIN_A1); // Line sensor A1
 MovingAverageSensor lineSensorA2(LINE_SENSOR_PIN_A2); // Line sensor A2
 MovingAverageSensor lineSensorA3(LINE_SENSOR_PIN_A3); // Line sensor A3
@@ -76,19 +79,27 @@ void setup() {
 void loop() {
   switch (systemStateHandler.getCurrentState()) {
   case SystemState::TEST:
+    // Code for testing
     handleTest();
     break;
   case SystemState::IDLE:
+    // Code for simple idle state
     handleIdle();
     break;
+  case SystemState::IR_IDLE:
+    // Code for idle state with IR sensors active
+    handleIRIdle();
+    break;
+  case SystemState::PID_ENCODER_DRIVE:
+    // Code for PID control of encoder drive
+    handlePIDEncoderDrive();
+    break;
   case SystemState::FOLLOW_LINE:
+    // Code for simple line following
     handleFollowLine();
     break;
   case SystemState::AVOID_OBSTACLE:
     handleAvoidObstacle();
-    break;
-  case SystemState::IR_IDLE:
-    handleIRIdle();
     break;
   default:
     logError("Invalid state");
@@ -178,6 +189,39 @@ void handleIdle() {
   }
 }
 
+void handleIRIdle() {
+  // Read the sensor values
+  lineSensorA1.read();
+  lineSensorA2.read();
+  lineSensorA3.read();
+  lineSensorB1.read();
+  lineSensorB2.read();
+  lineSensorB3.read();
+
+  // Calculate the averages
+  int avgA1 = lineSensorA1.average();
+  int avgA2 = lineSensorA2.average();
+  int avgA3 = lineSensorA3.average();
+  int avgB1 = lineSensorB1.average();
+  int avgB2 = lineSensorB2.average();
+  int avgB3 = lineSensorB3.average();
+
+  Serial.print("Line sensor: ");
+  Serial.print(avgA1);
+  Serial.print(", ");
+  Serial.print(avgA2);
+  Serial.print(", ");
+  Serial.print(avgA3);
+  Serial.print("; ");
+  Serial.print(avgB1);
+  Serial.print(", ");
+  Serial.print(avgB2);
+  Serial.print(", ");
+  Serial.println(avgB3);
+
+  servosOff();
+}
+
 void handlePIDEncoderDrive() {
   // PID parameters
   float Kp = 1.0;
@@ -221,39 +265,6 @@ void handlePIDEncoderDrive() {
   delay(100);
 }
 
-void handleIRIdle() {
-  // Read the sensor values
-  lineSensorA1.read();
-  lineSensorA2.read();
-  lineSensorA3.read();
-  lineSensorB1.read();
-  lineSensorB2.read();
-  lineSensorB3.read();
-
-  // Calculate the averages
-  int avgA1 = lineSensorA1.average();
-  int avgA2 = lineSensorA2.average();
-  int avgA3 = lineSensorA3.average();
-  int avgB1 = lineSensorB1.average();
-  int avgB2 = lineSensorB2.average();
-  int avgB3 = lineSensorB3.average();
-
-  Serial.print("Line sensor: ");
-  Serial.print(avgA1);
-  Serial.print(", ");
-  Serial.print(avgA2);
-  Serial.print(", ");
-  Serial.print(avgA3);
-  Serial.print("; ");
-  Serial.print(avgB1);
-  Serial.print(", ");
-  Serial.print(avgB2);
-  Serial.print(", ");
-  Serial.println(avgB3);
-
-  servosOff();
-}
-
 void handleFollowLine() {
   /*if (millis() - lastStateChangeTime > stateDuration) {  // Ensure at least
   stateDuration has passed if (lineLost) { changeState(IDLE); } else if
@@ -280,7 +291,7 @@ void initializePins() {
   pinMode(LINE_SENSOR_PIN_A1, INPUT); // Line Sensor A
   pinMode(LINE_SENSOR_PIN_A2, INPUT);
   pinMode(LINE_SENSOR_PIN_A3, INPUT);
-  pinMode(LINE_SENSOR_PIN_B1, INPUT);    // Line Sensor B
+  pinMode(LINE_SENSOR_PIN_B1, INPUT); // Line Sensor B
   pinMode(LINE_SENSOR_PIN_B2, INPUT);
   pinMode(LINE_SENSOR_PIN_B3, INPUT);
   pinMode(ULTRASONIC_TRIG_PIN, OUTPUT); // Ultrasonic Sensor
