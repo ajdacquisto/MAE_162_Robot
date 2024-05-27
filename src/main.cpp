@@ -44,8 +44,6 @@ enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 
 enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
 
-enum ROTATE_DIRECTION { LEFT, RIGHT };
-
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
@@ -62,6 +60,7 @@ void handleCalibrate(int componentCode);
 void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
 void resetAllPIDMemory();
+void handleRotation(MotorController::ROTATE_DIRECTION direction);
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -168,10 +167,10 @@ void loop() {
     handleAvoidObstacle();
     break;
   case SystemState::ROTATE_LEFT:
-    handleRotation(LEFT);
+    handleRotation(MotorController::LEFT);
     break;
   case SystemState::ROTATE_RIGHT:
-    handleRotation(RIGHT);
+    handleRotation(MotorController::RIGHT);
     break;
   default:
     logError("Invalid state");
@@ -429,7 +428,7 @@ void handleFollowLine(int mode) {
   Serial.println(resultB, BIN);
 
   switch (mode) {
-  case PICKUP:
+  case PICKUP: {
     // Code for line following in pickup mode
 
     int targetLocation = 0;
@@ -457,6 +456,7 @@ void handleFollowLine(int mode) {
     }
 
     break;
+  }
   case REGULAR: {
     // Code for regular line following
     int error = sensorController.determineError(resultA);
@@ -517,14 +517,8 @@ void handleAvoidObstacle() {
   }*/
 }
 
-void handleRotation(int direction) {
-  if (direction == LEFT) {
-    // Rotate the robot left
-  } else if (direction == RIGHT) {
-    // Rotate the robot right
-  } else {
-    logError("Invalid direction");
-  }
+void handleRotation(MotorController::ROTATE_DIRECTION direction) {
+  motorController.rotateRobot(direction, sensorController.getLineResultA());
 }
 
 // ===== HELPER FUNCTIONS =====

@@ -7,21 +7,25 @@
 
 class MotorController {
 private:
-  public:
-    DRV8833 motorDriver;
-    Stepper stepperMotorA;
-    Stepper stepperMotorB;
-    
-    // Constructor
-    MotorController();
-    ~MotorController();
-    void attachServoMotors();
-    void rotateStepperAdeg(int degrees);
-    void rotateStepperAsteps(int steps);
-    void rotateStepperBdeg(int degrees);
-    void rotateStepperBsteps(int steps);
-    void servosOff();
-    void setStepperMotorSpeedsToMax();
+  bool hasLeftLineYet = false;
+public:
+  DRV8833 motorDriver;
+  Stepper stepperMotorA;
+  Stepper stepperMotorB;
+
+  enum ROTATE_DIRECTION { LEFT, RIGHT };
+
+  // Constructor
+  MotorController();
+  ~MotorController();
+  void attachServoMotors();
+  void rotateStepperAdeg(int degrees);
+  void rotateStepperAsteps(int steps);
+  void rotateStepperBdeg(int degrees);
+  void rotateStepperBsteps(int steps);
+  void servosOff();
+  void setStepperMotorSpeedsToMax();
+  void rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal);
 };
 
 #endif // MOTORCONTROLLER_H

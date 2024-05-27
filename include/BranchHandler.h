@@ -6,14 +6,10 @@
 class BranchHandler {
 public:
   // Constructor
-  BranchHandler() {
-    // Initialize any necessary variables or resources
-  }
+  BranchHandler();
 
   // Destructor
-  ~BranchHandler() {
-    // Clean up any allocated resources
-  }
+  ~BranchHandler();
 
 private:
   // Member variables
