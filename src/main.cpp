@@ -48,6 +48,8 @@ enum LIFT_DIRECTION { DOWN, UP };
 
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
 
+enum TARGET_NUM { FIRST_TARGET, SECOND_TARGET };
+
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
@@ -69,6 +71,7 @@ void handleUltrasonicApproach();
 void handleUltrasonicReverse();
 void handleLift(int direction);
 void calculateRotation(int rotationType, int targetLocation);
+void initiateLineFollowPickup(int targetNum);
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -104,30 +107,25 @@ void loop() {
     break;
   case 1:
     // Line follow to pickup location 1
-    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
-    branchHandler.setTargetNum(0);
+    initiateLineFollowPickup(FIRST_TARGET);
     break;
   case 2:
     // Rotate to face pickup location 1
     calculateRotation(TOWARDS, PICKUP_LOCATION_1);
     break;
   case 3:
-  case 10:
     // Use ultrasonic sensor to approach the pickup location
     systemStateHandler.changeState(SystemState::ULTRASONIC_APPROACH);
     break;
   case 4:
-  case 11:
     // Load using the four-bar mechanism
     systemStateHandler.changeState(SystemState::FOUR_BAR_LOAD);
     break;
   case 5:
-  case 12:
     // Lower the lift.
     systemStateHandler.changeState(SystemState::LIFT_LOWER);
     break;
   case 6:
-  case 13:
     // Use ultrasonic sensor and encoder drive to back straight up
     systemStateHandler.changeState(SystemState::ULTRASONIC_REVERSE);
     break;
@@ -137,12 +135,27 @@ void loop() {
     break;
   case 8:
     // Line follow to pickup location 2
-    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
-    branchHandler.setTargetNum(1);
+    initiateLineFollowPickup(SECOND_TARGET);
     break;
   case 9:
     // Rotate to face pickup location 2
     calculateRotation(TOWARDS, PICKUP_LOCATION_2);
+    break;
+  case 10:
+    // [SAME AS STEP 3]
+    systemStateHandler.changeState(SystemState::ULTRASONIC_APPROACH);
+    break;
+  case 11:
+    // [SAME AS STEP 4]
+    systemStateHandler.changeState(SystemState::FOUR_BAR_LOAD);
+    break;
+  case 12:
+    // [SAME AS STEP 5]
+    systemStateHandler.changeState(SystemState::LIFT_LOWER);
+    break;
+  case 13:
+    // [SAME AS STEP 6]
+    systemStateHandler.changeState(SystemState::ULTRASONIC_REVERSE);
     break;
   case 14:
     // Rotate to face front again.
@@ -150,6 +163,35 @@ void loop() {
     break;
   case 15:
     // Line follow until obstacle.
+    break;
+  case 16:
+    // Line follow in dropoff mode.
+    break;
+  case 17:
+    // Rotate to face dropoff location.
+    break;
+  case 18:
+    // Use ultrasonic sensor to approach the dropoff location.
+    break;
+  case 19:
+    // Raise the lift
+    break;
+  case 20:
+    // Unload using the four-bar mechanism
+    break;
+  case 21:
+    // Rotate to face front again.
+    break;
+  case 22:
+    // Line follow to end of track.
+    break;
+  case 23:
+    // IDLE
+    systemStateHandler.changeState(SystemState::IDLE);
+    break;
+  default:
+    // Error handling
+    logError("Invalid state flow index");
     break;
   }
 
@@ -182,9 +224,11 @@ void loop() {
     handleFollowLine(REGULAR);
     break;
   case SystemState::LINE_FOLLOW_PICKUP:
+    // Code for line following in pickup mode
     handleFollowLine(PICKUP);
     break;
   case SystemState::LINE_FOLLOW_DROPOFF:
+    // Code for line following in dropoff mode
     handleFollowLine(DROPOFF);
     break;
   case SystemState::FOUR_BAR_LOAD:
@@ -196,12 +240,15 @@ void loop() {
     handleFourBar(UNLOAD);
     break;
   case SystemState::ROTATE_LEFT:
+    // Code for rotating the robot left
     handleRotation(MotorController::LEFT);
     break;
   case SystemState::ROTATE_RIGHT:
+    // Code for rotating the robot right
     handleRotation(MotorController::RIGHT);
     break;
   case SystemState::ULTRASONIC_APPROACH:
+    // Code for approaching an obstacle using ultrasonic sensor
     handleUltrasonicApproach();
     break;
   case SystemState::LIFT_LOWER:
@@ -213,6 +260,7 @@ void loop() {
     handleLift(UP);
     break;
   default:
+    // Error handling
     logError("Invalid state");
     break;
   }
@@ -471,10 +519,10 @@ void handleFollowLine(int mode) {
   case PICKUP: {
     // Code for line following in pickup mode
 
-    int targetLocation = 0;
-    if (branchHandler.getTargetNum() == 0) {
+    int targetLocation = FIRST_TARGET;
+    if (branchHandler.getTargetNum() == FIRST_TARGET) {
       targetLocation = PICKUP_LOCATION_1;
-    } else if (branchHandler.getTargetNum() == 1) {
+    } else if (branchHandler.getTargetNum() == SECOND_TARGET) {
       targetLocation = PICKUP_LOCATION_2;
     } else {
       logError("Invalid target number");
@@ -687,4 +735,9 @@ void calculateRotation(int rotationType, int targetLocation) {
   } else {
     logError("Invalid rotation type");
   }
+}
+
+void initiateLineFollowPickup(int targetNum) {
+  systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+  branchHandler.setTargetNum(targetNum);
 }
