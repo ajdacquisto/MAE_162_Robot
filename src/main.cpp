@@ -63,6 +63,9 @@ void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
 void resetAllPIDMemory();
 void handleRotation(MotorController::ROTATE_DIRECTION direction);
+void handleUltrasonicApproach();
+void handleUltrasonicReverse();
+void handleLift(int direction);
 
 // ===== MAIN SETUP =====
 void setup() {
