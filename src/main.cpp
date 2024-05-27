@@ -12,6 +12,8 @@
 #include "SensorController.h"
 // This library provides an interface for handling control gains.
 #include "ControlGainHandler.h"
+// This library provides an interface for handling branches on the track.
+#include "BranchHandler.h"
 
 // ===== GLOBAL VARIABLES =====
 SystemStateHandler systemStateHandler =
@@ -19,10 +21,12 @@ SystemStateHandler systemStateHandler =
 MotorController motorController = MotorController();    // Motor controller
 SensorController sensorController = SensorController(); // Sensor controller
 ControlGainHandler lineSensorGainHandler =
-    ControlGainHandler(LINE_FOLLOW_REGULAR_KP, LINE_FOLLOW_REGULAR_KD, 0.0); // Line sensor gain handler
+    ControlGainHandler(LINE_FOLLOW_REGULAR_KP, LINE_FOLLOW_REGULAR_KD,
+                       0.0); // Line sensor gain handler
 ControlGainHandler encoderGainHandler =
-    ControlGainHandler(ENCODER_DRIVE_KP, ENCODER_DRIVE_KD, ENCODER_DRIVE_KI); // Encoder gain handler
-
+    ControlGainHandler(ENCODER_DRIVE_KP, ENCODER_DRIVE_KD,
+                       ENCODER_DRIVE_KI);      // Encoder gain handler
+BranchHandler branchHandler = BranchHandler(); // Branch handler
 
 // ===== ENUMS =====
 enum LED_STATE { OFF = LOW, ON = HIGH };
@@ -40,6 +44,8 @@ enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 
 enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
 
+enum ROTATE_DIRECTION { LEFT, RIGHT };
+
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
@@ -55,7 +61,7 @@ void logError(const char *message);
 void handleCalibrate(int componentCode);
 void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
-void resetPIDMemory();
+void resetAllPIDMemory();
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -76,7 +82,8 @@ void setup() {
 void loop() {
   // On state change.
   if (systemStateHandler.isNewStateFlowIndex()) {
-    resetPIDMemory();
+    resetAllPIDMemory();
+    branchHandler.reset();
     delay(500);
   }
 
@@ -87,8 +94,30 @@ void loop() {
     break;
   case 1:
     systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+    branchHandler.setTargetNum(0);
     break;
-  case 2:
+  case 2: {
+    switch (PICKUP_LOCATION_1) {
+    case FIRST_ON_LEFT:
+    case SECOND_ON_LEFT:
+    case THIRD_ON_LEFT:
+      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
+      break;
+    case FIRST_ON_RIGHT:
+    case SECOND_ON_RIGHT:
+    case THIRD_ON_RIGHT:
+      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
+      break;
+    default:
+      logError("Invalid pickup location");
+    }
+    break;
+  }
+  case 3:
+    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+    branchHandler.setTargetNum(1);
+    break;
+  case 4:
     systemStateHandler.changeState(SystemState::AVOID_OBSTACLE);
     break;
   }
@@ -137,6 +166,12 @@ void loop() {
     break;
   case SystemState::AVOID_OBSTACLE:
     handleAvoidObstacle();
+    break;
+  case SystemState::ROTATE_LEFT:
+    handleRotation(LEFT);
+    break;
+  case SystemState::ROTATE_RIGHT:
+    handleRotation(RIGHT);
     break;
   default:
     logError("Invalid state");
@@ -345,7 +380,8 @@ void handlePIDEncoderDrive(int baseSpeed) {
   // PID control
   encoderGainHandler.incrementIntegral(error);
   float derivative = error - encoderGainHandler.getLastError();
-  float output = Kp * error + Ki * encoderGainHandler.getIntegral() + Kd * derivative;
+  float output =
+      Kp * error + Ki * encoderGainHandler.getIntegral() + Kd * derivative;
 
   // Adjust motor speeds
   int motorSpeedA = constrain(baseSpeed - output, 0, 255);
@@ -387,15 +423,42 @@ void handleFollowLine(int mode) {
     resultB = sensorController.getLineResultB();
   }
 
-  Serial.println("Line sensor A: " + resultA);
-  Serial.println("Line sensor B: " + resultB);
+  Serial.print("Line sensors: ");
+  Serial.print(resultA, BIN);
+  Serial.print(", ");
+  Serial.println(resultB, BIN);
 
   switch (mode) {
   case PICKUP:
     // Code for line following in pickup mode
+
+    int targetLocation = 0;
+    if (branchHandler.getTargetNum() == 0) {
+      targetLocation = PICKUP_LOCATION_1;
+    } else if (branchHandler.getTargetNum() == 1) {
+      targetLocation = PICKUP_LOCATION_2;
+    } else {
+      logError("Invalid target number");
+    }
+
+    int targetBranchNum =
+        branchHandler.getTargetBranchNumFromLocation(targetLocation);
+
+    branchHandler.doBranchCheck(resultB);
+    bool atBranch = branchHandler.getIsCurrentlyOverBranch();
+    int branchNum = branchHandler.getCurrentLocation();
+
+    if (atBranch && (branchNum == targetBranchNum)) {
+      // STOP.
+      systemStateHandler.advanceStateFlowIndex();
+      return;
+    } else {
+      // Follow the line.
+    }
+
     break;
   case REGULAR: {
-    // Code for regular line followin
+    // Code for regular line following
     int error = sensorController.determineError(resultA);
 
     int P = error;
@@ -454,6 +517,16 @@ void handleAvoidObstacle() {
   }*/
 }
 
+void handleRotation(int direction) {
+  if (direction == LEFT) {
+    // Rotate the robot left
+  } else if (direction == RIGHT) {
+    // Rotate the robot right
+  } else {
+    logError("Invalid direction");
+  }
+}
+
 // ===== HELPER FUNCTIONS =====
 void initializePins() {
   // Initialize button pin as a pull-up input
@@ -502,7 +575,7 @@ void logError(const char *message) {
     ; // Stop the program
 }
 
-void resetPIDMemory() {
+void resetAllPIDMemory() {
   lineSensorGainHandler.reset();
   encoderGainHandler.reset();
 }
