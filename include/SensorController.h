@@ -19,6 +19,7 @@ private:
   MovingAverageSensor lineSensorB3; // Line sensor B3
 
   int combineLineResult(int avg1, int avg2, int avg3);
+  long ultrasonicMemory;
 public:
   // Constructor
   SensorController();
@@ -37,6 +38,9 @@ public:
 
   void readLineSensorA();
   void readLineSensorB();
+
+  long getUltrasonicMemory();
+  void setUltrasonicMemory(long value);
 };
 
 #endif // SENSORCONTROLLER_H

@@ -11,7 +11,9 @@ SensorController::SensorController()
       lineSensorB1(LINE_SENSOR_PIN_B1),             // Line sensor B1
       lineSensorB2(LINE_SENSOR_PIN_B2),             // Line sensor B2
       lineSensorB3(LINE_SENSOR_PIN_B3)              // Line sensor B3
-{}
+{
+  ultrasonicMemory = 0;
+}
 
 // Destructor
 SensorController::~SensorController() {
@@ -107,4 +109,16 @@ int SensorController::getLineResultA() {
 int SensorController::getLineResultB() {
   return combineLineResult(lineSensorB1.average(), lineSensorB2.average(),
                            lineSensorB3.average());
+}
+
+long SensorController::getUltrasonicDistance() {
+  return hc.dist();
+}
+
+long SensorController::getUltrasonicMemory() {
+  return ultrasonicMemory;
+}
+
+void SensorController::setUltrasonicMemory(long value) {
+  ultrasonicMemory = value;
 }

@@ -515,6 +515,10 @@ void handleUltrasonicApproach() {
   int DISTANCE_THRESHOLD = 10;
   long distance = sensorController.getUltrasonicDistance();
 
+  if (sensorController.getUltrasonicMemory() == 0) {
+    sensorController.setUltrasonicMemory(distance);
+  }
+
   // Print the distance
   Serial.print("Distance: ");
   Serial.println(distance);
@@ -527,6 +531,23 @@ void handleUltrasonicApproach() {
   }
 
   delay(100);
+}
+
+void handleUltrasonicReverse() {
+  int REVERSE_SPEED = 64;
+
+  long distance = sensorController.getUltrasonicDistance();
+
+  // Print the distance
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  if (distance < sensorController.getUltrasonicMemory()) {
+    handlePIDEncoderDrive(-REVERSE_SPEED);
+  } else {
+    motorController.servosOff();
+    systemStateHandler.advanceStateFlowIndex();
+  }
 }
 
 // ===== HELPER FUNCTIONS =====
