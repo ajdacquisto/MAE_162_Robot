@@ -75,3 +75,16 @@ void MotorController::rotateRobot(ROTATE_DIRECTION direction, int interruptSenso
     motorDriver.motorBReverse(ROTATION_SPEED);
   }
 }
+
+MotorController::ROTATE_DIRECTION MotorController::getDirectionToRotate(int pickupLocation) {
+  switch(pickupLocation) {
+    case FIRST_ON_LEFT:
+    case SECOND_ON_LEFT:
+    case THIRD_ON_LEFT:
+      return ROTATE_DIRECTION::LEFT;
+    case FIRST_ON_RIGHT:
+    case SECOND_ON_RIGHT:
+    case THIRD_ON_RIGHT:
+      return ROTATE_DIRECTION::RIGHT;
+  }
+}

@@ -26,6 +26,7 @@ public:
   void servosOff();
   void setStepperMotorSpeedsToMax();
   void rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal);
+  ROTATE_DIRECTION getDirectionToRotate(int pickupLocation);
 };
 
 #endif // MOTORCONTROLLER_H

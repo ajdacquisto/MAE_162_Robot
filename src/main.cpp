@@ -89,35 +89,26 @@ void loop() {
   // Order of operations
   switch (systemStateHandler.getStateFlowIndex()) {
   case 0:
+    // IDLE until button press
     systemStateHandler.changeState(SystemState::IDLE);
     break;
   case 1:
+    // Line follow to pickup location 1
     systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
     branchHandler.setTargetNum(0);
     break;
   case 2: {
-    switch (PICKUP_LOCATION_1) {
-    case FIRST_ON_LEFT:
-    case SECOND_ON_LEFT:
-    case THIRD_ON_LEFT:
+    // Rotate to face pickup location 1
+    if (motorController.getDirectionToRotate(PICKUP_LOCATION_1) ==
+        MotorController::LEFT) {
       systemStateHandler.changeState(SystemState::ROTATE_LEFT);
-      break;
-    case FIRST_ON_RIGHT:
-    case SECOND_ON_RIGHT:
-    case THIRD_ON_RIGHT:
+    } else {
       systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
-      break;
-    default:
-      logError("Invalid pickup location");
     }
-    break;
   }
   case 3:
     systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
     branchHandler.setTargetNum(1);
-    break;
-  case 4:
-    systemStateHandler.changeState(SystemState::AVOID_OBSTACLE);
     break;
   }
 
@@ -162,9 +153,6 @@ void loop() {
   case SystemState::FOUR_BAR_UNLOAD:
     // Code for four-bar mechanism
     handleFourBar(UNLOAD);
-    break;
-  case SystemState::AVOID_OBSTACLE:
-    handleAvoidObstacle();
     break;
   case SystemState::ROTATE_LEFT:
     handleRotation(MotorController::LEFT);
@@ -507,14 +495,6 @@ void handleFourBar(int direction) {
   } else {
     logError("Invalid direction");
   }
-}
-
-void handleAvoidObstacle() {
-  /*// Assume we need to avoid obstacles for a minimum of 3 seconds
-  if (millis() - lastStateChangeTime > 3000) {  // Stay in AVOID_OBSTACLE for at
-  least 3000 ms if (obstacleCleared) { changeState(FOLLOW_LINE);
-    }
-  }*/
 }
 
 void handleRotation(MotorController::ROTATE_DIRECTION direction) {
