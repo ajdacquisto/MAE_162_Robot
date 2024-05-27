@@ -25,7 +25,7 @@ public:
   void rotateStepperBsteps(int steps);
   void servosOff();
   void setStepperMotorSpeedsToMax();
-  void rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal);
+  bool rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal);
   ROTATE_DIRECTION getDirectionToRotate(int pickupLocation);
 };
 

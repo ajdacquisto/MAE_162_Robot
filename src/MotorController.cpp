@@ -46,7 +46,7 @@ void MotorController::setStepperMotorSpeedsToMax() {
   stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
 }
 
-void MotorController::rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal) {
+bool MotorController::rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal) {
   int ROTATION_SPEED = 255;
 
   // Get the middle digit of the interrupt sensor value
@@ -59,7 +59,7 @@ void MotorController::rotateRobot(ROTATE_DIRECTION direction, int interruptSenso
   if (middleDigit == 1 && hasLeftLineYet == true) {
     hasLeftLineYet = false;
     servosOff();
-    return;
+    return true;
   }
 
   // (positive for clockwise, negative for counterclockwise)
@@ -74,6 +74,8 @@ void MotorController::rotateRobot(ROTATE_DIRECTION direction, int interruptSenso
     motorDriver.motorAForward(ROTATION_SPEED);
     motorDriver.motorBReverse(ROTATION_SPEED);
   }
+
+  return false;
 }
 
 MotorController::ROTATE_DIRECTION MotorController::getDirectionToRotate(int pickupLocation) {

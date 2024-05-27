@@ -107,6 +107,10 @@ void loop() {
     }
   }
   case 3:
+    // Use ultrasonic sensor to approach the pickup location
+    systemStateHandler.changeState(SystemState::ULTRASONIC_APPROACH);
+    break;
+  case 4:
     systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
     branchHandler.setTargetNum(1);
     break;
@@ -159,6 +163,9 @@ void loop() {
     break;
   case SystemState::ROTATE_RIGHT:
     handleRotation(MotorController::RIGHT);
+    break;
+  case SystemState::ULTRASONIC_APPROACH:
+    handleUltrasonicApproach();
     break;
   default:
     logError("Invalid state");
@@ -498,7 +505,28 @@ void handleFourBar(int direction) {
 }
 
 void handleRotation(MotorController::ROTATE_DIRECTION direction) {
-  motorController.rotateRobot(direction, sensorController.getLineResultA());
+  if (motorController.rotateRobot(direction, sensorController.getLineResultA())) {
+    systemStateHandler.advanceStateFlowIndex();
+  }
+}
+
+void handleUltrasonicApproach() {
+  // Read the ultrasonic sensor
+  int DISTANCE_THRESHOLD = 10;
+  long distance = sensorController.getUltrasonicDistance();
+
+  // Print the distance
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  if (distance > DISTANCE_THRESHOLD) {
+    handleFollowLine(REGULAR);
+  } else {
+    motorController.servosOff();
+    systemStateHandler.advanceStateFlowIndex();
+  }
+
+  delay(100);
 }
 
 // ===== HELPER FUNCTIONS =====
