@@ -44,6 +44,8 @@ enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 
 enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
 
+enum LIFT_DIRECTION { DOWN, UP };
+
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
@@ -82,6 +84,8 @@ void loop() {
   // On state change.
   if (systemStateHandler.isNewStateFlowIndex()) {
     resetAllPIDMemory();
+    motorController.servosOff();
+    motorController.setStepperMotorSpeedsToMax();
     // branchHandler.reset();
     delay(500);
   }
@@ -107,16 +111,26 @@ void loop() {
     }
     break;
   case 3:
-  case 8:
+  case 10:
     // Use ultrasonic sensor to approach the pickup location
     systemStateHandler.changeState(SystemState::ULTRASONIC_APPROACH);
     break;
   case 4:
-  case 9:
+  case 11:
+    // Load using the four-bar mechanism
+    systemStateHandler.changeState(SystemState::FOUR_BAR_LOAD);
+    break;
+  case 5:
+  case 12:
+    // Lower the lift.
+    systemStateHandler.changeState(SystemState::LIFT_LOWER);
+    break;
+  case 6:
+  case 13:
     // Use ultrasonic sensor and encoder drive to back straight up
     systemStateHandler.changeState(SystemState::ULTRASONIC_REVERSE);
     break;
-  case 5:
+  case 7:
     // Rotate to face front again.
     if (motorController.getDirectionToRotate(PICKUP_LOCATION_1) ==
         MotorController::LEFT) {
@@ -125,12 +139,12 @@ void loop() {
       systemStateHandler.changeState(SystemState::ROTATE_LEFT);
     }
     break;
-  case 6:
+  case 8:
     // Line follow to pickup location 2
     systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
     branchHandler.setTargetNum(1);
     break;
-  case 7:
+  case 9:
     // Rotate to face pickup location 2
     if (motorController.getDirectionToRotate(PICKUP_LOCATION_2) ==
         MotorController::LEFT) {
@@ -139,7 +153,7 @@ void loop() {
       systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
     }
     break;
-  case 10:
+  case 14:
     // Rotate to face front again.
     if (motorController.getDirectionToRotate(PICKUP_LOCATION_2) ==
         MotorController::LEFT) {
@@ -147,6 +161,9 @@ void loop() {
     } else {
       systemStateHandler.changeState(SystemState::ROTATE_LEFT);
     }
+    break;
+  case 15:
+    // Line follow until obstacle.
     break;
   }
 
@@ -200,6 +217,14 @@ void loop() {
     break;
   case SystemState::ULTRASONIC_APPROACH:
     handleUltrasonicApproach();
+    break;
+  case SystemState::LIFT_LOWER:
+    // Lower the lift.
+    handleLift(DOWN);
+    break;
+  case SystemState::LIFT_RAISE:
+    // Raise the lift.
+    handleLift(UP);
     break;
   default:
     logError("Invalid state");
@@ -582,6 +607,27 @@ void handleUltrasonicReverse() {
   } else {
     motorController.servosOff();
     systemStateHandler.advanceStateFlowIndex();
+  }
+}
+
+void handleLift(int direction) {
+  const int LIFT_SPEED = 64; // from 0 to 255
+  const int LIFT_DISTANCE = 50; // steps
+  motorController.stepperMotorB.setSpeed(LIFT_SPEED);
+
+  switch (direction)
+  {
+  case UP:
+    // Move the lift up
+    motorController.rotateStepperBsteps(LIFT_DISTANCE * 2);
+    break;
+  case DOWN:
+    // Move the lift down
+    motorController.rotateStepperBsteps(-LIFT_DISTANCE);
+    break;
+  default:
+    logError("Invalid direction");
+    break;
   }
 }
 
