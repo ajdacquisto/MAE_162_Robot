@@ -82,7 +82,7 @@ void loop() {
   // On state change.
   if (systemStateHandler.isNewStateFlowIndex()) {
     resetAllPIDMemory();
-    branchHandler.reset();
+    // branchHandler.reset();
     delay(500);
   }
 
@@ -97,7 +97,7 @@ void loop() {
     systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
     branchHandler.setTargetNum(0);
     break;
-  case 2: {
+  case 2:
     // Rotate to face pickup location 1
     if (motorController.getDirectionToRotate(PICKUP_LOCATION_1) ==
         MotorController::LEFT) {
@@ -105,14 +105,48 @@ void loop() {
     } else {
       systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
     }
-  }
+    break;
   case 3:
+  case 8:
     // Use ultrasonic sensor to approach the pickup location
     systemStateHandler.changeState(SystemState::ULTRASONIC_APPROACH);
     break;
   case 4:
+  case 9:
+    // Use ultrasonic sensor and encoder drive to back straight up
+    systemStateHandler.changeState(SystemState::ULTRASONIC_REVERSE);
+    break;
+  case 5:
+    // Rotate to face front again.
+    if (motorController.getDirectionToRotate(PICKUP_LOCATION_1) ==
+        MotorController::LEFT) {
+      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
+    } else {
+      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
+    }
+    break;
+  case 6:
+    // Line follow to pickup location 2
     systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
     branchHandler.setTargetNum(1);
+    break;
+  case 7:
+    // Rotate to face pickup location 2
+    if (motorController.getDirectionToRotate(PICKUP_LOCATION_2) ==
+        MotorController::LEFT) {
+      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
+    } else {
+      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
+    }
+    break;
+  case 10:
+    // Rotate to face front again.
+    if (motorController.getDirectionToRotate(PICKUP_LOCATION_2) ==
+        MotorController::LEFT) {
+      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
+    } else {
+      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
+    }
     break;
   }
 
@@ -505,7 +539,8 @@ void handleFourBar(int direction) {
 }
 
 void handleRotation(MotorController::ROTATE_DIRECTION direction) {
-  if (motorController.rotateRobot(direction, sensorController.getLineResultA())) {
+  if (motorController.rotateRobot(direction,
+                                  sensorController.getLineResultA())) {
     systemStateHandler.advanceStateFlowIndex();
   }
 }
