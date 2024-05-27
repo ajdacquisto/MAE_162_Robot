@@ -13,6 +13,7 @@ SensorController::SensorController()
       lineSensorB3(LINE_SENSOR_PIN_B3)              // Line sensor B3
 {
   ultrasonicMemory = 0;
+  lineSensorAThreshold = LINE_SENSOR_A_THRESHOLD;
 }
 
 // Destructor
@@ -36,9 +37,9 @@ long SensorController::readEncoderB() {
 int SensorController::combineLineResult(int avg1, int avg2, int avg3) {
 
   // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
-  int lineSensorValueA1 = (avg1 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
-  int lineSensorValueA2 = (avg2 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
-  int lineSensorValueA3 = (avg3 < LINE_SENSOR_A_THRESHOLD) ? 1 : 0;
+  int lineSensorValueA1 = (avg1 > getLineSensorAThreshold()) ? 1 : 0;
+  int lineSensorValueA2 = (avg2 > getLineSensorAThreshold()) ? 1 : 0;
+  int lineSensorValueA3 = (avg3 > getLineSensorAThreshold()) ? 1 : 0;
 
   // COMBINE values into one variable (e.g. 001, 000, 111, 101, etc)
   int lineSensorValue =
@@ -57,24 +58,24 @@ int SensorController::determineError(int lineSensorValue) {
     error = 0;
     break;
   case 0b001:
-    // Robot needs to turn left
+    // Robot needs to turn hard right
     error = +2;
+    break;
+  case 0b011:
+    // Robot needs to turn slightly right
+    error = +1;
     break;
   case 0b010:
     // Robot is centered
     error = 0;
     break;
-  case 0b011:
-    // Robot slightly off center to the right
-    error = +1;
+  case 0b110:
+    // Robot needs to turn slightly left
+    error = -1;
     break;
   case 0b100:
-    // Robot needs to turn right
+    // Robot needs to hard left
     error = -2;
-    break;
-  case 0b110:
-    // Robot slightly off center to the left
-    error = -1;
     break;
   case 0b101:
     // Robot is centered
@@ -121,4 +122,36 @@ long SensorController::getUltrasonicMemory() {
 
 void SensorController::setUltrasonicMemory(long value) {
   ultrasonicMemory = value;
+}
+
+int SensorController::readLineSensorA1() {
+  return lineSensorA1.average();
+}
+
+int SensorController::readLineSensorA2() {
+  return lineSensorA2.average();
+}
+
+int SensorController::readLineSensorA3() {
+  return lineSensorA3.average();
+}
+
+int SensorController::readLineSensorB1() {
+  return lineSensorB1.average();
+}
+
+int SensorController::readLineSensorB2() {
+  return lineSensorB2.average();
+}
+
+int SensorController::readLineSensorB3() {
+  return lineSensorB3.average();
+}
+
+int SensorController::getLineSensorAThreshold() {
+  return lineSensorAThreshold;
+}
+
+void SensorController::setLineSensorAThreshold(int threshold) {
+  lineSensorAThreshold = threshold;
 }

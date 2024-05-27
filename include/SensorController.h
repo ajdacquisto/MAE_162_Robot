@@ -20,6 +20,7 @@ private:
 
   int combineLineResult(int avg1, int avg2, int avg3);
   long ultrasonicMemory;
+  int lineSensorAThreshold;
 public:
   // Constructor
   SensorController();
@@ -41,6 +42,16 @@ public:
 
   long getUltrasonicMemory();
   void setUltrasonicMemory(long value);
+
+  int readLineSensorA1();
+  int readLineSensorA2();
+  int readLineSensorA3();
+  int readLineSensorB1();
+  int readLineSensorB2();
+  int readLineSensorB3();
+
+  int getLineSensorAThreshold();
+  void setLineSensorAThreshold(int threshold);
 };
 
 #endif // SENSORCONTROLLER_H

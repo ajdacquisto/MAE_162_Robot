@@ -84,9 +84,11 @@ MotorController::ROTATE_DIRECTION MotorController::getDirectionToRotate(int pick
     case SECOND_ON_LEFT:
     case THIRD_ON_LEFT:
       return ROTATE_DIRECTION::LEFT;
+      break;
     case FIRST_ON_RIGHT:
     case SECOND_ON_RIGHT:
     case THIRD_ON_RIGHT:
       return ROTATE_DIRECTION::RIGHT;
+      break;
   }
 }
