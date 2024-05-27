@@ -46,6 +46,8 @@ enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
 
 enum LIFT_DIRECTION { DOWN, UP };
 
+enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
+
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
@@ -66,6 +68,7 @@ void handleRotation(MotorController::ROTATE_DIRECTION direction);
 void handleUltrasonicApproach();
 void handleUltrasonicReverse();
 void handleLift(int direction);
+void calculateRotation(int rotationType, int targetLocation);
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -84,8 +87,8 @@ void setup() {
 
 // ===== MAIN LOOP =====
 void loop() {
-  // On state change.
   if (systemStateHandler.isNewStateFlowIndex()) {
+    // On state change.
     resetAllPIDMemory();
     motorController.servosOff();
     motorController.setStepperMotorSpeedsToMax();
@@ -106,12 +109,7 @@ void loop() {
     break;
   case 2:
     // Rotate to face pickup location 1
-    if (motorController.getDirectionToRotate(PICKUP_LOCATION_1) ==
-        MotorController::LEFT) {
-      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
-    } else {
-      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
-    }
+    calculateRotation(TOWARDS, PICKUP_LOCATION_1);
     break;
   case 3:
   case 10:
@@ -135,12 +133,7 @@ void loop() {
     break;
   case 7:
     // Rotate to face front again.
-    if (motorController.getDirectionToRotate(PICKUP_LOCATION_1) ==
-        MotorController::LEFT) {
-      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
-    } else {
-      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
-    }
+    calculateRotation(AWAY_FROM, PICKUP_LOCATION_1);
     break;
   case 8:
     // Line follow to pickup location 2
@@ -149,21 +142,11 @@ void loop() {
     break;
   case 9:
     // Rotate to face pickup location 2
-    if (motorController.getDirectionToRotate(PICKUP_LOCATION_2) ==
-        MotorController::LEFT) {
-      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
-    } else {
-      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
-    }
+    calculateRotation(TOWARDS, PICKUP_LOCATION_2);
     break;
   case 14:
     // Rotate to face front again.
-    if (motorController.getDirectionToRotate(PICKUP_LOCATION_2) ==
-        MotorController::LEFT) {
-      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
-    } else {
-      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
-    }
+    calculateRotation(AWAY_FROM, PICKUP_LOCATION_2);
     break;
   case 15:
     // Line follow until obstacle.
@@ -614,12 +597,11 @@ void handleUltrasonicReverse() {
 }
 
 void handleLift(int direction) {
-  const int LIFT_SPEED = 64; // from 0 to 255
+  const int LIFT_SPEED = 64;    // from 0 to 255
   const int LIFT_DISTANCE = 50; // steps
   motorController.stepperMotorB.setSpeed(LIFT_SPEED);
 
-  switch (direction)
-  {
+  switch (direction) {
   case UP:
     // Move the lift up
     motorController.rotateStepperBsteps(LIFT_DISTANCE * 2);
@@ -685,4 +667,24 @@ void logError(const char *message) {
 void resetAllPIDMemory() {
   lineSensorGainHandler.reset();
   encoderGainHandler.reset();
+}
+
+void calculateRotation(int rotationType, int targetLocation) {
+  if (rotationType == TOWARDS) {
+    if (motorController.getDirectionToRotate(targetLocation) ==
+        MotorController::LEFT) {
+      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
+    } else {
+      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
+    }
+  } else if (rotationType == AWAY_FROM) {
+    if (motorController.getDirectionToRotate(targetLocation) ==
+        MotorController::LEFT) {
+      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
+    } else {
+      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
+    }
+  } else {
+    logError("Invalid rotation type");
+  }
 }
