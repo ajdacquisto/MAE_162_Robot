@@ -55,7 +55,7 @@ int SensorController::determineError(int lineSensorValue) {
   switch (lineSensorValue) {
   case 0b000:
     // Robot is off the line, keep last known direction
-    error = 0;
+    error = 99;
     break;
   case 0b001:
     // Robot needs to turn hard right

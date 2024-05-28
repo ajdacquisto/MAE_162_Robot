@@ -14,6 +14,7 @@ public:
   Stepper stepperMotorB;
 
   enum ROTATE_DIRECTION { LEFT, RIGHT };
+  enum SERVO { SERVO_A, SERVO_B };
 
   // Constructor
   MotorController();
@@ -27,6 +28,7 @@ public:
   void setStepperMotorSpeedsToMax();
   bool rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal);
   ROTATE_DIRECTION getDirectionToRotate(int pickupLocation);
+  void servoDrive(SERVO whichServo, int speed);
 };
 
 #endif // MOTORCONTROLLER_H

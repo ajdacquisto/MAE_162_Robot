@@ -92,3 +92,22 @@ MotorController::ROTATE_DIRECTION MotorController::getDirectionToRotate(int pick
       break;
   }
 }
+
+void MotorController::servoDrive(SERVO whichServo, int speed) {
+  switch(whichServo) {
+    case SERVO_A:
+      if (speed < 0) {
+        motorDriver.motorAReverse(-speed);
+      } else {
+        motorDriver.motorAForward(speed);
+      }
+      break;
+    case SERVO_B:
+      if (speed < 0) {
+        motorDriver.motorBReverse(-speed);
+      } else {
+        motorDriver.motorBForward(speed);
+      }
+      break;
+  }
+}

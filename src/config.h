@@ -26,7 +26,7 @@ const int ENCODER_PIN_B1 = 20, ENCODER_PIN_B2 = 21;
 // - Line Sensor A (front)
 const int LINE_SENSOR_PIN_A1 = A2, LINE_SENSOR_PIN_A2 = A1,
                     LINE_SENSOR_PIN_A3 = A0;
-const int LINE_SENSOR_A_THRESHOLD = 150;
+const int LINE_SENSOR_A_THRESHOLD = 350;
 // - Line Sensor B (side)
 const int LINE_SENSOR_PIN_B1 = A3, LINE_SENSOR_PIN_B2 = A4,
                     LINE_SENSOR_PIN_B3 = A5;
@@ -54,8 +54,10 @@ const int STEPPER_B_MAX_SPEED = 9;              // TODO: Set this value
 const float ENCODER_DRIVE_KP = 0.05;
 const float ENCODER_DRIVE_KD = 0.005;
 const float ENCODER_DRIVE_KI = 0.01;
-const float LINE_FOLLOW_REGULAR_KP = 40.0;
-const float LINE_FOLLOW_REGULAR_KD = 10.0;
+
+const float LINE_FOLLOW_REGULAR_KP = 190.0;
+const float LINE_FOLLOW_REGULAR_KD = 0.0;
+const float LINE_FOLLOW_REGULAR_KI = 0.0;
 // All IO list:
 // INP button [1 pin]
 // INP encoder A (right wheel) [2 pins]
