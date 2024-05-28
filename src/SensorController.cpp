@@ -21,17 +21,27 @@ SensorController::~SensorController() {
   // Clean up any resources
 }
 
+// ===== SETUP FUNCTIONS =====
 void SensorController::zeroEncoders() {
   encoderA.write(0);
   encoderB.write(0);
 }
 
-long SensorController::readEncoderA() { 
-  return encoderA.read(); 
+// ===== SENSOR READINGS =====
+long SensorController::readEncoderA() { return encoderA.read(); }
+
+long SensorController::readEncoderB() { return encoderB.read(); }
+
+void SensorController::readLineSensorA() {
+  lineSensorA1.read();
+  lineSensorA2.read();
+  lineSensorA3.read();
 }
 
-long SensorController::readEncoderB() { 
-  return encoderB.read(); 
+void SensorController::readLineSensorB() {
+  lineSensorB1.read();
+  lineSensorB2.read();
+  lineSensorB3.read();
 }
 
 int SensorController::combineLineResult(int avg1, int avg2, int avg3) {
@@ -90,18 +100,6 @@ int SensorController::determineError(int lineSensorValue) {
   return error;
 }
 
-void SensorController::readLineSensorA() {
-  lineSensorA1.read();
-  lineSensorA2.read();
-  lineSensorA3.read();
-}
-
-void SensorController::readLineSensorB() {
-  lineSensorB1.read();
-  lineSensorB2.read();
-  lineSensorB3.read();
-}
-
 int SensorController::getLineResultA() {
   return combineLineResult(lineSensorA1.average(), lineSensorA2.average(),
                            lineSensorA3.average());
@@ -112,46 +110,59 @@ int SensorController::getLineResultB() {
                            lineSensorB3.average());
 }
 
-long SensorController::getUltrasonicDistance() {
-  return hc.dist();
-}
+long SensorController::getUltrasonicDistance() { return hc.dist(); }
 
-long SensorController::getUltrasonicMemory() {
-  return ultrasonicMemory;
-}
+long SensorController::getUltrasonicMemory() { return ultrasonicMemory; }
 
 void SensorController::setUltrasonicMemory(long value) {
   ultrasonicMemory = value;
 }
 
-int SensorController::readLineSensorA1() {
-  return lineSensorA1.average();
-}
-
-int SensorController::readLineSensorA2() {
-  return lineSensorA2.average();
-}
-
-int SensorController::readLineSensorA3() {
-  return lineSensorA3.average();
-}
-
-int SensorController::readLineSensorB1() {
-  return lineSensorB1.average();
-}
-
-int SensorController::readLineSensorB2() {
-  return lineSensorB2.average();
-}
-
-int SensorController::readLineSensorB3() {
-  return lineSensorB3.average();
-}
-
-int SensorController::getLineSensorAThreshold() {
-  return lineSensorAThreshold;
-}
+int SensorController::getLineSensorAThreshold() { return lineSensorAThreshold; }
 
 void SensorController::setLineSensorAThreshold(int threshold) {
   lineSensorAThreshold = threshold;
+}
+
+// ====== ENCODER MEMORY FUNCTIONS =====
+void SensorController::setEncoderALastValue(int value) {
+  encoderALastValue = value;
+}
+
+int SensorController::getEncoderALastValue() { return encoderALastValue; }
+
+void SensorController::setEncoderALastTime(long value) {
+  encoderALastTime = value;
+}
+
+long SensorController::getEncoderALastTime() { return encoderALastTime; }
+
+void SensorController::setEncoderBLastValue(int value) {
+  encoderBLastValue = value;
+}
+
+int SensorController::getEncoderBLastValue() { return encoderBLastValue; }
+
+void SensorController::setEncoderBLastTime(long value) {
+  encoderBLastTime = value;
+}
+
+long SensorController::getEncoderBLastTime() { return encoderBLastTime; }
+
+// ===== ENCODER SPEED STUFF =====
+
+float SensorController::getEncoderASpeed() {
+  unsigned long currentTime = millis();
+  long encoderReading = encoderA.read();
+  float deltaTime = (currentTime - encoderALastTime) / 1000.0;
+  long deltaDistance = encoderReading - encoderALastValue;
+  return deltaDistance / deltaTime;
+}
+
+float SensorController::getEncoderBSpeed() {
+  unsigned long currentTime = millis();
+  long encoderReading = encoderB.read();
+  float deltaTime = (currentTime - encoderBLastTime) / 1000.0;
+  long deltaDistance = encoderReading - encoderBLastValue;
+  return deltaDistance / deltaTime;
 }

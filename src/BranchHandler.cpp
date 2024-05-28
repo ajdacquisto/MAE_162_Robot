@@ -32,7 +32,7 @@ bool BranchHandler::isMiddleDigitOne(int lineSensorValue) {
 
 void BranchHandler::setTargetNum(int targetNum) { m_targetNum = targetNum; }
 
-void BranchHandler::incrementTargetNum() { m_targetNum++; }
+void BranchHandler::incrementTargetNum() { m_targetNum += 1; }
 
 int BranchHandler::getTargetNum() { return m_targetNum; }
 

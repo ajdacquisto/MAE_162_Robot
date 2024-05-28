@@ -49,8 +49,6 @@ enum LIFT_DIRECTION { DOWN, UP };
 
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
 
-enum TARGET_NUM { FIRST_TARGET, SECOND_TARGET };
-
 // ===== FUNCTION PROTOTYPES =====
 void handleTest();
 void handleIdle();
@@ -72,7 +70,6 @@ void handleUltrasonicApproach();
 void handleUltrasonicReverse();
 void handleLift(int direction);
 void calculateRotation(int rotationType, int targetLocation);
-void initiateLineFollowPickup(int targetNum);
 void buttonCheck();
 
 // ===== MAIN SETUP =====
@@ -109,7 +106,8 @@ void loop() {
     break;
   case 1:
     // Line follow to pickup location 1
-    initiateLineFollowPickup(FIRST_TARGET);
+    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+    branchHandler.setTargetNum(1);
     break;
   case 2:
     // Rotate to face pickup location 1
@@ -137,7 +135,8 @@ void loop() {
     break;
   case 8:
     // Line follow to pickup location 2
-    initiateLineFollowPickup(SECOND_TARGET);
+    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+    branchHandler.setTargetNum(2);
     break;
   case 9:
     // Rotate to face pickup location 2
@@ -434,17 +433,17 @@ void handleIRIdle() {
   int resultsB = sensorController.getLineResultB();
 
   Serial.print("Line sensors: [");
-  Serial.print(sensorController.readLineSensorA1());
+  Serial.print(sensorController.lineSensorA1.average());
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorA2());
+  Serial.print(sensorController.lineSensorA2.average());
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorA3());
+  Serial.print(sensorController.lineSensorA3.average());
   Serial.print("], [");
-  Serial.print(sensorController.readLineSensorB1());
+  Serial.print(sensorController.lineSensorB1.average());
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorB2());
+  Serial.print(sensorController.lineSensorB2.average());
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorB3());
+  Serial.print(sensorController.lineSensorB3.average());
   Serial.print("], { ");
   Serial.print(resultsA, BIN);
   Serial.print(", ");
@@ -529,30 +528,37 @@ void handlePIDEncoderDrive(int baseSpeed) {
 
 void handleFollowLine(int mode) {
   // Read the sensor values
-  sensorController.readLineSensorA();
-  sensorController.readLineSensorB();
+  int lineSensorReadingA1 = sensorController.lineSensorA1.cleanRead();
+  int lineSensorReadingA2 = sensorController.lineSensorA2.cleanRead();
+  int lineSensorReadingA3 = sensorController.lineSensorA3.cleanRead();
+  // Combine.
+  int lineSensorResultsA = sensorController.combineLineResult(
+      lineSensorReadingA1, lineSensorReadingA2, lineSensorReadingA3);
 
-  // Calculate the line result
-  int resultA = sensorController.getLineResultA();
-  int resultB = sensorController.getLineResultB();
+  int lineSensorReadingB1 = sensorController.lineSensorB1.cleanRead();
+  int lineSensorReadingB2 = sensorController.lineSensorB2.cleanRead();
+  int lineSensorReadingB3 = sensorController.lineSensorB3.cleanRead();
+  // Combine.
+  int lineSensorResultsB = sensorController.combineLineResult(
+      lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
-  // Debugging output
+  // Debug messages.
   Serial.print("<debug> Line sensors: [");
-  Serial.print(sensorController.readLineSensorA1());
+  Serial.print(lineSensorReadingA1);
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorA2());
+  Serial.print(lineSensorReadingA2);
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorA3());
+  Serial.print(lineSensorReadingA3);
   Serial.print("], [");
-  Serial.print(sensorController.readLineSensorB1());
+  Serial.print(lineSensorReadingB1);
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorB2());
+  Serial.print(lineSensorReadingB2);
   Serial.print(", ");
-  Serial.print(sensorController.readLineSensorB3());
+  Serial.print(lineSensorReadingB3);
   Serial.print("], { ");
-  Serial.print(resultA, BIN);
+  Serial.print(lineSensorResultsA, BIN);
   Serial.print(", ");
-  Serial.print(resultB, BIN);
+  Serial.print(lineSensorResultsB, BIN);
   Serial.println(" }");
 
   switch (mode) {
@@ -560,40 +566,27 @@ void handleFollowLine(int mode) {
     // Code for line following in pickup mode
 
     // Serial.print("<debug> Target location: ");
-    int targetLocation = -1;
-    if (branchHandler.getTargetNum() == FIRST_TARGET) {
+    int targetLocation;
+    switch (branchHandler.getTargetNum()) {
+    case 1:
       // Serial.println("<First target>");
       targetLocation = PICKUP_LOCATION_1;
-    } else if (branchHandler.getTargetNum() == SECOND_TARGET) {
+      break;
+    case 2:
       // Serial.println("<Second target>");
       targetLocation = PICKUP_LOCATION_2;
-    } else {
+    default:
       logError("Invalid target number");
-    }
-
-    if (targetLocation == -1) {
-      logError("Invalid target location");
+      break;
     }
 
     int targetBranchNum =
         branchHandler.getTargetBranchNumFromLocation(targetLocation);
 
-    // Debug messages.
-    /*Serial.print("<debug> Target branch number: ");
-    Serial.println(targetBranchNum);*/
-
     // Check if the robot is currently over a branch.
-    branchHandler.doBranchCheck(resultB);
-
-    // Get branch information from BranchHandler.
+    branchHandler.doBranchCheck(lineSensorResultsB);
     bool atBranch = branchHandler.getIsCurrentlyOverBranch();
     int branchNum = branchHandler.getCurrentLocation();
-
-    // Debug messages.
-    /*Serial.print("<debug> Branch info - At branch: ");
-    Serial.print(atBranch);
-    Serial.print(", Current location: ");
-    Serial.println(branchNum);*/
 
     if ((millis() - systemStateHandler.getLastStateChangeTime()) > 1000 &&
         atBranch && (branchNum == targetBranchNum)) {
@@ -605,169 +598,13 @@ void handleFollowLine(int mode) {
       Serial.println("<debug> Not at branch, continuing...");
       // Follow the line.
     }
-
-    int error = sensorController.determineError(resultA);
-
-    int BACKWARD_SPEED = 120;
-
-    if (error == 99) {
-      // Then no line found, go backward.
-      Serial.println("<debug> No line found, going backward.");
-      Serial.print("<MOTOR COMMAND> ==Left=( ");
-      Serial.print(-BACKWARD_SPEED);
-      Serial.print(" )== ==( ");
-      Serial.print(-BACKWARD_SPEED);
-      Serial.println(" )=Right==");
-      motorController.servoDrive(MotorController::SERVO_A, -BACKWARD_SPEED);
-      motorController.servoDrive(MotorController::SERVO_B, -BACKWARD_SPEED);
-      delay(150);
-      motorController.servosOff();
-      break;
-    } else {
-      // else do regular control.
-      // ^ either PIDencoder or PIDline
-      Serial.println("<debug> Line found, continuing...");
-    }
-
-    Serial.print("<debug> Error: ");
-    Serial.println(error);
-
-    // Pid calcs
-    int P = error;
-    lineSensorGainHandler.incrementIntegral(error);
-    int D = error - lineSensorGainHandler.getLastError();
-    lineSensorGainHandler.setLastError(error);
-
-    // Retrive PID parameters.
-    float Kp = lineSensorGainHandler.getKp();
-    float Kd = lineSensorGainHandler.getKd();
-    float Ki = lineSensorGainHandler.getKi();
-
-    int output = Kp * P + Ki * lineSensorGainHandler.getIntegral() + Kd * D;
-
-    Serial.print("<debug> kP: ");
-    Serial.print(Kp);
-    Serial.print(", kD: ");
-    Serial.print(Kd);
-    Serial.print(", kI: ");
-    Serial.println(Ki);
-
-    Serial.print("<debug> P: ");
-    Serial.print(P);
-    Serial.print(", D: ");
-    Serial.print(D);
-    Serial.print(", I: ");
-    Serial.print(lineSensorGainHandler.getIntegral());
-    Serial.print(", out: ");
-    Serial.println(output);
-
-    int STRAIGHT_SPEED = 140;
-    if (P == 0) {
-      // go forward
-      Serial.println("<SCENARIO> Go straight forward.");
-
-      Serial.println("<<<MODE>>> Using encoder drive.");
-
-      if (doLinePID == false) {
-        Serial.println("<debug> Continuing encoder drive.");
-        // do nothing
-      } else {
-        Serial.println("<debug> Starting encoder drive.");
-        doLinePID = false;
-        encoderGainHandler.reset();
-        sensorController.zeroEncoders();
-      }
-
-      // motorController.servoDrive(MotorController::SERVO_A, STRAIGHT_SPEED);
-      // motorController.servoDrive(MotorController::SERVO_B, STRAIGHT_SPEED);
-      handlePIDEncoderDrive(STRAIGHT_SPEED);
-      return;
-    }
-
-
-    // If error is non-zero, use PID line following.
-    Serial.println("<<<MODE>>> Using PID line control.");
-    if (doLinePID == true) {
-      Serial.println("<debug> Continuing PID line control.");
-      // do nothing
-    } else {
-      Serial.println("<debug> Starting PID line control.");
-      doLinePID = true;
-      lineSensorGainHandler.reset();
-    }
-
-    int SOFT_TURN_BASE_SPEED = 100;
-    int SOFT_TURN_SPEED_DIFF = 100;
-
-    int HARD_TURN_BASE_SPEED = 50;
-    int HARD_TURN_SPEED_DIFF = 120;
-
-    int CONSTRAINT = 255;
-
-    int rightMotorSpeed = 0;
-    int leftMotorSpeed = 0;
-    //rightMotorSpeed = BASE_SPEED - output;
-    //leftMotorSpeed = BASE_SPEED + output;
-
-    if (P == 1) {
-      // Make a soft right turn
-      Serial.println("<SCENARIO> Make a soft right turn.");
-      leftMotorSpeed = SOFT_TURN_BASE_SPEED + SOFT_TURN_SPEED_DIFF;
-      rightMotorSpeed = SOFT_TURN_BASE_SPEED - SOFT_TURN_SPEED_DIFF;
-
-    } else if (P == -1) {
-      // Make a soft left turn
-      Serial.println("<SCENARIO> Make a soft left turn.");
-      leftMotorSpeed = SOFT_TURN_BASE_SPEED - SOFT_TURN_SPEED_DIFF;
-      rightMotorSpeed = SOFT_TURN_BASE_SPEED + SOFT_TURN_SPEED_DIFF;
-
-    } else if (P == 2) {
-      // Make a hard right turn
-      Serial.println("<SCENARIO> Make a hard right turn.");
-      leftMotorSpeed = HARD_TURN_BASE_SPEED + HARD_TURN_SPEED_DIFF;
-      rightMotorSpeed = HARD_TURN_BASE_SPEED - HARD_TURN_SPEED_DIFF;
-
-    } else if (P == -2) {
-      // Make a hard left turn
-      Serial.println("<SCENARIO> Make a hard left turn.");
-      leftMotorSpeed = HARD_TURN_BASE_SPEED - HARD_TURN_SPEED_DIFF;
-      rightMotorSpeed = HARD_TURN_BASE_SPEED + HARD_TURN_SPEED_DIFF;
-
-    } else {
-      logError("Invalid error value");
-    }
-
-    // Debug messages.
-    Serial.print("<debug> Motor speed - Left: ");
-    Serial.print(leftMotorSpeed);
-    Serial.print(", Right: ");
-    Serial.println(rightMotorSpeed);
-
-    // Ensure motor speeds are within valid range (e.g., 0 to 255 for PWM)
-    rightMotorSpeed = constrain(rightMotorSpeed, -CONSTRAINT, CONSTRAINT);
-    leftMotorSpeed = constrain(leftMotorSpeed, -CONSTRAINT, CONSTRAINT);
-
-    // Debug messages.
-    Serial.print("<MOTOR COMMAND> ==Left=( ");
-    Serial.print(-BACKWARD_SPEED);
-    Serial.print(" )== ==( ");
-    Serial.print(-BACKWARD_SPEED);
-    Serial.println(" )=Right==");
-
-
-    motorController.servosOff();
-
-    // Enable motors.
-    motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
-    motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
-
-
     break;
   }
   case REGULAR: {
+    /*
     // Code for regular line following
     Serial.println("<debug> Regular line following.");
-    int error = sensorController.determineError(resultA);
+    int error = sensorController.determineError(lineSensorResultsA);
 
     int P = error;
     int D = error - lineSensorGainHandler.getLastError();
@@ -793,7 +630,7 @@ void handleFollowLine(int mode) {
       motorController.motorDriver.motorBForward(leftMotorSpeed);
     }
 
-    lineSensorGainHandler.setLastError(error);
+    lineSensorGainHandler.setLastError(error);*/
     break;
   }
   case DROPOFF: {
@@ -804,6 +641,188 @@ void handleFollowLine(int mode) {
     logError("Invalid mode");
     break;
   }
+
+  // PID Line stuff.
+  int lineError = sensorController.determineError(lineSensorResultsA);
+  lineSensorGainHandler.incrementIntegral(lineError);
+  float derivative = lineError - lineSensorGainHandler.getLastError();
+  float output =
+      lineSensorGainHandler.getKp() * lineError +
+      lineSensorGainHandler.getKi() * lineSensorGainHandler.getIntegral() +
+      lineSensorGainHandler.getKd() * derivative;
+  lineSensorGainHandler.setLastError(lineError);
+
+  // Motor command calcs
+  int baseSpeed = 180;
+  int desiredLeftSpeed = baseSpeed - output;
+  int desiredRightSpeed = baseSpeed + output;
+
+  // Calculate actual speed using encoders
+  int actualLeftSpeed = sensorController.getEncoderBSpeed();
+  int actualRightSpeed = sensorController.getEncoderASpeed();
+
+  // Adjust motor speed based on encoder feedback
+
+  float kP_encoder = encoderGainHandler.getKp();
+  int CONSTRAINT = 255;
+
+  int Enc_error = desiredLeftSpeed - actualLeftSpeed;
+  int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
+  int leftMotorSpeed =
+      constrain(adjustedSpeed, 0,
+                CONSTRAINT); // Ensure speed stays within valid range
+
+  Enc_error = desiredRightSpeed - actualRightSpeed;
+  adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
+  int rightMotorSpeed =
+      constrain(adjustedSpeed, 0,
+                CONSTRAINT); // Ensure speed stays within valid range
+
+  // Enable motors.
+  motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
+  motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
+  /*
+      int BACKWARD_SPEED = 120;
+
+      if (error == 99) {
+        // Then no line found, go backward.
+        Serial.println("<debug> No line found, going backward.");
+        Serial.print("<MOTOR COMMAND> ==Left=( ");
+        Serial.print(-BACKWARD_SPEED);
+        Serial.print(" )== ==( ");
+        Serial.print(-BACKWARD_SPEED);
+        Serial.println(" )=Right==");
+        motorController.servoDrive(MotorController::SERVO_A, -BACKWARD_SPEED);
+        motorController.servoDrive(MotorController::SERVO_B, -BACKWARD_SPEED);
+        delay(150);
+        motorController.servosOff();
+        break;
+      } else {
+        // else do regular control.
+        // ^ either PIDencoder or PIDline
+        Serial.println("<debug> Line found, continuing...");
+      }
+
+      Serial.print("<debug> Error: ");
+      Serial.println(error);
+
+      // Pid calcs
+      int P = error;
+
+      // Retrive PID parameters.
+
+      int output = Kp * P + Ki * lineSensorGainHandler.getIntegral() + Kd * D;
+
+      Serial.print("<debug> kP: ");
+      Serial.print(Kp);
+      Serial.print(", kD: ");
+      Serial.print(Kd);
+      Serial.print(", kI: ");
+      Serial.println(Ki);
+
+      Serial.print("<debug> P: ");
+      Serial.print(P);
+      Serial.print(", D: ");
+      Serial.print(D);
+      Serial.print(", I: ");
+      Serial.print(lineSensorGainHandler.getIntegral());
+      Serial.print(", out: ");
+      Serial.println(output);
+
+      int STRAIGHT_SPEED = 140;
+      if (P == 0) {
+        // go forward
+        Serial.println("<SCENARIO> Go straight forward.");
+
+        Serial.println("<<<MODE>>> Using encoder drive.");
+
+        if (doLinePID == false) {
+          Serial.println("<debug> Continuing encoder drive.");
+          // do nothing
+        } else {
+          Serial.println("<debug> Starting encoder drive.");
+          doLinePID = false;
+          encoderGainHandler.reset();
+          sensorController.zeroEncoders();
+        }
+
+        // motorController.servoDrive(MotorController::SERVO_A, STRAIGHT_SPEED);
+        // motorController.servoDrive(MotorController::SERVO_B, STRAIGHT_SPEED);
+        handlePIDEncoderDrive(STRAIGHT_SPEED);
+        return;
+      }
+
+      // If error is non-zero, use PID line following.
+      Serial.println("<<<MODE>>> Using PID line control.");
+      if (doLinePID == true) {
+        Serial.println("<debug> Continuing PID line control.");
+        // do nothing
+      } else {
+        Serial.println("<debug> Starting PID line control.");
+        doLinePID = true;
+        lineSensorGainHandler.reset();
+      }
+
+      int SOFT_TURN_BASE_SPEED = 100;
+      int SOFT_TURN_SPEED_DIFF = 100;
+
+      int HARD_TURN_BASE_SPEED = 50;
+      int HARD_TURN_SPEED_DIFF = 120;
+
+      int CONSTRAINT = 255;
+
+      int rightMotorSpeed = 0;
+      int leftMotorSpeed = 0;
+      // rightMotorSpeed = BASE_SPEED - output;
+      // leftMotorSpeed = BASE_SPEED + output;
+
+      if (P == 1) {
+        // Make a soft right turn
+        Serial.println("<SCENARIO> Make a soft right turn.");
+        leftMotorSpeed = SOFT_TURN_BASE_SPEED + SOFT_TURN_SPEED_DIFF;
+        rightMotorSpeed = SOFT_TURN_BASE_SPEED - SOFT_TURN_SPEED_DIFF;
+
+      } else if (P == -1) {
+        // Make a soft left turn
+        Serial.println("<SCENARIO> Make a soft left turn.");
+        leftMotorSpeed = SOFT_TURN_BASE_SPEED - SOFT_TURN_SPEED_DIFF;
+        rightMotorSpeed = SOFT_TURN_BASE_SPEED + SOFT_TURN_SPEED_DIFF;
+
+      } else if (P == 2) {
+        // Make a hard right turn
+        Serial.println("<SCENARIO> Make a hard right turn.");
+        leftMotorSpeed = HARD_TURN_BASE_SPEED + HARD_TURN_SPEED_DIFF;
+        rightMotorSpeed = HARD_TURN_BASE_SPEED - HARD_TURN_SPEED_DIFF;
+
+      } else if (P == -2) {
+        // Make a hard left turn
+        Serial.println("<SCENARIO> Make a hard left turn.");
+        leftMotorSpeed = HARD_TURN_BASE_SPEED - HARD_TURN_SPEED_DIFF;
+        rightMotorSpeed = HARD_TURN_BASE_SPEED + HARD_TURN_SPEED_DIFF;
+
+      } else {
+        logError("Invalid error value");
+      }
+
+      // Debug messages.
+      Serial.print("<debug> Motor speed - Left: ");
+      Serial.print(leftMotorSpeed);
+      Serial.print(", Right: ");
+      Serial.println(rightMotorSpeed);
+
+      // Ensure motor speeds are within valid range (e.g., 0 to 255 for PWM)
+      rightMotorSpeed = constrain(rightMotorSpeed, -CONSTRAINT, CONSTRAINT);
+      leftMotorSpeed = constrain(leftMotorSpeed, -CONSTRAINT, CONSTRAINT);
+
+      // Debug messages.
+      Serial.print("<MOTOR COMMAND> ==Left=( ");
+      Serial.print(-BACKWARD_SPEED);
+      Serial.print(" )== ==( ");
+      Serial.print(-BACKWARD_SPEED);
+      Serial.println(" )=Right==");
+
+      motorController.servosOff();
+  */
 }
 
 void handleFourBar(int direction) {
@@ -956,11 +975,6 @@ void calculateRotation(int rotationType, int targetLocation) {
   } else {
     logError("Invalid rotation type");
   }
-}
-
-void initiateLineFollowPickup(int targetNum) {
-  systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
-  branchHandler.setTargetNum(targetNum);
 }
 
 void buttonCheck() {

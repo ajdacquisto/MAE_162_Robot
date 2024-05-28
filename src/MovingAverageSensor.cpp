@@ -15,3 +15,13 @@ int MovingAverageSensor::average() const {
   }
   return sum / BUFFER_SIZE;
 }
+
+int MovingAverageSensor::cleanRead() {
+  int reading = analogRead(pin);
+  lastReading = reading;
+  return reading;
+}
+
+int MovingAverageSensor::getLastReading() {
+  return lastReading;
+}

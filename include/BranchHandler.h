@@ -41,6 +41,7 @@ public:
   void doBranchCheck(int lineSensorValue);
   void reset();
   int getTargetBranchNumFromLocation(int location);
+
 };
 
 #endif // BRANCHHANDLER_H
