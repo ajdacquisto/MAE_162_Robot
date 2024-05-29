@@ -63,6 +63,11 @@ void handleUltrasonicReverse();
 void handleLift(int direction);
 void calculateRotation(int rotationType, int targetLocation);
 void buttonCheck();
+void printTime();
+void printWithTimestamp(const char *message);
+void printlnWithTimestamp(const char *message);
+
+long lastPrintTime = 0;
 
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
@@ -82,7 +87,7 @@ void setup() {
 
   turnLED(OFF);
 
-  Serial.println("Starting...");
+  printlnWithTimestamp("Starting...");
 
   systemStateHandler.changeState(DEFAULT_STATE);
 }
@@ -90,7 +95,7 @@ void setup() {
 // ===== MAIN LOOP =====
 void loop() {
   if (systemStateHandler.isNewStateFlowIndex()) {
-    Serial.println("STATE CHANGE");
+    printlnWithTimestamp("STATE CHANGE");
     // On state change.
     resetAllPIDMemory();
     motorController.servosOff();
@@ -110,7 +115,7 @@ void loop() {
   case 1:
     // Line follow to pickup location 1
     if (currentState != SystemState::LINE_FOLLOW_PICKUP) {
-      Serial.println("changeState call.");
+      printlnWithTimestamp("changeState call.");
       systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
       branchHandler.setTargetNum(1);
     }
@@ -380,7 +385,7 @@ void handleIdle() {
   turnLED(ON);
   if (getBUTTON_STATE() == PRESSED) {
     turnLED(OFF);
-    Serial.println("Exiting idle phase...");
+    printlnWithTimestamp("Exiting idle phase...");
     while (getBUTTON_STATE() == PRESSED)
       ;
     systemStateHandler.advanceStateFlowIndex();
@@ -542,6 +547,13 @@ void handlePIDEncoderDrive(int baseSpeed) {
 }
 
 void handleFollowLine(int mode) {
+
+  bool SHOW_RAW_IR_READINGS = false;
+  bool PRINT_DESIRED_SPEEDS = false;
+  bool PRINT_ACTUAL_SPEEDS = false;
+  bool PRINT_MOTOR_COMMAND = true;
+
+  printlnWithTimestamp("Start of handleFollowLine.");
   // Read the sensor values
   int lineSensorReadingA1 = sensorController.lineSensorA1.cleanRead();
   int lineSensorReadingA2 = sensorController.lineSensorA2.cleanRead();
@@ -558,19 +570,24 @@ void handleFollowLine(int mode) {
       lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
   // Debug messages.
-  Serial.print("<debug> Line sensors: [");
-  Serial.print(lineSensorReadingA1);
-  Serial.print(", ");
-  Serial.print(lineSensorReadingA2);
-  Serial.print(", ");
-  Serial.print(lineSensorReadingA3);
-  Serial.print("], [");
-  Serial.print(lineSensorReadingB1);
-  Serial.print(", ");
-  Serial.print(lineSensorReadingB2);
-  Serial.print(", ");
-  Serial.print(lineSensorReadingB3);
-  Serial.print("], { ");
+  printWithTimestamp("Line sensors: ");
+  if (SHOW_RAW_IR_READINGS) {
+    Serial.print("[");
+    Serial.print(lineSensorReadingA1);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingA2);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingA3);
+    Serial.print("], [");
+    Serial.print(lineSensorReadingB1);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingB2);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingB3);
+    Serial.print("], ");
+  }
+
+  Serial.print("{ ");
   Serial.print(lineSensorResultsA, BIN);
   Serial.print(", ");
   Serial.print(lineSensorResultsB, BIN);
@@ -626,13 +643,11 @@ void handleFollowLine(int mode) {
 
   // PID Line stuff...
   int lineError = sensorController.determineError(lineSensorResultsA);
-  Serial.print("Error: ");
-  Serial.println(lineError);
 
   // =====================================
   // ===== EMERGENCY REVERSE COMMAND =====
   if (lineError == 99) {
-    Serial.println("<!> Reverse command");
+    printlnWithTimestamp("<!> Reverse command");
     delay(100);
     motorController.servosOff();
     motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
@@ -656,11 +671,14 @@ void handleFollowLine(int mode) {
   int baseSpeed = 160;
   int desiredLeftSpeed = baseSpeed + output;
   int desiredRightSpeed = baseSpeed - output;
-  Serial.print("Desired speeds: L(");
-  Serial.print(desiredLeftSpeed);
-  Serial.print("), R(");
-  Serial.print(desiredRightSpeed);
-  Serial.println(")");
+
+  if (PRINT_DESIRED_SPEEDS) {
+    printWithTimestamp("Desired speeds: L(");
+    Serial.print(desiredLeftSpeed);
+    Serial.print("), R(");
+    Serial.print(desiredRightSpeed);
+    Serial.println(")");
+  }
 
   int CONSTRAINT = 255;
   int LOWER_CONSTRAINT = 0;
@@ -673,11 +691,13 @@ void handleFollowLine(int mode) {
   actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, CONSTRAINT);
   actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, CONSTRAINT);
 
-  Serial.print("Actual speeds: L(");
-  Serial.print(actualLeftSpeed);
-  Serial.print("), R(");
-  Serial.print(actualRightSpeed);
-  Serial.println(")");
+  if (PRINT_ACTUAL_SPEEDS) {
+    printWithTimestamp("Actual speeds: L(");
+    Serial.print(actualLeftSpeed);
+    Serial.print("), R(");
+    Serial.print(actualRightSpeed);
+    Serial.println(")");
+  }
 
   // Adjust motor speed based on encoder feedback
 
@@ -697,20 +717,25 @@ void handleFollowLine(int mode) {
 
   // Ensure minimum speed
   if (abs(leftMotorSpeed) < MIN_SPEED) {
-    leftMotorSpeed *= MIN_SPEED / abs(leftMotorSpeed);
+    leftMotorSpeed = (leftMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
   }
   if (abs(rightMotorSpeed) < MIN_SPEED) {
-    rightMotorSpeed *= MIN_SPEED / abs(rightMotorSpeed);
+    rightMotorSpeed = (rightMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
   }
 
   // Enable motors.
   motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
   motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
-  Serial.print("Motor command: L(");
-  Serial.print(leftMotorSpeed);
-  Serial.print("), R(");
-  Serial.print(rightMotorSpeed);
-  Serial.println(")");
+
+  if (PRINT_MOTOR_COMMAND) {
+    printWithTimestamp("Motor command: L(");
+    Serial.print(leftMotorSpeed);
+    Serial.print("), R(");
+    Serial.print(rightMotorSpeed);
+    Serial.println(")");
+  }
+
+  printlnWithTimestamp("End of handleFollowLine.");
 }
 
 void handleFourBar(int direction) {
@@ -830,7 +855,7 @@ void turnLED(LED_STATE state) {
     currentLEDstate = state;
     digitalWrite(LED_PIN, state);
   } else {
-      // do nothing.
+    // do nothing.
   }
 }
 
@@ -842,7 +867,7 @@ void logError(const char *message) {
   systemStateHandler.changeState(SystemState::IDLE);
   turnLED(ON);
   motorController.servosOff();
-  Serial.println(message);
+  printWithTimestamp(message);
   while (true)
     ; // Stop the program
 }
@@ -881,4 +906,26 @@ void buttonCheck() {
     // Button is not pressed
     turnLED(OFF);
   }
+}
+
+void printTime() {
+  Serial.print("...Time: ");
+  Serial.print(millis() - lastPrintTime);
+  lastPrintTime = millis();
+}
+
+void printWithTimestamp(const char *message) {
+  Serial.print("< time: ");
+  Serial.print(millis() - lastPrintTime);
+  lastPrintTime = millis();
+  Serial.print(" > ");
+  Serial.print(message);
+}
+
+void printlnWithTimestamp(const char *message) {
+  Serial.print("< time: ");
+  Serial.print(millis() - lastPrintTime);
+  lastPrintTime = millis();
+  Serial.print(" > ");
+  Serial.println(message);
 }

@@ -59,43 +59,16 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3) {
 }
 
 int SensorController::determineError(int lineSensorValue) {
-  // Determine the error based on the line sensor value
-  int error = 0;
+  // Define a lookup table
+  static const int errorTable[8] = {99, +2, 0, +1, -2, 0, -1, 0};
 
-  switch (lineSensorValue) {
-  case 0b000:
-    // Robot is off the line, keep last known direction
-    error = 99;
-    break;
-  case 0b001:
-    // Robot needs to turn hard right
-    error = +2;
-    break;
-  case 0b011:
-    // Robot needs to turn slightly right
-    error = +1;
-    break;
-  case 0b010:
-    // Robot is centered
-    error = 0;
-    break;
-  case 0b110:
-    // Robot needs to turn slightly left
-    error = -1;
-    break;
-  case 0b100:
-    // Robot needs to hard left
-    error = -2;
-    break;
-  case 0b101:
-    // Robot is centered
-    error = 0;
-    break;
-  default:
-    // Robot is centered
-    error = 0;
-    break;
+  // Ensure the lineSensorValue is within the valid range
+  if (lineSensorValue < 0 || lineSensorValue > 7) {
+    lineSensorValue = 0;
   }
+
+  // Determine the error based on the line sensor value
+  int error = errorTable[lineSensorValue];
 
   return error;
 }
