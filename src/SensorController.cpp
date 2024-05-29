@@ -174,3 +174,14 @@ float SensorController::getEncoderBSpeed() {
 
   return deltaDistance / deltaTime;
 }
+
+float SensorController::speedAdjust(int speedReading, float constraintValue) {
+  float quotient = speedReading / ENCODER_MAX_SPEED;
+  if (quotient > 1) {
+    return constraintValue;
+  } else if (quotient < -1) {
+    return -constraintValue;
+  } else {
+    return constraintValue * speedReading / ENCODER_MAX_SPEED;
+  }
+}

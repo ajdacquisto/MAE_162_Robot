@@ -63,6 +63,7 @@ public:
 
   float getEncoderASpeed();
   float getEncoderBSpeed();
+  float speedAdjust(int speedReading, float constraintValue);
 };
 
 #endif // SENSORCONTROLLER_H

@@ -651,9 +651,15 @@ void handleFollowLine(int mode) {
   Serial.print(desiredRightSpeed);
   Serial.println(")");
 
+  int CONSTRAINT = 255;
+
   // Calculate actual speed using encoders
   int actualLeftSpeed = sensorController.getEncoderBSpeed();
   int actualRightSpeed = sensorController.getEncoderASpeed();
+
+  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, CONSTRAINT);
+  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, CONSTRAINT);
+
   Serial.print("Actual speeds: L(");
   Serial.print(actualLeftSpeed);
   Serial.print("), R(");
@@ -663,7 +669,6 @@ void handleFollowLine(int mode) {
   // Adjust motor speed based on encoder feedback
 
   float kP_encoder = encoderGainHandler.getKp();
-  int CONSTRAINT = 255;
 
   int Enc_error = desiredLeftSpeed - actualLeftSpeed;
   int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
