@@ -84,16 +84,19 @@ MotorController::ROTATE_DIRECTION MotorController::getDirectionToRotate(int pick
     case SECOND_ON_LEFT:
     case THIRD_ON_LEFT:
       return ROTATE_DIRECTION::LEFT;
-      break;
     case FIRST_ON_RIGHT:
     case SECOND_ON_RIGHT:
     case THIRD_ON_RIGHT:
       return ROTATE_DIRECTION::RIGHT;
-      break;
+    default:
+      Serial.println("Invalid pickup location");
+      return ROTATE_DIRECTION::RIGHT;
   }
+  return ROTATE_DIRECTION::RIGHT;
 }
 
 void MotorController::servoDrive(SERVO whichServo, int speed) {
+  
   switch(whichServo) {
     case SERVO_A:
       if (speed < 0) {

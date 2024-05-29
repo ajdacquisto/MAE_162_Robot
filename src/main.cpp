@@ -34,13 +34,6 @@ enum LED_STATE { OFF = LOW, ON = HIGH };
 
 enum BUTTON_STATE { PRESSED = HIGH, UNPRESSED = LOW };
 
-enum componentCode {
-  SERVO_A,   // 0 (right)
-  SERVO_B,   // 1 (left)
-  STEPPER_A, // 2 (four-bar)
-  STEPPER_B, // 3 (lift)
-};
-
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 
 enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
@@ -60,7 +53,7 @@ void initializeSerialPort();
 void turnLED(LED_STATE state);
 BUTTON_STATE getBUTTON_STATE();
 void logError(const char *message);
-void handleCalibrate(int componentCode);
+void handleCalibrate(MotorController::COMPONENT componentCode);
 void handlePIDEncoderDrive(int baseSpeed);
 void handleFourBar(int direction);
 void resetAllPIDMemory();
@@ -71,9 +64,13 @@ void handleLift(int direction);
 void calculateRotation(int rotationType, int targetLocation);
 void buttonCheck();
 
+SystemState::State DEFAULT_STATE = SystemState::IDLE;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
+
+LED_STATE currentLEDstate = OFF;
+
 // ===== MAIN SETUP =====
 void setup() {
-  Serial.println("Starting...");
 
   delay(1000);
 
@@ -83,12 +80,17 @@ void setup() {
   motorController.setStepperMotorSpeedsToMax();
   sensorController.zeroEncoders();
 
-  systemStateHandler.changeState(SystemState::CALIBRATE);
+  turnLED(OFF);
+
+  Serial.println("Starting...");
+
+  systemStateHandler.changeState(DEFAULT_STATE);
 }
 
 // ===== MAIN LOOP =====
 void loop() {
   if (systemStateHandler.isNewStateFlowIndex()) {
+    Serial.println("STATE CHANGE");
     // On state change.
     resetAllPIDMemory();
     motorController.servosOff();
@@ -97,16 +99,21 @@ void loop() {
     delay(500);
   }
 
+  SystemState::State currentState = systemStateHandler.getCurrentState();
+
   // Order of operations
   switch (systemStateHandler.getStateFlowIndex()) {
   case 0:
     // IDLE until button press
-    //systemStateHandler.changeState(SystemState::IDLE);
+    systemStateHandler.changeState(DEFAULT_STATE);
     break;
   case 1:
     // Line follow to pickup location 1
-    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
-    branchHandler.setTargetNum(1);
+    if (currentState != SystemState::LINE_FOLLOW_PICKUP) {
+      Serial.println("changeState call.");
+      systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+      branchHandler.setTargetNum(1);
+    }
     break;
   case 2:
     // Rotate to face pickup location 1
@@ -202,7 +209,7 @@ void loop() {
     break;
   case SystemState::CALIBRATE:
     // Code for calibrating stepper positions
-    handleCalibrate(SERVO_B);
+    handleCalibrate(CALIBRATE_COMPONENT);
     break;
   case SystemState::IDLE:
     // Code for simple idle state
@@ -373,50 +380,53 @@ void handleIdle() {
   turnLED(ON);
   if (getBUTTON_STATE() == PRESSED) {
     turnLED(OFF);
+    Serial.println("Exiting idle phase...");
+    while (getBUTTON_STATE() == PRESSED)
+      ;
     systemStateHandler.advanceStateFlowIndex();
   }
 }
 
-void handleCalibrate(int componentCode) {
+void handleCalibrate(MotorController::COMPONENT componentCode) {
   switch (componentCode) {
-  case STEPPER_A:
+  case MotorController::FOUR_BAR:
     if (getBUTTON_STATE() == PRESSED) {
       // Hold down button until four-bar crank is in lowest position.
       turnLED(ON);
-      motorController.rotateStepperAsteps(1);
-      delay(200);
+      motorController.rotateStepperAsteps(20);
+      delay(100);
     } else {
       turnLED(OFF);
     }
     break;
-  case STEPPER_B:
+  case MotorController::LIFT:
     if (getBUTTON_STATE() == PRESSED) {
       // Hold down button until lift is in lowest position.
       turnLED(ON);
-      motorController.rotateStepperBsteps(1);
+      motorController.rotateStepperBsteps(20);
       delay(200);
     } else {
       turnLED(OFF);
     }
     break;
-  case SERVO_A:
+  case MotorController::RIGHT_WHEEL:
     if (getBUTTON_STATE() == PRESSED) {
       motorController.motorDriver.motorAForward(255); // full speed
-      //int actualRightSpeed = sensorController.getEncoderASpeed();
-      //Serial.print("Actual right speed: ");
-      //Serial.println(actualRightSpeed);
+      // int actualRightSpeed = sensorController.getEncoderASpeed();
+      // Serial.print("Actual right speed: ");
+      // Serial.println(actualRightSpeed);
       turnLED(ON);
     } else {
       motorController.servosOff();
       turnLED(OFF);
     }
     break;
-  case SERVO_B:
+  case MotorController::LEFT_WHEEL:
     if (getBUTTON_STATE() == PRESSED) {
       motorController.motorDriver.motorBForward(255); // full speed
-      //int actualLeftSpeed = sensorController.getEncoderBSpeed();
-      //Serial.print("Actual left speed: ");
-      //Serial.println(actualLeftSpeed);
+      // int actualLeftSpeed = sensorController.getEncoderBSpeed();
+      // Serial.print("Actual left speed: ");
+      // Serial.println(actualLeftSpeed);
       turnLED(ON);
     } else {
       motorController.servosOff();
@@ -565,53 +575,54 @@ void handleFollowLine(int mode) {
   Serial.print(", ");
   Serial.print(lineSensorResultsB, BIN);
   Serial.println(" }");
+  /*
+    switch (mode) {
+    case PICKUP: { // Code for line following in pickup mode
 
-  switch (mode) {
-  case PICKUP: { // Code for line following in pickup mode
+      int targetLocation;
+      switch (branchHandler.getTargetNum()) {
+      case 1:
+        // Serial.println("<First target>");
+        targetLocation = PICKUP_LOCATION_1;
+        break;
+      case 2:
+        // Serial.println("<Second target>");
+        targetLocation = PICKUP_LOCATION_2;
+      default:
+        logError("Invalid target number");
+        break;
+      }
 
-    int targetLocation;
-    switch (branchHandler.getTargetNum()) {
-    case 1:
-      // Serial.println("<First target>");
-      targetLocation = PICKUP_LOCATION_1;
+      int targetBranchNum =
+          branchHandler.getTargetBranchNumFromLocation(targetLocation);
+
+      // Check if the robot is currently over a branch.
+      branchHandler.doBranchCheck(lineSensorResultsB);
+      bool atBranch = branchHandler.getIsCurrentlyOverBranch();
+      int branchNum = branchHandler.getCurrentLocation();
+
+      if ((millis() - systemStateHandler.getLastStateChangeTime()) > 1000 &&
+          atBranch && (branchNum == targetBranchNum)) {
+        // STOP.
+        Serial.println("<debug> At branch, stopping.");
+        systemStateHandler.advanceStateFlowIndex();
+        return;
+      } else {
+        // Follow the line.
+      }
       break;
-    case 2:
-      // Serial.println("<Second target>");
-      targetLocation = PICKUP_LOCATION_2;
+    }
+    case REGULAR: {
+      break;
+    }
+    case DROPOFF: {
+      break;
+    }
     default:
-      logError("Invalid target number");
+      logError("Invalid mode");
       break;
     }
-
-    int targetBranchNum =
-        branchHandler.getTargetBranchNumFromLocation(targetLocation);
-
-    // Check if the robot is currently over a branch.
-    branchHandler.doBranchCheck(lineSensorResultsB);
-    bool atBranch = branchHandler.getIsCurrentlyOverBranch();
-    int branchNum = branchHandler.getCurrentLocation();
-
-    if ((millis() - systemStateHandler.getLastStateChangeTime()) > 1000 &&
-        atBranch && (branchNum == targetBranchNum)) {
-      // STOP.
-      Serial.println("<debug> At branch, stopping.");
-      systemStateHandler.advanceStateFlowIndex();
-      return;
-    } else {
-      // Follow the line.
-    }
-    break;
-  }
-  case REGULAR: {
-    break;
-  }
-  case DROPOFF: {
-    break;
-  }
-  default:
-    logError("Invalid mode");
-    break;
-  }
+    */
 
   // PID Line stuff...
   int lineError = sensorController.determineError(lineSensorResultsA);
@@ -622,11 +633,11 @@ void handleFollowLine(int mode) {
   // ===== EMERGENCY REVERSE COMMAND =====
   if (lineError == 99) {
     Serial.println("<!> Reverse command");
-
+    delay(100);
     motorController.servosOff();
     motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
     motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
-    delay(50);
+    delay(100);
     return;
   }
   // =====================================
@@ -642,9 +653,9 @@ void handleFollowLine(int mode) {
   lineSensorGainHandler.setLastError(lineError);
 
   // Motor command calcs
-  int baseSpeed = 180;
-  int desiredLeftSpeed = baseSpeed - output;
-  int desiredRightSpeed = baseSpeed + output;
+  int baseSpeed = 160;
+  int desiredLeftSpeed = baseSpeed + output;
+  int desiredRightSpeed = baseSpeed - output;
   Serial.print("Desired speeds: L(");
   Serial.print(desiredLeftSpeed);
   Serial.print("), R(");
@@ -652,6 +663,8 @@ void handleFollowLine(int mode) {
   Serial.println(")");
 
   int CONSTRAINT = 255;
+  int LOWER_CONSTRAINT = 0;
+  float MIN_SPEED = 60;
 
   // Calculate actual speed using encoders
   int actualLeftSpeed = sensorController.getEncoderBSpeed();
@@ -673,15 +686,22 @@ void handleFollowLine(int mode) {
   int Enc_error = desiredLeftSpeed - actualLeftSpeed;
   int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
   int leftMotorSpeed =
-      constrain(adjustedSpeed, 0,
+      constrain(adjustedSpeed, LOWER_CONSTRAINT,
                 CONSTRAINT); // Ensure speed stays within valid range
 
   Enc_error = desiredRightSpeed - actualRightSpeed;
   adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
   int rightMotorSpeed =
-      constrain(adjustedSpeed, 0,
+      constrain(adjustedSpeed, LOWER_CONSTRAINT,
                 CONSTRAINT); // Ensure speed stays within valid range
 
+  // Ensure minimum speed
+  if (abs(leftMotorSpeed) < MIN_SPEED) {
+    leftMotorSpeed *= MIN_SPEED / abs(leftMotorSpeed);
+  }
+  if (abs(rightMotorSpeed) < MIN_SPEED) {
+    rightMotorSpeed *= MIN_SPEED / abs(rightMotorSpeed);
+  }
 
   // Enable motors.
   motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
@@ -805,7 +825,14 @@ void initializeSerialPort() {
     ; // Waits for the Serial port to connect.
 }
 
-void turnLED(LED_STATE state) { digitalWrite(LED_PIN, state); }
+void turnLED(LED_STATE state) {
+  if (currentLEDstate != state) {
+    currentLEDstate = state;
+    digitalWrite(LED_PIN, state);
+  } else {
+      // do nothing.
+  }
+}
 
 BUTTON_STATE getBUTTON_STATE() {
   return (!digitalRead(BUTTON_PIN)) == HIGH ? PRESSED : UNPRESSED;

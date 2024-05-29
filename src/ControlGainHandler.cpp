@@ -36,8 +36,9 @@ void ControlGainHandler::resetIntegral() {
 
 void ControlGainHandler::reset() {
     // Reset both the error and integral to zero
-    resetError();
-    resetIntegral();
+    //resetError();
+    lastError = 0;
+    integral = 0;
 }
 
 void ControlGainHandler::setLastError(int error) {
