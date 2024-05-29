@@ -15,10 +15,10 @@ private:
   long ultrasonicMemory;
   int lineSensorAThreshold;
 
-  int encoderALastValue;
-  long encoderALastTime;
-  int encoderBLastValue;
-  long encoderBLastTime;
+  long encoderALastValue = 0;
+  long encoderALastTime = 0;
+  long encoderBLastValue = 0;
+  long encoderBLastTime = 0;
 public:
   // Constructor
   SensorController();
@@ -52,13 +52,13 @@ public:
   void setLineSensorAThreshold(int threshold);
   int combineLineResult(int avg1, int avg2, int avg3);
 
-  int getEncoderALastValue();
+  long getEncoderALastValue();
   long getEncoderALastTime();
-  int getEncoderBLastValue();
+  long getEncoderBLastValue();
   long getEncoderBLastTime();
-  void setEncoderALastValue(int value);
+  void setEncoderALastValue(long value);
   void setEncoderALastTime(long value);
-  void setEncoderBLastValue(int value);
+  void setEncoderBLastValue(long value);
   void setEncoderBLastTime(long value);
 
   float getEncoderASpeed();

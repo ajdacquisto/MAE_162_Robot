@@ -52,6 +52,8 @@ const float LINE_FOLLOW_REGULAR_KI = 0.0;
 // - Other drive parameters
 const int REVERSE_SPEED = 80;
 
+const int ENCODER_MAX_SPEED = 4663;
+
 // ===============================
 // ===== HARDWARE PARAMETERS =====
 // ===============================

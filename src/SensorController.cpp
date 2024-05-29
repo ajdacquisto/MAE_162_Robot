@@ -125,11 +125,11 @@ void SensorController::setLineSensorAThreshold(int threshold) {
 }
 
 // ====== ENCODER MEMORY FUNCTIONS =====
-void SensorController::setEncoderALastValue(int value) {
+void SensorController::setEncoderALastValue(long value) {
   encoderALastValue = value;
 }
 
-int SensorController::getEncoderALastValue() { return encoderALastValue; }
+long SensorController::getEncoderALastValue() { return encoderALastValue; }
 
 void SensorController::setEncoderALastTime(long value) {
   encoderALastTime = value;
@@ -137,11 +137,11 @@ void SensorController::setEncoderALastTime(long value) {
 
 long SensorController::getEncoderALastTime() { return encoderALastTime; }
 
-void SensorController::setEncoderBLastValue(int value) {
+void SensorController::setEncoderBLastValue(long value) {
   encoderBLastValue = value;
 }
 
-int SensorController::getEncoderBLastValue() { return encoderBLastValue; }
+long SensorController::getEncoderBLastValue() { return encoderBLastValue; }
 
 void SensorController::setEncoderBLastTime(long value) {
   encoderBLastTime = value;
@@ -156,6 +156,10 @@ float SensorController::getEncoderASpeed() {
   long encoderReading = encoderA.read();
   float deltaTime = (currentTime - encoderALastTime) / 1000.0;
   long deltaDistance = encoderReading - encoderALastValue;
+
+  setEncoderALastTime(currentTime);
+  setEncoderALastValue(encoderReading);
+
   return deltaDistance / deltaTime;
 }
 
@@ -164,5 +168,9 @@ float SensorController::getEncoderBSpeed() {
   long encoderReading = encoderB.read();
   float deltaTime = (currentTime - encoderBLastTime) / 1000.0;
   long deltaDistance = encoderReading - encoderBLastValue;
+
+  setEncoderBLastTime(currentTime);
+  setEncoderBLastValue(encoderReading);
+
   return deltaDistance / deltaTime;
 }
