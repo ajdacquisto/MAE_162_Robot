@@ -54,7 +54,7 @@ void turnLED(LED_STATE state);
 BUTTON_STATE getBUTTON_STATE();
 void logError(const char *message);
 void handleCalibrate(MotorController::COMPONENT componentCode);
-void handlePIDEncoderDrive(int baseSpeed);
+void handlePIDEncoderDrive(int BASE_SPEED);
 void handleFourBar(int direction);
 void resetAllPIDMemory();
 void handleRotation(MotorController::ROTATE_DIRECTION direction);
@@ -68,9 +68,10 @@ void printWithTimestamp(const char *message);
 void printlnWithTimestamp(const char *message);
 
 long lastPrintTime = 0;
+long lastIntegralRestTime = 0;
 
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
 
 LED_STATE currentLEDstate = OFF;
 
@@ -438,6 +439,16 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       turnLED(OFF);
     }
     break;
+  case MotorController::BOTH_WHEELS:
+    delay(1000);
+    motorController.servoDrive(MotorController::SERVO_A, -255);
+    motorController.servoDrive(MotorController::SERVO_B, -255);
+    while (getBUTTON_STATE() == PRESSED) {
+      motorController.servosOff();
+      while (true)
+        ;
+    }
+    break;
   default:
     logError("Invalid component code");
     break;
@@ -487,7 +498,7 @@ void handleUltraSonicIdle() {
   delay(100);
 }
 
-void handlePIDEncoderDrive(int baseSpeed) {
+void handlePIDEncoderDrive(int BASE_SPEED) {
   // PID parameters
   float Kp = encoderGainHandler.getKp();
   float Ki = encoderGainHandler.getKi();
@@ -523,8 +534,8 @@ void handlePIDEncoderDrive(int baseSpeed) {
   encoderGainHandler.setLastError(error);
 
   // Adjust motor speeds
-  int motorSpeedA = constrain(baseSpeed - output, 0, 255);
-  int motorSpeedB = constrain(baseSpeed + output, 0, 255);
+  int motorSpeedA = constrain(BASE_SPEED - output, 0, 255);
+  int motorSpeedB = constrain(BASE_SPEED + output, 0, 255);
 
   // Enable motors.
   motorController.servoDrive(MotorController::SERVO_A, motorSpeedA);
@@ -637,36 +648,62 @@ void handleFollowLine(int mode) {
     }
     */
 
+  if (millis() - lastIntegralRestTime > 5000) {
+    lineSensorGainHandler.resetIntegral();
+    lastIntegralRestTime = millis();
+  }
+
   // PID Line stuff...
   int lineError = sensorController.determineError(lineSensorResults);
+
+  printWithTimestamp("Line error: ");
+  Serial.println(lineError);
 
   // =====================================
   // ===== EMERGENCY REVERSE COMMAND =====
   if (lineError == 99) {
     printlnWithTimestamp("<!> Reverse command");
-    delay(100);
     motorController.servosOff();
     motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
     motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
-    delay(100);
+    delay(300);
     return;
   }
   // =====================================
   // =====================================
 
+
   // PID Line stuff cont'd...
   lineSensorGainHandler.incrementIntegral(lineError);
   float derivative = lineError - lineSensorGainHandler.getLastError();
-  float output =
-      lineSensorGainHandler.getKp() * lineError +
-      lineSensorGainHandler.getKi() * lineSensorGainHandler.getIntegral() +
-      lineSensorGainHandler.getKd() * derivative;
+
+  float P = lineError;
+  float I = lineSensorGainHandler.getIntegral();
+  float D = derivative;
+
+  float output = lineSensorGainHandler.getKp() * P +
+                 lineSensorGainHandler.getKi() * I +
+                 lineSensorGainHandler.getKd() * D;
   lineSensorGainHandler.setLastError(lineError);
 
+  printWithTimestamp("PID: P(");
+  Serial.print(P);
+  Serial.print("), I(");
+  Serial.print(I);
+  Serial.print("), D(");
+  Serial.print(D);
+  Serial.print("), Output(");
+  Serial.print(output);
+  Serial.println(")");
+
   // Motor command calcs
-  int baseSpeed = 160;
-  int desiredLeftSpeed = baseSpeed + output;
-  int desiredRightSpeed = baseSpeed - output;
+  int BASE_SPEED = 150;
+  int CONSTRAINT = 255;
+  int LOWER_CONSTRAINT = -80;
+  float MIN_SPEED = 60;
+
+  int desiredLeftSpeed = BASE_SPEED - output;
+  int desiredRightSpeed = BASE_SPEED + output;
 
   if (PRINT_DESIRED_SPEEDS) {
     printWithTimestamp("Desired speeds: L(");
@@ -675,10 +712,6 @@ void handleFollowLine(int mode) {
     Serial.print(desiredRightSpeed);
     Serial.println(")");
   }
-
-  int CONSTRAINT = 255;
-  int LOWER_CONSTRAINT = 0;
-  float MIN_SPEED = 60;
 
   // Calculate actual speed using encoders
   int actualLeftSpeed = sensorController.getEncoderBSpeed();
@@ -841,7 +874,7 @@ void initializePins() {
 }
 
 void initializeSerialPort() {
-  Serial.begin(9600); // Initialize Serial port
+  Serial.begin(115200); // Initialize Serial port
   while (!Serial)
     ; // Waits for the Serial port to connect.
 }

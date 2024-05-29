@@ -14,7 +14,7 @@ public:
   Stepper stepperMotorB;
 
   enum ROTATE_DIRECTION { LEFT, RIGHT };
-  enum COMPONENT { RIGHT_WHEEL, LEFT_WHEEL, FOUR_BAR, LIFT  };
+  enum COMPONENT { RIGHT_WHEEL, LEFT_WHEEL, FOUR_BAR, LIFT, BOTH_WHEELS  };
   enum SERVO { SERVO_A, SERVO_B };
 
   // Constructor

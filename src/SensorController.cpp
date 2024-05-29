@@ -47,12 +47,22 @@ void SensorController::readLineSensorB() {
 int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
                                         int avg5, int avg6) {
   // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
-  int lineSensorValueA1 = (avg1 > getLineSensorAThreshold()) ? 1 : 0;
-  int lineSensorValueA2 = (avg2 > getLineSensorAThreshold()) ? 1 : 0;
-  int lineSensorValueA3 = (avg3 > getLineSensorAThreshold()) ? 1 : 0;
-  int lineSensorValueB1 = (avg4 > getLineSensorBThreshold()) ? 1 : 0;
-  int lineSensorValueB2 = (avg5 > getLineSensorBThreshold()) ? 1 : 0;
-  int lineSensorValueB3 = (avg6 > getLineSensorBThreshold()) ? 1 : 0;
+
+  int LINE_SENSOR_THRESHOLD = 900;
+
+  int lineSensorValueA1 = (avg1 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
+  int lineSensorValueA2 = (avg2 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
+  int lineSensorValueA3 = (avg3 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
+  int lineSensorValueB1 = (avg4 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
+  int lineSensorValueB2 = (avg5 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
+  int lineSensorValueB3 = (avg6 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
+
+  Serial.print(lineSensorValueA1);
+  Serial.print(lineSensorValueA2);
+  Serial.print(lineSensorValueA3);
+  Serial.print(lineSensorValueB1);
+  Serial.print(lineSensorValueB2);
+  Serial.println(lineSensorValueB3);
 
   // COMBINE values into one variable (e.g. 000001, 000000, 111111, 101101, etc)
   int lineSensorValue = (lineSensorValueA1 << 5) | (lineSensorValueA2 << 4) |
@@ -64,7 +74,7 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
 
 int SensorController::determineError(int lineSensorValue) {
   // Sensor positions (assuming 6 sensors): -3, -2, -1, 1, 2, 3
-  static const int sensorPositions[6] = {-3, -2, -1, 1, 2, 3};
+  static const int sensorPositions[6] = {-4, -2, -1, 1, 2, 4};
 
   int sumWeightedPositions = 0;
   int sumSensorValues = 0;

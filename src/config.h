@@ -45,9 +45,9 @@ const float ENCODER_DRIVE_KI = 0.01;
 const float ENCODER_DRIVE_KD = 0.005;
 
 // - Line follow PID parameters
-const float LINE_FOLLOW_REGULAR_KP = 100.0;
-const float LINE_FOLLOW_REGULAR_KI = 25.0;
-const float LINE_FOLLOW_REGULAR_KD = 0.0;
+const float LINE_FOLLOW_REGULAR_KP = 55.0;
+const float LINE_FOLLOW_REGULAR_KI = 0.4;
+const float LINE_FOLLOW_REGULAR_KD = 5.0;
 
 // - Other drive parameters
 const int REVERSE_SPEED = 100;
@@ -81,9 +81,9 @@ const int LINE_SENSOR_PIN_A2 = A1;
 const int LINE_SENSOR_PIN_A3 = A0;
 
 // - Line Sensor B (side)
-const int LINE_SENSOR_PIN_B1 = A3;
+const int LINE_SENSOR_PIN_B1 = A5;
 const int LINE_SENSOR_PIN_B2 = A4;
-const int LINE_SENSOR_PIN_B3 = A5;
+const int LINE_SENSOR_PIN_B3 = A3;
 
 // - Ultrasonic Sensor
 const int ULTRASONIC_TRIG_PIN = 5, ULTRASONIC_ECHO_PIN = 46;
