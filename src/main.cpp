@@ -666,7 +666,7 @@ void handleFollowLine(int mode) {
     motorController.servosOff();
     motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
     motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
-    delay(300);
+    delay(400);
     return;
   }
   // =====================================
@@ -697,10 +697,10 @@ void handleFollowLine(int mode) {
   Serial.println(")");
 
   // Motor command calcs
-  int BASE_SPEED = 150;
+  int BASE_SPEED = 160;
   int CONSTRAINT = 255;
-  int LOWER_CONSTRAINT = -80;
-  float MIN_SPEED = 60;
+  int LOWER_CONSTRAINT = -100;
+  float MIN_SPEED = 80;
 
   int desiredLeftSpeed = BASE_SPEED - output;
   int desiredRightSpeed = BASE_SPEED + output;

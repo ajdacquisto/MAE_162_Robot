@@ -74,7 +74,7 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
 
 int SensorController::determineError(int lineSensorValue) {
   // Sensor positions (assuming 6 sensors): -3, -2, -1, 1, 2, 3
-  static const int sensorPositions[6] = {-4, -2, -1, 1, 2, 4};
+  static const int sensorPositions[6] = {-3, -1, -0, 0, 1, 3};
 
   int sumWeightedPositions = 0;
   int sumSensorValues = 0;
