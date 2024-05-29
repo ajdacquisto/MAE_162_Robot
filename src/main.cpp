@@ -55,7 +55,6 @@ void handleIdle();
 void handleIRIdle();
 void handleUltraSonicIdle();
 void handleFollowLine(int mode);
-void handleAvoidObstacle();
 void initializePins();
 void initializeSerialPort();
 void turnLED(LED_STATE state);
@@ -644,6 +643,16 @@ void handleFollowLine(int mode) {
 
   // PID Line stuff.
   int lineError = sensorController.determineError(lineSensorResultsA);
+
+  // EMERGENCY BACKUP PROCEDURE
+  if (lineError == 99) {
+    motorController.servosOff();
+    motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
+    motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
+    delay(50);
+    return;
+  }
+
   lineSensorGainHandler.incrementIntegral(lineError);
   float derivative = lineError - lineSensorGainHandler.getLastError();
   float output =

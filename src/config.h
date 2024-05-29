@@ -23,6 +23,45 @@ const int PICKUP_LOCATION_1 = FIRST_ON_LEFT;
 const int PICKUP_LOCATION_2 = SECOND_ON_LEFT;
 const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 
+// =============================
+// ===== SOFTWARE SETTINGS =====
+// =============================
+
+// - Line Sensor A (front)
+const int LINE_SENSOR_A_THRESHOLD = 350;
+
+// - Line Sensor B (side)
+const int LINE_SENSOR_B_THRESHOLD = 500;
+
+// - Stepper Motor A (four-bar)
+const int STEPPER_A_MAX_SPEED = 30;
+
+// - Stepper Motor B (lift)
+const int STEPPER_B_MAX_SPEED = 9;
+
+// - Encoder PID drive parameters
+const float ENCODER_DRIVE_KP = 0.05;
+const float ENCODER_DRIVE_KD = 0.005;
+const float ENCODER_DRIVE_KI = 0.01;
+
+// - Line follow PID parameters
+const float LINE_FOLLOW_REGULAR_KP = 190.0;
+const float LINE_FOLLOW_REGULAR_KD = 0.0;
+const float LINE_FOLLOW_REGULAR_KI = 0.0;
+
+// - Other drive parameters
+const int REVERSE_SPEED = 80;
+
+// ===============================
+// ===== HARDWARE PARAMETERS =====
+// ===============================
+
+// - Stepper Motor A (four-bar)
+const int STEPPER_A_STEPS_PER_REVOLUTION = 200;
+
+// - Stepper Motor B (lift)
+const int STEPPER_B_STEPS_PER_REVOLUTION = 200;
+
 // =================================
 // ===== INPUT PIN ASSIGNMENTS =====
 // =================================
@@ -67,40 +106,6 @@ const int STEPPER_PIN_A3 = 42, STEPPER_PIN_A4 = 43;
 // - Stepper Motor B (lift)
 const int STEPPER_PIN_B1 = 30, STEPPER_PIN_B2 = 31;
 const int STEPPER_PIN_B3 = 32, STEPPER_PIN_B4 = 33;
-
-// ===============================
-// ===== HARDWARE PARAMETERS =====
-// ===============================
-
-// - Stepper Motor A (four-bar)
-const int STEPPER_A_STEPS_PER_REVOLUTION = 200;
-
-// - Stepper Motor B (lift)
-const int STEPPER_B_STEPS_PER_REVOLUTION = 200;
-
-// ===== SOFTWARE SETTINGS =====
-
-// - Line Sensor A (front)
-const int LINE_SENSOR_A_THRESHOLD = 350;
-
-// - Line Sensor B (side)
-const int LINE_SENSOR_B_THRESHOLD = 500;
-
-// - Stepper Motor A (four-bar)
-const int STEPPER_A_MAX_SPEED = 30;
-
-// - Stepper Motor B (lift)
-const int STEPPER_B_MAX_SPEED = 9;
-
-// - Encoder PID drive parameters
-const float ENCODER_DRIVE_KP = 0.05;
-const float ENCODER_DRIVE_KD = 0.005;
-const float ENCODER_DRIVE_KI = 0.01;
-
-// - Line follow PID parameters
-const float LINE_FOLLOW_REGULAR_KP = 190.0;
-const float LINE_FOLLOW_REGULAR_KD = 0.0;
-const float LINE_FOLLOW_REGULAR_KI = 0.0;
 
 // ==================================
 // ==================================
