@@ -31,7 +31,7 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 const int LINE_SENSOR_A_THRESHOLD = 900;
 
 // - Line Sensor B (side)
-const int LINE_SENSOR_B_THRESHOLD = 500;
+const int LINE_SENSOR_B_THRESHOLD = 900;
 
 // - Stepper Motor A (four-bar)
 const int STEPPER_A_MAX_SPEED = 10;

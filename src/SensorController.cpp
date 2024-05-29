@@ -44,43 +44,51 @@ void SensorController::readLineSensorB() {
   lineSensorB3.read();
 }
 
-int SensorController::combineLineResult(int avg1, int avg2, int avg3) {
-
+int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
+                                        int avg5, int avg6) {
   // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
   int lineSensorValueA1 = (avg1 > getLineSensorAThreshold()) ? 1 : 0;
   int lineSensorValueA2 = (avg2 > getLineSensorAThreshold()) ? 1 : 0;
   int lineSensorValueA3 = (avg3 > getLineSensorAThreshold()) ? 1 : 0;
+  int lineSensorValueB1 = (avg4 > getLineSensorBThreshold()) ? 1 : 0;
+  int lineSensorValueB2 = (avg5 > getLineSensorBThreshold()) ? 1 : 0;
+  int lineSensorValueB3 = (avg6 > getLineSensorBThreshold()) ? 1 : 0;
 
-  // COMBINE values into one variable (e.g. 001, 000, 111, 101, etc)
-  int lineSensorValue =
-      (lineSensorValueA1 << 2) | (lineSensorValueA2 << 1) | lineSensorValueA3;
+  // COMBINE values into one variable (e.g. 000001, 000000, 111111, 101101, etc)
+  int lineSensorValue = (lineSensorValueA1 << 5) | (lineSensorValueA2 << 4) |
+                        (lineSensorValueA3 << 3) | (lineSensorValueB1 << 2) |
+                        (lineSensorValueB2 << 1) | lineSensorValueB3;
 
   return lineSensorValue;
 }
 
 int SensorController::determineError(int lineSensorValue) {
-  // Define a lookup table
-  static const int errorTable[8] = {99, +2, 0, +1, -2, 0, -1, 0};
+  // Sensor positions (assuming 6 sensors): -3, -2, -1, 1, 2, 3
+  static const int sensorPositions[6] = {-3, -2, -1, 1, 2, 3};
 
-  // Ensure the lineSensorValue is within the valid range
-  if (lineSensorValue < 0 || lineSensorValue > 7) {
-    lineSensorValue = 0;
+  int sumWeightedPositions = 0;
+  int sumSensorValues = 0;
+
+  // Iterate through each sensor (from least significant bit to most significant
+  // bit)
+  for (int i = 0; i < 6; i++) {
+    // Check if the sensor i is detecting the line (bit i of lineSensorValue is
+    // 1)
+    if (lineSensorValue & (1 << i)) {
+      sumWeightedPositions += sensorPositions[i];
+      sumSensorValues += 1;
+    }
   }
 
-  // Determine the error based on the line sensor value
-  int error = errorTable[lineSensorValue];
+  // If no sensors are detecting the line, return a high error value (e.g., 99)
+  if (sumSensorValues == 0) {
+    return 99;
+  }
+
+  // Calculate the average error
+  int error = sumWeightedPositions / sumSensorValues;
 
   return error;
-}
-
-int SensorController::getLineResultA() {
-  return combineLineResult(lineSensorA1.average(), lineSensorA2.average(),
-                           lineSensorA3.average());
-}
-
-int SensorController::getLineResultB() {
-  return combineLineResult(lineSensorB1.average(), lineSensorB2.average(),
-                           lineSensorB3.average());
 }
 
 long SensorController::getUltrasonicDistance() { return hc.dist(); }
@@ -93,8 +101,14 @@ void SensorController::setUltrasonicMemory(long value) {
 
 int SensorController::getLineSensorAThreshold() { return lineSensorAThreshold; }
 
+int SensorController::getLineSensorBThreshold() { return lineSensorBThreshold; }
+
 void SensorController::setLineSensorAThreshold(int threshold) {
   lineSensorAThreshold = threshold;
+}
+
+void SensorController::setLineSensorBThreshold(int threshold) {
+  lineSensorBThreshold = threshold;
 }
 
 // ====== ENCODER MEMORY FUNCTIONS =====

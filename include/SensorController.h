@@ -3,22 +3,24 @@
 
 #include "Encoder.h"
 #include "HCSR04.h"
-#include "config.h"
 #include "MovingAverageSensor.h"
+#include "config.h"
 
 class SensorController {
 private:
-  Encoder encoderA;                 // Encoder A
-  Encoder encoderB;                 // Encoder B
-  HCSR04 hc;                        // Ultrasonic sensor
+  Encoder encoderA; // Encoder A
+  Encoder encoderB; // Encoder B
+  HCSR04 hc;        // Ultrasonic sensor
 
   long ultrasonicMemory;
   int lineSensorAThreshold;
+  int lineSensorBThreshold;
 
   long encoderALastValue = 0;
   long encoderALastTime = 0;
   long encoderBLastValue = 0;
   long encoderBLastTime = 0;
+
 public:
   // Constructor
   SensorController();
@@ -39,9 +41,6 @@ public:
   long readEncoderB();
   int determineError(int lineSensorValue);
 
-  int getLineResultA();
-  int getLineResultB();
-
   void readLineSensorA();
   void readLineSensorB();
 
@@ -50,7 +49,11 @@ public:
 
   int getLineSensorAThreshold();
   void setLineSensorAThreshold(int threshold);
-  int combineLineResult(int avg1, int avg2, int avg3);
+  int combineLineResult(int avg1, int avg2, int avg3, int avg4, int avg5,
+                        int avg6);
+
+  int getLineSensorBThreshold();
+  void setLineSensorBThreshold(int threshold);
 
   long getEncoderALastValue();
   long getEncoderALastTime();

@@ -445,6 +445,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
 }
 
 void handleIRIdle() {
+  /*
   // Read the sensor values
   sensorController.readLineSensorA();
   sensorController.readLineSensorB();
@@ -470,7 +471,7 @@ void handleIRIdle() {
   Serial.print(resultsB, BIN);
   Serial.println(" }");
 
-  motorController.servosOff();
+  motorController.servosOff();*/
 }
 
 void handleUltraSonicIdle() {
@@ -548,9 +549,9 @@ void handlePIDEncoderDrive(int baseSpeed) {
 
 void handleFollowLine(int mode) {
 
-  bool SHOW_RAW_IR_READINGS = false;
-  bool PRINT_DESIRED_SPEEDS = false;
-  bool PRINT_ACTUAL_SPEEDS = false;
+  bool SHOW_RAW_IR_READINGS = true;
+  bool PRINT_DESIRED_SPEEDS = true;
+  bool PRINT_ACTUAL_SPEEDS = true;
   bool PRINT_MOTOR_COMMAND = true;
 
   printlnWithTimestamp("Start of handleFollowLine.");
@@ -558,15 +559,12 @@ void handleFollowLine(int mode) {
   int lineSensorReadingA1 = sensorController.lineSensorA1.cleanRead();
   int lineSensorReadingA2 = sensorController.lineSensorA2.cleanRead();
   int lineSensorReadingA3 = sensorController.lineSensorA3.cleanRead();
-  // Combine.
-  int lineSensorResultsA = sensorController.combineLineResult(
-      lineSensorReadingA1, lineSensorReadingA2, lineSensorReadingA3);
-
   int lineSensorReadingB1 = sensorController.lineSensorB1.cleanRead();
   int lineSensorReadingB2 = sensorController.lineSensorB2.cleanRead();
   int lineSensorReadingB3 = sensorController.lineSensorB3.cleanRead();
   // Combine.
-  int lineSensorResultsB = sensorController.combineLineResult(
+  int lineSensorResults = sensorController.combineLineResult(
+      lineSensorReadingA1, lineSensorReadingA2, lineSensorReadingA3,
       lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
   // Debug messages.
@@ -588,9 +586,7 @@ void handleFollowLine(int mode) {
   }
 
   Serial.print("{ ");
-  Serial.print(lineSensorResultsA, BIN);
-  Serial.print(", ");
-  Serial.print(lineSensorResultsB, BIN);
+  Serial.print(lineSensorResults, BIN);
   Serial.println(" }");
   /*
     switch (mode) {
@@ -614,7 +610,7 @@ void handleFollowLine(int mode) {
           branchHandler.getTargetBranchNumFromLocation(targetLocation);
 
       // Check if the robot is currently over a branch.
-      branchHandler.doBranchCheck(lineSensorResultsB);
+      branchHandler.doBranchCheck(lineSensorResults);
       bool atBranch = branchHandler.getIsCurrentlyOverBranch();
       int branchNum = branchHandler.getCurrentLocation();
 
@@ -642,7 +638,7 @@ void handleFollowLine(int mode) {
     */
 
   // PID Line stuff...
-  int lineError = sensorController.determineError(lineSensorResultsA);
+  int lineError = sensorController.determineError(lineSensorResults);
 
   // =====================================
   // ===== EMERGENCY REVERSE COMMAND =====
@@ -751,10 +747,10 @@ void handleFourBar(int direction) {
 }
 
 void handleRotation(MotorController::ROTATE_DIRECTION direction) {
-  if (motorController.rotateRobot(direction,
+  /*if (motorController.rotateRobot(direction,
                                   sensorController.getLineResultA())) {
     systemStateHandler.advanceStateFlowIndex();
-  }
+  }*/
 }
 
 void handleUltrasonicApproach() {
