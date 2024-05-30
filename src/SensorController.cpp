@@ -47,6 +47,7 @@ void SensorController::readLineSensorB() {
 int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
                                         int avg5, int avg6) {
   // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
+  bool DO_READ_ONE_BY_ONE = false;
 
   int lineSensorValueA1 = (avg1 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
   int lineSensorValueA2 = (avg2 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
@@ -55,12 +56,14 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
   int lineSensorValueB2 = (avg5 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
   int lineSensorValueB3 = (avg6 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
 
-  Serial.print(lineSensorValueA1);
-  Serial.print(lineSensorValueA2);
-  Serial.print(lineSensorValueA3);
-  Serial.print(lineSensorValueB1);
-  Serial.print(lineSensorValueB2);
-  Serial.println(lineSensorValueB3);
+  if (DO_READ_ONE_BY_ONE) {
+    Serial.print(lineSensorValueA1);
+    Serial.print(lineSensorValueA2);
+    Serial.print(lineSensorValueA3);
+    Serial.print(lineSensorValueB1);
+    Serial.print(lineSensorValueB2);
+    Serial.println(lineSensorValueB3);
+  }
 
   // COMBINE values into one variable (e.g. 000001, 000000, 111111, 101101, etc)
   int lineSensorValue = (lineSensorValueA1 << 5) | (lineSensorValueA2 << 4) |

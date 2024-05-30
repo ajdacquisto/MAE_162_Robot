@@ -57,6 +57,9 @@ const int CONSTRAINT = 120;
 const int LOWER_CONSTRAINT = -120;
 const float MIN_SPEED = 120;
 
+// - Stop lineFollow for obstacle avoidance
+const long DISTANCE_THRESHOLD = 10;
+
 // ===============================
 // ===== HARDWARE PARAMETERS =====
 // ===============================
@@ -68,9 +71,9 @@ const int STEPPER_A_STEPS_PER_REVOLUTION = 200;
 const int STEPPER_B_STEPS_PER_REVOLUTION = 200;
 
 // - Encoder
-//const int ENCODER_MAX_SPEED = 4663;
-//const int ENCODER_MAX_SPEED RIGHT = 6500; //ish
-//const int ENCODER_MAX_SPEED LEFT = 6773; //ish
+// const int ENCODER_MAX_SPEED = 4663;
+// const int ENCODER_MAX_SPEED RIGHT = 6500; //ish
+// const int ENCODER_MAX_SPEED LEFT = 6773; //ish
 const int ENCODER_MAX_SPEED = 6800;
 
 // =================================

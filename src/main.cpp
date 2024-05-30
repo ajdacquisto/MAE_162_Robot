@@ -17,7 +17,7 @@
 
 // ===== GLOBAL VARIABLES =====
 
-SystemState::State DEFAULT_STATE = SystemState::ULTRASONIC_IDLE;
+SystemState::State DEFAULT_STATE = SystemState::IR_IDLE;
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
@@ -63,10 +63,12 @@ void calculateRotation(int rotationType, int targetLocation);
 void buttonCheck();
 void printWithTimestamp(const char *message);
 void printlnWithTimestamp(const char *message);
+void printBinaryWithLeadingZeros(byte number);
 
 long lastPrintTime = 0;
 long lastIntegralRestTime = 0;
 LED_STATE currentLEDstate = OFF;
+long lastUltrasonicTime = 0;
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -471,33 +473,47 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
 }
 
 void handleIRIdle() {
-  /*
+  // printlnWithTimestamp("Start of handleIRIdle.");
+  bool SHOW_RAW_IR_READINGS = true;
+  bool SHOW_BINARY_READING = true;
   // Read the sensor values
-  sensorController.readLineSensorA();
-  sensorController.readLineSensorB();
+  int lineSensorReadingA1 = sensorController.lineSensorA1.cleanRead();
+  int lineSensorReadingA2 = sensorController.lineSensorA2.cleanRead();
+  int lineSensorReadingA3 = sensorController.lineSensorA3.cleanRead();
+  int lineSensorReadingB1 = sensorController.lineSensorB1.cleanRead();
+  int lineSensorReadingB2 = sensorController.lineSensorB2.cleanRead();
+  int lineSensorReadingB3 = sensorController.lineSensorB3.cleanRead();
+  // Combine.
+  int lineSensorResults = sensorController.combineLineResult(
+      lineSensorReadingA1, lineSensorReadingA2, lineSensorReadingA3,
+      lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
-  int resultsA = sensorController.getLineResultA();
-  int resultsB = sensorController.getLineResultB();
+  // Debug messages.
+  printWithTimestamp("Line sensors: ");
+  if (SHOW_RAW_IR_READINGS) {
+    Serial.print("[");
+    Serial.print(lineSensorReadingA1);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingA2);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingA3);
+    Serial.print("], [");
+    Serial.print(lineSensorReadingB1);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingB2);
+    Serial.print(", ");
+    Serial.print(lineSensorReadingB3);
+    Serial.println("], ");
+  }
 
-  Serial.print("Line sensors: [");
-  Serial.print(sensorController.lineSensorA1.average());
-  Serial.print(", ");
-  Serial.print(sensorController.lineSensorA2.average());
-  Serial.print(", ");
-  Serial.print(sensorController.lineSensorA3.average());
-  Serial.print("], [");
-  Serial.print(sensorController.lineSensorB1.average());
-  Serial.print(", ");
-  Serial.print(sensorController.lineSensorB2.average());
-  Serial.print(", ");
-  Serial.print(sensorController.lineSensorB3.average());
-  Serial.print("], { ");
-  Serial.print(resultsA, BIN);
-  Serial.print(", ");
-  Serial.print(resultsB, BIN);
-  Serial.println(" }");
+  if (SHOW_BINARY_READING) {
+    printWithTimestamp("\t\t\t\t{ ");
+    printBinaryWithLeadingZeros(lineSensorResults);
+    Serial.println(" }\n");
+  }
 
-  motorController.servosOff();*/
+  motorController.servosOff();
+  delay(100);
 }
 
 void handleUltraSonicIdle() {
@@ -575,6 +591,7 @@ void handlePIDEncoderDrive(int BASE_SPEED) {
 
 void handleFollowLine(int mode) {
 
+  bool DO_ULTRASONIC_CHECK = false;
   bool SHOW_RAW_IR_READINGS = true;
   bool PRINT_DESIRED_SPEEDS = true;
   bool PRINT_ACTUAL_SPEEDS = true;
@@ -612,7 +629,7 @@ void handleFollowLine(int mode) {
   }
 
   Serial.print("{ ");
-  Serial.print(lineSensorResults, BIN);
+  printBinaryWithLeadingZeros(lineSensorResults);
   Serial.println(" }");
   /*
     switch (mode) {
@@ -673,6 +690,34 @@ void handleFollowLine(int mode) {
 
   printWithTimestamp("Line error: ");
   Serial.println(lineError);
+
+  // ============================
+  // ===== ULTRASONIC CHECK =====
+  if (DO_ULTRASONIC_CHECK) {
+    bool DO_PRINT_ULTRASONIC_CHECK = true;
+
+    // Read the ultrasonic sensor
+    long distance = sensorController.getUltrasonicDistance();
+
+    // Print the distance
+    if (DO_PRINT_ULTRASONIC_CHECK) {
+      printWithTimestamp("US Distance: ");
+      Serial.println(distance);
+    }
+
+    if (distance < DISTANCE_THRESHOLD) {
+      printlnWithTimestamp("<!> Obstacle detected.");
+      motorController.servosOff();
+
+      // motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
+      // motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
+
+      delay(100);
+      return;
+    }
+  }
+  // ============================
+  // ============================
 
   // =====================================
   // ===== EMERGENCY REVERSE COMMAND =====
@@ -953,4 +998,10 @@ void printlnWithTimestamp(const char *message) {
   lastPrintTime = millis();
   Serial.print(" > ");
   Serial.println(message);
+}
+
+void printBinaryWithLeadingZeros(byte number) {
+  for (int i = 5; i >= 0; i--) {
+    Serial.print(bitRead(number, i));
+  }
 }
