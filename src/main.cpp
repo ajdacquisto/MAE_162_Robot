@@ -72,7 +72,7 @@ long lastIntegralRestTime = 0;
 int myCounter = 0;
 
 SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::NEW_FOUR_BAR;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
 
 LED_STATE currentLEDstate = OFF;
 
@@ -397,13 +397,23 @@ void handleIdle() {
 void handleCalibrate(MotorController::COMPONENT componentCode) {
   switch (componentCode) {
   case MotorController::FOUR_BAR:
-    if (getBUTTON_STATE() == PRESSED) {
-      // Hold down button until four-bar crank is in lowest position.
-      turnLED(ON);
-      motorController.rotateStepperAsteps(20);
-      delay(100);
-    } else {
-      turnLED(OFF);
+    int FOUR_BAR_CALIBRATION_MODE = 1;
+
+    if (FOUR_BAR_CALIBRATION_MODE == 1) {
+      if (getBUTTON_STATE() == PRESSED) {
+        // Hold down button until four-bar crank is in lowest position.
+        turnLED(ON);
+        // motorController.rotateStepperAsteps(1);
+        delay(200);
+      } else {
+        turnLED(OFF);
+      }
+    } else if (FOUR_BAR_CALIBRATION_MODE == 2) {
+      // Just do one rotation.
+      delay(1000);
+      motorController.rotateStepperAdeg(360);
+      while (true)
+        ;
     }
     break;
   case MotorController::LIFT:
@@ -453,12 +463,12 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
   case MotorController::NEW_FOUR_BAR:
     printWithTimestamp("Calibrating new four-bar motor...");
     if (getBUTTON_STATE() == PRESSED) {
-      printlnWithTimestamp("Button pressed.");
-      // motorController.getNewFourBarMotor().setSpeed(255); // 25% speed
+      printWithTimestamp("Button pressed. ");
+      Serial.println(myCounter);
 
       motorController.motorDriverYellow.motorAForward(myCounter);
-      delay(10);
-      if (myCounter < 255) {
+      delay(20);
+      if (myCounter < 100) {
         myCounter++;
       }
 
