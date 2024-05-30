@@ -27,11 +27,12 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 // ===== SOFTWARE SETTINGS =====
 // =============================
 
+const int LINE_SENSOR_THRESHOLD = 840;
 // - Line Sensor A (front)
-const int LINE_SENSOR_A_THRESHOLD = 850;
+// const int LINE_SENSOR_A_THRESHOLD = 850;
 
 // - Line Sensor B (side)
-const int LINE_SENSOR_B_THRESHOLD = 850;
+// const int LINE_SENSOR_B_THRESHOLD = 850;
 
 // - Stepper Motor A (four-bar)
 const int STEPPER_A_MAX_SPEED = 10;
@@ -51,8 +52,11 @@ const float LINE_FOLLOW_REGULAR_KD = 2.0;
 
 // - Other drive parameters
 const int REVERSE_SPEED = 100;
-
 const int ENCODER_MAX_SPEED = 4663;
+const int BASE_SPEED = 150;
+const int CONSTRAINT = 120;
+const int LOWER_CONSTRAINT = -100;
+const float MIN_SPEED = 50;
 
 // ===============================
 // ===== HARDWARE PARAMETERS =====
@@ -118,7 +122,6 @@ const int YELLOW_MOTOR_PIN_2 = 22;
 // ==================================
 
 #endif // CONFIG_H
-
 
 // All IO list:
 // INP button [1 pin]

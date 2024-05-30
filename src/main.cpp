@@ -16,6 +16,11 @@
 #include "BranchHandler.h"
 
 // ===== GLOBAL VARIABLES =====
+
+SystemState::State DEFAULT_STATE = SystemState::IDLE;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
+MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
+
 SystemStateHandler systemStateHandler =
     SystemStateHandler();                               // System state handler
 MotorController motorController = MotorController();    // Motor controller
@@ -61,11 +66,6 @@ void printlnWithTimestamp(const char *message);
 
 long lastPrintTime = 0;
 long lastIntegralRestTime = 0;
-
-SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
-MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
-
 LED_STATE currentLEDstate = OFF;
 
 // ===== MAIN SETUP =====
@@ -388,8 +388,8 @@ void handleIdle() {
 
 void handleCalibrate(MotorController::COMPONENT componentCode) {
   switch (componentCode) {
-  case MotorController::FOUR_BAR:
-    {int FOUR_BAR_CALIBRATION_MODE = 2;
+  case MotorController::FOUR_BAR: {
+    int FOUR_BAR_CALIBRATION_MODE = 2;
 
     if (FOUR_BAR_CALIBRATION_MODE == 1) {
       if (getBUTTON_STATE() == SensorController::PRESSED) {
@@ -407,9 +407,10 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       while (true)
         ;
     }
-    break;}
-  case MotorController::LIFT:
-    {if (getBUTTON_STATE() == SensorController::PRESSED) {
+    break;
+  }
+  case MotorController::LIFT: {
+    if (getBUTTON_STATE() == SensorController::PRESSED) {
       // Hold down button until lift is in lowest position.
       turnLED(ON);
       motorController.rotateStepperBsteps(20);
@@ -417,9 +418,10 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     } else {
       turnLED(OFF);
     }
-    break;}
-  case MotorController::RIGHT_WHEEL:
-    {if (getBUTTON_STATE() == SensorController::PRESSED) {
+    break;
+  }
+  case MotorController::RIGHT_WHEEL: {
+    if (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.motorDriver.motorAForward(255); // full speed
       // int actualRightSpeed = sensorController.getEncoderASpeed();
       // Serial.print("Actual right speed: ");
@@ -429,18 +431,20 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       motorController.servosOff();
       turnLED(OFF);
     }
-    break;}
-  case MotorController::LEFT_WHEEL:
-    {if (getBUTTON_STATE() == SensorController::PRESSED) {
+    break;
+  }
+  case MotorController::LEFT_WHEEL: {
+    if (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.motorDriver.motorBForward(255); // full speed
       turnLED(ON);
     } else {
       motorController.servosOff();
       turnLED(OFF);
     }
-    break;}
-  case MotorController::BOTH_WHEELS:
-    {delay(1000);
+    break;
+  }
+  case MotorController::BOTH_WHEELS: {
+    delay(1000);
     int speed = 255;
     if (CALIBRATE_DIRECTION == MotorController::FORWARD) {
       motorController.servoDrive(MotorController::SERVO_A, speed);
@@ -454,10 +458,12 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       while (true)
         ;
     }
-    break;}
-  case MotorController::NEW_FOUR_BAR:
-    {printWithTimestamp("Calibrating new four-bar motor...");
-    break;}
+    break;
+  }
+  case MotorController::NEW_FOUR_BAR: {
+    printWithTimestamp("Calibrating new four-bar motor...");
+    break;
+  }
   default:
     logError("Invalid component code");
     break;
@@ -705,10 +711,6 @@ void handleFollowLine(int mode) {
   Serial.println(")");
 
   // Motor command calcs
-  int BASE_SPEED = 150;
-  int CONSTRAINT = 255;
-  int LOWER_CONSTRAINT = -100;
-  float MIN_SPEED = 80;
 
   int desiredLeftSpeed = BASE_SPEED - output;
   int desiredRightSpeed = BASE_SPEED + output;
@@ -888,7 +890,8 @@ void turnLED(LED_STATE state) {
 }
 
 SensorController::BUTTON_STATE getBUTTON_STATE() {
-  return (!digitalRead(BUTTON_PIN)) == HIGH ? SensorController::PRESSED : SensorController::UNPRESSED;
+  return (!digitalRead(BUTTON_PIN)) == HIGH ? SensorController::PRESSED
+                                            : SensorController::UNPRESSED;
 }
 
 void logError(const char *message) {

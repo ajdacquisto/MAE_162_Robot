@@ -13,7 +13,7 @@ SensorController::SensorController()
       lineSensorB3(LINE_SENSOR_PIN_B3)              // Line sensor B3
 {
   ultrasonicMemory = 0;
-  lineSensorAThreshold = LINE_SENSOR_A_THRESHOLD;
+  lineSensorAThreshold = LINE_SENSOR_THRESHOLD;
 }
 
 // Destructor
@@ -48,8 +48,6 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
                                         int avg5, int avg6) {
   // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
 
-  int LINE_SENSOR_THRESHOLD = 800;
-
   int lineSensorValueA1 = (avg1 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
   int lineSensorValueA2 = (avg2 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
   int lineSensorValueA3 = (avg3 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
@@ -74,7 +72,7 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
 
 int SensorController::determineError(int lineSensorValue) {
   // Sensor positions (assuming 6 sensors): -3, -2, -1, 1, 2, 3
-  static const int sensorPositions[6] = {-3, -1, -0, 0, 1, 3};
+  static const int sensorPositions[6] = {-3, -1, 0, 0, 1, 3};
 
   int sumWeightedPositions = 0;
   int sumSensorValues = 0;
