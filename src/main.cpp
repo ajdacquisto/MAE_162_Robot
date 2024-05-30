@@ -694,24 +694,9 @@ void handleFollowLine(int mode) {
   // ============================
   // ===== ULTRASONIC CHECK =====
   if (DO_ULTRASONIC_CHECK) {
-    bool DO_PRINT_ULTRASONIC_CHECK = true;
-
-    // Read the ultrasonic sensor
-    long distance = sensorController.getUltrasonicDistance();
-
-    // Print the distance
-    if (DO_PRINT_ULTRASONIC_CHECK) {
-      printWithTimestamp("US Distance: ");
-      Serial.println(distance);
-    }
-
-    if (distance < DISTANCE_THRESHOLD) {
+    if (sensorController.isObstacle(DISTANCE_THRESHOLD)) {
       printlnWithTimestamp("<!> Obstacle detected.");
       motorController.servosOff();
-
-      // motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
-      // motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
-
       delay(100);
       return;
     }
@@ -1005,3 +990,4 @@ void printBinaryWithLeadingZeros(byte number) {
     Serial.print(bitRead(number, i));
   }
 }
+

@@ -69,6 +69,8 @@ public:
   float getEncoderASpeed();
   float getEncoderBSpeed();
   float speedAdjust(int speedReading, float constraintValue);
+
+  bool isObstacle(long distanceThreshold);
 };
 
 #endif // SENSORCONTROLLER_H

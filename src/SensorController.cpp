@@ -183,3 +183,12 @@ float SensorController::speedAdjust(int speedReading, float constraintValue) {
     return constraintValue * speedReading / ENCODER_MAX_SPEED;
   }
 }
+
+bool SensorController::isObstacle(long distanceThreshold) {
+  long distance = getUltrasonicDistance();
+  if (distance < distanceThreshold) {
+    return true;
+  } else {
+    return false;
+  }
+}
