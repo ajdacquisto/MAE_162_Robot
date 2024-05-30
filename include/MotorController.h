@@ -10,11 +10,13 @@ private:
   bool hasLeftLineYet = false;
 public:
   DRV8833 motorDriver;
+  DRV8833 motorDriverYellow;
   Stepper stepperMotorA;
   Stepper stepperMotorB;
 
+
   enum ROTATE_DIRECTION { LEFT, RIGHT };
-  enum COMPONENT { RIGHT_WHEEL, LEFT_WHEEL, FOUR_BAR, LIFT, BOTH_WHEELS  };
+  enum COMPONENT { RIGHT_WHEEL, LEFT_WHEEL, FOUR_BAR, LIFT, BOTH_WHEELS, NEW_FOUR_BAR  };
   enum SERVO { SERVO_A, SERVO_B };
 
   // Constructor

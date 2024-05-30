@@ -69,9 +69,10 @@ void printlnWithTimestamp(const char *message);
 
 long lastPrintTime = 0;
 long lastIntegralRestTime = 0;
+int myCounter = 0;
 
-SystemState::State DEFAULT_STATE = SystemState::IDLE;
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
+SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::NEW_FOUR_BAR;
 
 LED_STATE currentLEDstate = OFF;
 
@@ -449,6 +450,26 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
         ;
     }
     break;
+  case MotorController::NEW_FOUR_BAR:
+    printWithTimestamp("Calibrating new four-bar motor...");
+    if (getBUTTON_STATE() == PRESSED) {
+      printlnWithTimestamp("Button pressed.");
+      // motorController.getNewFourBarMotor().setSpeed(255); // 25% speed
+
+      motorController.motorDriverYellow.motorAForward(myCounter);
+      delay(10);
+      if (myCounter < 255) {
+        myCounter++;
+      }
+
+      turnLED(ON);
+    } else {
+      myCounter = 0;
+      printlnWithTimestamp("Button unpressed.");
+      motorController.motorDriverYellow.motorAStop();
+      turnLED(OFF);
+    }
+    break;
   default:
     logError("Invalid component code");
     break;
@@ -672,7 +693,6 @@ void handleFollowLine(int mode) {
   // =====================================
   // =====================================
 
-
   // PID Line stuff cont'd...
   lineSensorGainHandler.incrementIntegral(lineError);
   float derivative = lineError - lineSensorGainHandler.getLastError();
@@ -871,6 +891,9 @@ void initializePins() {
 
   // Initialize LED pin as an output
   pinMode(LED_PIN, OUTPUT);
+
+  pinMode(YELLOW_MOTOR_PIN_1, OUTPUT);
+  pinMode(YELLOW_MOTOR_PIN_2, OUTPUT);
 }
 
 void initializeSerialPort() {
