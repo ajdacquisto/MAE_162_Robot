@@ -21,8 +21,7 @@ public:
     LEFT_WHEEL,
     FOUR_BAR,
     LIFT,
-    BOTH_WHEELS,
-    NEW_FOUR_BAR
+    BOTH_WHEELS
   };
   enum SERVO { SERVO_A, SERVO_B };
 

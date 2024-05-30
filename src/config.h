@@ -52,11 +52,10 @@ const float LINE_FOLLOW_REGULAR_KD = 2.0;
 
 // - Other drive parameters
 const int REVERSE_SPEED = 100;
-const int ENCODER_MAX_SPEED = 4663;
-const int BASE_SPEED = 150;
+const int BASE_SPEED = 120;
 const int CONSTRAINT = 120;
-const int LOWER_CONSTRAINT = -100;
-const float MIN_SPEED = 50;
+const int LOWER_CONSTRAINT = -120;
+const float MIN_SPEED = 120;
 
 // ===============================
 // ===== HARDWARE PARAMETERS =====
@@ -67,6 +66,12 @@ const int STEPPER_A_STEPS_PER_REVOLUTION = 200;
 
 // - Stepper Motor B (lift)
 const int STEPPER_B_STEPS_PER_REVOLUTION = 200;
+
+// - Encoder
+//const int ENCODER_MAX_SPEED = 4663;
+//const int ENCODER_MAX_SPEED RIGHT = 6500; //ish
+//const int ENCODER_MAX_SPEED LEFT = 6773; //ish
+const int ENCODER_MAX_SPEED = 6800;
 
 // =================================
 // ===== INPUT PIN ASSIGNMENTS =====
@@ -90,7 +95,7 @@ const int LINE_SENSOR_PIN_B2 = A4;
 const int LINE_SENSOR_PIN_B3 = A3;
 
 // - Ultrasonic Sensor
-const int ULTRASONIC_TRIG_PIN = 5, ULTRASONIC_ECHO_PIN = 46;
+const int ULTRASONIC_TRIG_PIN = 46, ULTRASONIC_ECHO_PIN = 50;
 
 // ==================================
 // ===== OUTPUT PIN ASSIGNMENTS =====

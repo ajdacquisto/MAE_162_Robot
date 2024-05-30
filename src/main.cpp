@@ -17,8 +17,8 @@
 
 // ===== GLOBAL VARIABLES =====
 
-SystemState::State DEFAULT_STATE = SystemState::IDLE;
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
+SystemState::State DEFAULT_STATE = SystemState::ULTRASONIC_IDLE;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
 SystemStateHandler systemStateHandler =
@@ -219,6 +219,7 @@ void loop() {
     handleIRIdle();
     break;
   case SystemState::ULTRASONIC_IDLE:
+    handleUltraSonicIdle();
     // Code for idle state with ultrasonic sensor active
     break;
   case SystemState::PID_ENCODER_DRIVE:
@@ -423,9 +424,9 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
   case MotorController::RIGHT_WHEEL: {
     if (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.motorDriver.motorAForward(255); // full speed
-      // int actualRightSpeed = sensorController.getEncoderASpeed();
-      // Serial.print("Actual right speed: ");
-      // Serial.println(actualRightSpeed);
+      int actualRightSpeed = sensorController.getEncoderASpeed();
+      Serial.print("Actual right speed: ");
+      Serial.println(actualRightSpeed);
       turnLED(ON);
     } else {
       motorController.servosOff();
@@ -436,6 +437,9 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
   case MotorController::LEFT_WHEEL: {
     if (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.motorDriver.motorBForward(255); // full speed
+      int actualLeftSpeed = sensorController.getEncoderBSpeed();
+      Serial.print("Actual left speed: ");
+      Serial.println(actualLeftSpeed);
       turnLED(ON);
     } else {
       motorController.servosOff();
@@ -458,10 +462,6 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       while (true)
         ;
     }
-    break;
-  }
-  case MotorController::NEW_FOUR_BAR: {
-    printWithTimestamp("Calibrating new four-bar motor...");
     break;
   }
   default:
@@ -681,7 +681,7 @@ void handleFollowLine(int mode) {
     motorController.servosOff();
     motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
     motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
-    delay(400);
+    delay(100);
     return;
   }
   // =====================================
