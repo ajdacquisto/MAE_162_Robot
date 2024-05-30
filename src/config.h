@@ -27,7 +27,7 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 // ===== SOFTWARE SETTINGS =====
 // =============================
 
-const int LINE_SENSOR_THRESHOLD = 840;
+const int LINE_SENSOR_THRESHOLD = 890;
 // - Line Sensor A (front)
 // const int LINE_SENSOR_A_THRESHOLD = 850;
 
@@ -46,19 +46,20 @@ const float ENCODER_DRIVE_KI = 0.01;
 const float ENCODER_DRIVE_KD = 0.005;
 
 // - Line follow PID parameters
-const float LINE_FOLLOW_REGULAR_KP = 60.0;
-const float LINE_FOLLOW_REGULAR_KI = 4.0;
-const float LINE_FOLLOW_REGULAR_KD = 2.0;
+const float LINE_FOLLOW_REGULAR_KP = 50.0;
+const float LINE_FOLLOW_REGULAR_KI = 1.0;
+const float LINE_FOLLOW_REGULAR_KD = 5.0;
 
 // - Other drive parameters
 const int REVERSE_SPEED = 100;
-const int BASE_SPEED = 120;
-const int CONSTRAINT = 120;
-const int LOWER_CONSTRAINT = -120;
-const float MIN_SPEED = 120;
+const int BASE_SPEED = 60;
+const int CONSTRAINT = 90;
+const int LOWER_CONSTRAINT = -80;
+const float MIN_SPEED = 70;
 
 // - Stop lineFollow for obstacle avoidance
-const long DISTANCE_THRESHOLD = 10;
+const long OBSTACLE_DISTANCE_THRESHOLD = 10;
+const long NINETY_DEGREE_TURN_DISTANCE = 29;
 
 // ===============================
 // ===== HARDWARE PARAMETERS =====

@@ -74,30 +74,40 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
 }
 
 int SensorController::determineError(int lineSensorValue) {
-  // Sensor positions (assuming 6 sensors): -3, -2, -1, 1, 2, 3
-  static const int sensorPositions[6] = {-3, -1, 0, 0, 1, 3};
+  bool DO_NEW_FANCY_MODE = true;
+  int error = 0;
 
-  int sumWeightedPositions = 0;
-  int sumSensorValues = 0;
+  if (DO_NEW_FANCY_MODE) {
+    int binaryArray[6];
+    intToBinaryArray(lineSensorValue, binaryArray);
+    error = processBinaryNumber(binaryArray);
+  } else {
+    // Sensor positions (assuming 6 sensors): -3, -2, -1, 1, 2, 3
+    static const int sensorPositions[6] = {-3, 0, 0, 0, 0, 3};
 
-  // Iterate through each sensor (from least significant bit to most significant
-  // bit)
-  for (int i = 0; i < 6; i++) {
-    // Check if the sensor i is detecting the line (bit i of lineSensorValue is
-    // 1)
-    if (lineSensorValue & (1 << i)) {
-      sumWeightedPositions += sensorPositions[i];
-      sumSensorValues += 1;
+    int sumWeightedPositions = 0;
+    int sumSensorValues = 0;
+
+    // Iterate through each sensor (from least significant bit to most
+    // significant bit)
+    for (int i = 0; i < 6; i++) {
+      // Check if the sensor i is detecting the line (bit i of lineSensorValue
+      // is 1)
+      if (lineSensorValue & (1 << i)) {
+        sumWeightedPositions += sensorPositions[i];
+        sumSensorValues += 1;
+      }
     }
-  }
 
-  // If no sensors are detecting the line, return a high error value (e.g., 99)
-  if (sumSensorValues == 0) {
-    return 99;
-  }
+    // If no sensors are detecting the line, return a high error value (e.g.,
+    // 99)
+    if (sumSensorValues == 0) {
+      return 99;
+    }
 
-  // Calculate the average error
-  int error = sumWeightedPositions / sumSensorValues;
+    // Calculate the average error
+    error = sumWeightedPositions / sumSensorValues;
+  }
 
   return error;
 }
@@ -190,5 +200,43 @@ bool SensorController::isObstacle(long distanceThreshold) {
     return true;
   } else {
     return false;
+  }
+}
+
+// Function to process the input binary number and return the desired output
+int SensorController::processBinaryNumber(int binaryNumber[]) {
+  int sum = 0;
+  int count = 0;
+
+  // Calculate sum of positions of ones and count of ones in a single loop
+  for (int i = 0; i < 6; i++) {
+    if (binaryNumber[i] == 1) {
+      sum += i;
+      count++;
+    }
+  }
+
+  // Avoid division by zero if there are no ones
+  if (count == 0)
+    return -3;
+
+  // Calculate adjusted average position
+  float avgPos = (float)sum / count;
+  float adjustedAvgPos = avgPos - 3;
+
+  // Convert adjusted average position to the desired output
+  int output = adjustedAvgPos;
+  
+  if (abs(output) <= 1) {
+    output = 0;
+  }
+
+  return output;
+}
+
+void SensorController::intToBinaryArray(int num, int binaryArray[]) {
+  for (int i = 5; i >= 0; i--) {
+    binaryArray[i] = num & 1;
+    num >>= 1;
   }
 }

@@ -16,14 +16,9 @@
 #include "BranchHandler.h"
 
 // ===== GLOBAL VARIABLES =====
-SystemState::State DEFAULT_STATE = SystemState::IR_IDLE;
+SystemState::State DEFAULT_STATE = SystemState::IDLE;
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
-
-long lastPrintTime = 0;
-long lastIntegralRestTime = 0;
-LED_STATE currentLEDstate = OFF;
-long lastUltrasonicTime = 0;
 
 // ===== CONTROL OBJECTS =====
 SystemStateHandler systemStateHandler =
@@ -44,6 +39,12 @@ enum LED_STATE { OFF = LOW, ON = HIGH };
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
+
+// Globals
+long lastPrintTime = 0;
+long lastIntegralRestTime = 0;
+LED_STATE currentLEDstate = OFF;
+long lastUltrasonicTime = 0;
 
 // ===== FUNCTION PROTOTYPES =====
 // Setup
@@ -599,11 +600,13 @@ void handlePIDEncoderDrive(int BASE_SPEED) {
 
 void handleFollowLine(int mode) {
 
-  bool DO_ULTRASONIC_CHECK = false;
+  bool DO_ULTRASONIC_CHECK_OBSTACLE = false;
+  bool DO_ULTRASONIC_CHECK_TURN = false;
   bool SHOW_RAW_IR_READINGS = true;
   bool PRINT_DESIRED_SPEEDS = true;
   bool PRINT_ACTUAL_SPEEDS = true;
   bool PRINT_MOTOR_COMMAND = true;
+  bool DO_EMERGENCY_REVERSE = true;
 
   printlnWithTimestamp("Start of handleFollowLine.");
   // Read the sensor values
@@ -694,17 +697,29 @@ void handleFollowLine(int mode) {
   }
 
   // PID Line stuff...
-  int lineError = sensorController.determineError(lineSensorResults);
+  int lineError = -sensorController.determineError(lineSensorResults);
+
+  if (lineError == 0) {
+    lineSensorGainHandler.resetIntegral();
+  }
 
   printWithTimestamp("Line error: ");
   Serial.println(lineError);
 
   // ============================
-  // ===== ULTRASONIC CHECK =====
-  if (DO_ULTRASONIC_CHECK) {
-    if (sensorController.isObstacle(DISTANCE_THRESHOLD)) {
+  // ===== ULTRASONIC CHECK =====s
+  if (DO_ULTRASONIC_CHECK_OBSTACLE) {
+    if (sensorController.isObstacle(OBSTACLE_DISTANCE_THRESHOLD)) {
       printlnWithTimestamp("<!> Obstacle detected.");
       motorController.servosOff();
+      delay(100);
+      return;
+    }
+  } else if (DO_ULTRASONIC_CHECK_TURN) {
+    if (sensorController.isObstacle(NINETY_DEGREE_TURN_DISTANCE)) {
+      printlnWithTimestamp("<!> 90 degree turn detected.");
+      motorController.servosOff();
+      while(true);
       delay(100);
       return;
     }
@@ -714,13 +729,15 @@ void handleFollowLine(int mode) {
 
   // =====================================
   // ===== EMERGENCY REVERSE COMMAND =====
-  if (lineError == 99) {
+  if (DO_EMERGENCY_REVERSE && lineError == 99) {
     printlnWithTimestamp("<!> Reverse command");
     motorController.servosOff();
     motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
     motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
     delay(100);
     return;
+  } else if (!DO_EMERGENCY_REVERSE) {
+    lineError = lineSensorGainHandler.getLastError();
   }
   // =====================================
   // =====================================
@@ -765,8 +782,8 @@ void handleFollowLine(int mode) {
   int actualLeftSpeed = sensorController.getEncoderBSpeed();
   int actualRightSpeed = sensorController.getEncoderASpeed();
 
-  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, CONSTRAINT);
-  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, CONSTRAINT);
+  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, MIN_SPEED);
+  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, MIN_SPEED);
 
   if (PRINT_ACTUAL_SPEEDS) {
     printWithTimestamp("Actual speeds: L(");
@@ -793,10 +810,10 @@ void handleFollowLine(int mode) {
                 CONSTRAINT); // Ensure speed stays within valid range
 
   // Ensure minimum speed
-  if (abs(leftMotorSpeed) < MIN_SPEED) {
+  if (abs(leftMotorSpeed) < MIN_SPEED && leftMotorSpeed != 0) {
     leftMotorSpeed = (leftMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
   }
-  if (abs(rightMotorSpeed) < MIN_SPEED) {
+  if (abs(rightMotorSpeed) < MIN_SPEED && rightMotorSpeed != 0) {
     rightMotorSpeed = (rightMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
   }
 

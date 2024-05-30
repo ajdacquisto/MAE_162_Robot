@@ -71,6 +71,9 @@ public:
   float speedAdjust(int speedReading, float constraintValue);
 
   bool isObstacle(long distanceThreshold);
+
+  int processBinaryNumber(int binaryNumber[]);
+  void intToBinaryArray(int num, int binaryArray[]);
 };
 
 #endif // SENSORCONTROLLER_H
