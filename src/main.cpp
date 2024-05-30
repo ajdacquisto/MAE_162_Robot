@@ -16,11 +16,16 @@
 #include "BranchHandler.h"
 
 // ===== GLOBAL VARIABLES =====
-
 SystemState::State DEFAULT_STATE = SystemState::IR_IDLE;
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
+long lastPrintTime = 0;
+long lastIntegralRestTime = 0;
+LED_STATE currentLEDstate = OFF;
+long lastUltrasonicTime = 0;
+
+// ===== CONTROL OBJECTS =====
 SystemStateHandler systemStateHandler =
     SystemStateHandler();                               // System state handler
 MotorController motorController = MotorController();    // Motor controller
@@ -32,7 +37,6 @@ ControlGainHandler encoderGainHandler =
     ControlGainHandler(ENCODER_DRIVE_KP, ENCODER_DRIVE_KD,
                        ENCODER_DRIVE_KI);      // Encoder gain handler
 BranchHandler branchHandler = BranchHandler(); // Branch handler
-bool doLinePID = true;
 
 // ===== ENUMS =====
 enum LED_STATE { OFF = LOW, ON = HIGH };
@@ -42,33 +46,37 @@ enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
 
 // ===== FUNCTION PROTOTYPES =====
+// Setup
+void initializePins();
+void initializeSerialPort();
+
+// State handlers
 void handleTest();
 void handleIdle();
 void handleIRIdle();
 void handleUltraSonicIdle();
 void handleFollowLine(int mode);
-void initializePins();
-void initializeSerialPort();
-void turnLED(LED_STATE state);
-SensorController::BUTTON_STATE getBUTTON_STATE();
-void logError(const char *message);
 void handleCalibrate(MotorController::COMPONENT componentCode);
 void handlePIDEncoderDrive(int BASE_SPEED);
-void resetAllPIDMemory();
 void handleRotation(MotorController::ROTATE_DIRECTION direction);
 void handleUltrasonicApproach();
 void handleUltrasonicReverse();
 void handleLift(int direction);
-void calculateRotation(int rotationType, int targetLocation);
+
+// Other IO
+void turnLED(LED_STATE state);
 void buttonCheck();
+SensorController::BUTTON_STATE getBUTTON_STATE();
+
+// Helper functions
+void resetAllPIDMemory();
+void calculateRotation(int rotationType, int targetLocation);
+
+// LOGGING
+void logError(const char *message);
 void printWithTimestamp(const char *message);
 void printlnWithTimestamp(const char *message);
 void printBinaryWithLeadingZeros(byte number);
-
-long lastPrintTime = 0;
-long lastIntegralRestTime = 0;
-LED_STATE currentLEDstate = OFF;
-long lastUltrasonicTime = 0;
 
 // ===== MAIN SETUP =====
 void setup() {
@@ -899,9 +907,6 @@ void initializePins() {
 
   // Initialize LED pin as an output
   pinMode(LED_PIN, OUTPUT);
-
-  pinMode(YELLOW_MOTOR_PIN_1, OUTPUT);
-  pinMode(YELLOW_MOTOR_PIN_2, OUTPUT);
 }
 
 void initializeSerialPort() {
@@ -990,4 +995,3 @@ void printBinaryWithLeadingZeros(byte number) {
     Serial.print(bitRead(number, i));
   }
 }
-
