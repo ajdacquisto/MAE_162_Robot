@@ -30,6 +30,8 @@ public:
 
   enum LIFT_DIRECTION { DOWN, UP };
 
+  enum MOTOR_DIRECTION { FORWARD, BACKWARD };
+
   // Constructor
   MotorController();
   ~MotorController();

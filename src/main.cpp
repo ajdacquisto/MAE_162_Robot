@@ -64,6 +64,7 @@ long lastIntegralRestTime = 0;
 
 SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
+MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
 LED_STATE currentLEDstate = OFF;
 
@@ -440,8 +441,14 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     break;}
   case MotorController::BOTH_WHEELS:
     {delay(1000);
-    motorController.servoDrive(MotorController::SERVO_A, -255);
-    motorController.servoDrive(MotorController::SERVO_B, -255);
+    int speed = 255;
+    if (CALIBRATE_DIRECTION == MotorController::FORWARD) {
+      motorController.servoDrive(MotorController::SERVO_A, speed);
+      motorController.servoDrive(MotorController::SERVO_B, speed);
+    } else {
+      motorController.servoDrive(MotorController::SERVO_A, -speed);
+      motorController.servoDrive(MotorController::SERVO_B, -speed);
+    }
     while (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.servosOff();
       while (true)
