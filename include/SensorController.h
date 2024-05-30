@@ -28,6 +28,8 @@ public:
   // Destructor
   ~SensorController();
 
+  enum BUTTON_STATE { PRESSED = HIGH, UNPRESSED = LOW };
+
   MovingAverageSensor lineSensorA1; // Line sensor A1
   MovingAverageSensor lineSensorA2; // Line sensor A2
   MovingAverageSensor lineSensorA3; // Line sensor A3

@@ -28,10 +28,10 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 // =============================
 
 // - Line Sensor A (front)
-const int LINE_SENSOR_A_THRESHOLD = 840;
+const int LINE_SENSOR_A_THRESHOLD = 850;
 
 // - Line Sensor B (side)
-const int LINE_SENSOR_B_THRESHOLD = 840;
+const int LINE_SENSOR_B_THRESHOLD = 850;
 
 // - Stepper Motor A (four-bar)
 const int STEPPER_A_MAX_SPEED = 10;
@@ -46,8 +46,8 @@ const float ENCODER_DRIVE_KD = 0.005;
 
 // - Line follow PID parameters
 const float LINE_FOLLOW_REGULAR_KP = 60.0;
-const float LINE_FOLLOW_REGULAR_KI = 0.4;
-const float LINE_FOLLOW_REGULAR_KD = 6.0;
+const float LINE_FOLLOW_REGULAR_KI = 4.0;
+const float LINE_FOLLOW_REGULAR_KD = 2.0;
 
 // - Other drive parameters
 const int REVERSE_SPEED = 100;

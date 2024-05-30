@@ -32,13 +32,7 @@ bool doLinePID = true;
 // ===== ENUMS =====
 enum LED_STATE { OFF = LOW, ON = HIGH };
 
-enum BUTTON_STATE { PRESSED = HIGH, UNPRESSED = LOW };
-
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
-
-enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
-
-enum LIFT_DIRECTION { DOWN, UP };
 
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
 
@@ -51,11 +45,10 @@ void handleFollowLine(int mode);
 void initializePins();
 void initializeSerialPort();
 void turnLED(LED_STATE state);
-BUTTON_STATE getBUTTON_STATE();
+SensorController::BUTTON_STATE getBUTTON_STATE();
 void logError(const char *message);
 void handleCalibrate(MotorController::COMPONENT componentCode);
 void handlePIDEncoderDrive(int BASE_SPEED);
-void handleFourBar(int direction);
 void resetAllPIDMemory();
 void handleRotation(MotorController::ROTATE_DIRECTION direction);
 void handleUltrasonicApproach();
@@ -63,16 +56,14 @@ void handleUltrasonicReverse();
 void handleLift(int direction);
 void calculateRotation(int rotationType, int targetLocation);
 void buttonCheck();
-void printTime();
 void printWithTimestamp(const char *message);
 void printlnWithTimestamp(const char *message);
 
 long lastPrintTime = 0;
 long lastIntegralRestTime = 0;
-int myCounter = 0;
 
 SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
 
 LED_STATE currentLEDstate = OFF;
 
@@ -248,11 +239,11 @@ void loop() {
     break;
   case SystemState::FOUR_BAR_LOAD:
     // Code for four-bar mechanism
-    handleFourBar(LOAD);
+    motorController.handleFourBar(MotorController::LOAD);
     break;
   case SystemState::FOUR_BAR_UNLOAD:
     // Code for four-bar mechanism
-    handleFourBar(UNLOAD);
+    motorController.handleFourBar(MotorController::UNLOAD);
     break;
   case SystemState::ROTATE_LEFT:
     // Code for rotating the robot left
@@ -268,11 +259,11 @@ void loop() {
     break;
   case SystemState::LIFT_LOWER:
     // Lower the lift.
-    handleLift(DOWN);
+    handleLift(MotorController::DOWN);
     break;
   case SystemState::LIFT_RAISE:
     // Raise the lift.
-    handleLift(UP);
+    handleLift(MotorController::UP);
     break;
   default:
     // Error handling
@@ -319,7 +310,7 @@ void handleTest() {
   Serial.print(millis() - myTimerStart);
   Serial.print(", ");
 
-  if (getBUTTON_STATE() == PRESSED) {
+  if (getBUTTON_STATE() == SensorController::PRESSED) {
     turnLED(ON);
     logError("Button pressed");
   } else {
@@ -385,10 +376,10 @@ void handleTest() {
 void handleIdle() {
   motorController.servosOff();
   turnLED(ON);
-  if (getBUTTON_STATE() == PRESSED) {
+  if (getBUTTON_STATE() == SensorController::PRESSED) {
     turnLED(OFF);
     printlnWithTimestamp("Exiting idle phase...");
-    while (getBUTTON_STATE() == PRESSED)
+    while (getBUTTON_STATE() == SensorController::PRESSED)
       ;
     systemStateHandler.advanceStateFlowIndex();
   }
@@ -397,10 +388,10 @@ void handleIdle() {
 void handleCalibrate(MotorController::COMPONENT componentCode) {
   switch (componentCode) {
   case MotorController::FOUR_BAR:
-    int FOUR_BAR_CALIBRATION_MODE = 1;
+    {int FOUR_BAR_CALIBRATION_MODE = 2;
 
     if (FOUR_BAR_CALIBRATION_MODE == 1) {
-      if (getBUTTON_STATE() == PRESSED) {
+      if (getBUTTON_STATE() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
         turnLED(ON);
         // motorController.rotateStepperAsteps(1);
@@ -415,9 +406,9 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       while (true)
         ;
     }
-    break;
+    break;}
   case MotorController::LIFT:
-    if (getBUTTON_STATE() == PRESSED) {
+    {if (getBUTTON_STATE() == SensorController::PRESSED) {
       // Hold down button until lift is in lowest position.
       turnLED(ON);
       motorController.rotateStepperBsteps(20);
@@ -425,9 +416,9 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     } else {
       turnLED(OFF);
     }
-    break;
+    break;}
   case MotorController::RIGHT_WHEEL:
-    if (getBUTTON_STATE() == PRESSED) {
+    {if (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.motorDriver.motorAForward(255); // full speed
       // int actualRightSpeed = sensorController.getEncoderASpeed();
       // Serial.print("Actual right speed: ");
@@ -437,49 +428,29 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       motorController.servosOff();
       turnLED(OFF);
     }
-    break;
+    break;}
   case MotorController::LEFT_WHEEL:
-    if (getBUTTON_STATE() == PRESSED) {
+    {if (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.motorDriver.motorBForward(255); // full speed
-      // int actualLeftSpeed = sensorController.getEncoderBSpeed();
-      // Serial.print("Actual left speed: ");
-      // Serial.println(actualLeftSpeed);
       turnLED(ON);
     } else {
       motorController.servosOff();
       turnLED(OFF);
     }
-    break;
+    break;}
   case MotorController::BOTH_WHEELS:
-    delay(1000);
+    {delay(1000);
     motorController.servoDrive(MotorController::SERVO_A, -255);
     motorController.servoDrive(MotorController::SERVO_B, -255);
-    while (getBUTTON_STATE() == PRESSED) {
+    while (getBUTTON_STATE() == SensorController::PRESSED) {
       motorController.servosOff();
       while (true)
         ;
     }
-    break;
+    break;}
   case MotorController::NEW_FOUR_BAR:
-    printWithTimestamp("Calibrating new four-bar motor...");
-    if (getBUTTON_STATE() == PRESSED) {
-      printWithTimestamp("Button pressed. ");
-      Serial.println(myCounter);
-
-      motorController.motorDriverYellow.motorAForward(myCounter);
-      delay(20);
-      if (myCounter < 100) {
-        myCounter++;
-      }
-
-      turnLED(ON);
-    } else {
-      myCounter = 0;
-      printlnWithTimestamp("Button unpressed.");
-      motorController.motorDriverYellow.motorAStop();
-      turnLED(OFF);
-    }
-    break;
+    {printWithTimestamp("Calibrating new four-bar motor...");
+    break;}
   default:
     logError("Invalid component code");
     break;
@@ -727,7 +698,7 @@ void handleFollowLine(int mode) {
   Serial.println(")");
 
   // Motor command calcs
-  int BASE_SPEED = 160;
+  int BASE_SPEED = 150;
   int CONSTRAINT = 255;
   int LOWER_CONSTRAINT = -100;
   float MIN_SPEED = 80;
@@ -797,18 +768,6 @@ void handleFollowLine(int mode) {
   printlnWithTimestamp("End of handleFollowLine.");
 }
 
-void handleFourBar(int direction) {
-  if (direction == LOAD) {
-    // Load the four-bar mechanism
-    motorController.rotateStepperAdeg(360);
-  } else if (direction == UNLOAD) {
-    // Unload the four-bar mechanism
-    motorController.rotateStepperAdeg(-360);
-  } else {
-    logError("Invalid direction");
-  }
-}
-
 void handleRotation(MotorController::ROTATE_DIRECTION direction) {
   /*if (motorController.rotateRobot(direction,
                                   sensorController.getLineResultA())) {
@@ -862,11 +821,11 @@ void handleLift(int direction) {
   motorController.stepperMotorB.setSpeed(LIFT_SPEED);
 
   switch (direction) {
-  case UP:
+  case MotorController::UP:
     // Move the lift up
     motorController.rotateStepperBsteps(LIFT_DISTANCE * 2);
     break;
-  case DOWN:
+  case MotorController::DOWN:
     // Move the lift down
     motorController.rotateStepperBsteps(-LIFT_DISTANCE);
     break;
@@ -921,8 +880,8 @@ void turnLED(LED_STATE state) {
   }
 }
 
-BUTTON_STATE getBUTTON_STATE() {
-  return (!digitalRead(BUTTON_PIN)) == HIGH ? PRESSED : UNPRESSED;
+SensorController::BUTTON_STATE getBUTTON_STATE() {
+  return (!digitalRead(BUTTON_PIN)) == HIGH ? SensorController::PRESSED : SensorController::UNPRESSED;
 }
 
 void logError(const char *message) {
@@ -960,7 +919,7 @@ void calculateRotation(int rotationType, int targetLocation) {
 }
 
 void buttonCheck() {
-  if (getBUTTON_STATE() == PRESSED) {
+  if (getBUTTON_STATE() == SensorController::PRESSED) {
     // Button is pressed
     turnLED(ON);
     logError("Button pressed");
@@ -968,12 +927,6 @@ void buttonCheck() {
     // Button is not pressed
     turnLED(OFF);
   }
-}
-
-void printTime() {
-  Serial.print("...Time: ");
-  Serial.print(millis() - lastPrintTime);
-  lastPrintTime = millis();
 }
 
 void printWithTimestamp(const char *message) {

@@ -48,7 +48,7 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
                                         int avg5, int avg6) {
   // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
 
-  int LINE_SENSOR_THRESHOLD = 900;
+  int LINE_SENSOR_THRESHOLD = 800;
 
   int lineSensorValueA1 = (avg1 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
   int lineSensorValueA2 = (avg2 > LINE_SENSOR_THRESHOLD) ? 1 : 0;

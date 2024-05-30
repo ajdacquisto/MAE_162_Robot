@@ -8,16 +8,27 @@
 class MotorController {
 private:
   bool hasLeftLineYet = false;
+
 public:
   DRV8833 motorDriver;
   DRV8833 motorDriverYellow;
   Stepper stepperMotorA;
   Stepper stepperMotorB;
 
-
   enum ROTATE_DIRECTION { LEFT, RIGHT };
-  enum COMPONENT { RIGHT_WHEEL, LEFT_WHEEL, FOUR_BAR, LIFT, BOTH_WHEELS, NEW_FOUR_BAR  };
+  enum COMPONENT {
+    RIGHT_WHEEL,
+    LEFT_WHEEL,
+    FOUR_BAR,
+    LIFT,
+    BOTH_WHEELS,
+    NEW_FOUR_BAR
+  };
   enum SERVO { SERVO_A, SERVO_B };
+
+  enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
+
+  enum LIFT_DIRECTION { DOWN, UP };
 
   // Constructor
   MotorController();
@@ -32,6 +43,7 @@ public:
   bool rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal);
   ROTATE_DIRECTION getDirectionToRotate(int pickupLocation);
   void servoDrive(SERVO whichServo, int speed);
+  void handleFourBar(FOUR_BAR_DIRECTION direction);
 };
 
 #endif // MOTORCONTROLLER_H

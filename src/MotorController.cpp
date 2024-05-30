@@ -117,3 +117,15 @@ void MotorController::servoDrive(SERVO whichServo, int speed) {
       break;
   }
 }
+
+void MotorController::handleFourBar(FOUR_BAR_DIRECTION direction) {
+  if (direction == LOAD) {
+    // Load the four-bar mechanism
+    rotateStepperAdeg(360);
+  } else if (direction == UNLOAD) {
+    // Unload the four-bar mechanism
+    rotateStepperAdeg(-360);
+  } else {
+    Serial.println("Invalid four-bar direction");
+  }
+}
