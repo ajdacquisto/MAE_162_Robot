@@ -37,14 +37,9 @@ BranchHandler branchHandler = BranchHandler(); // Branch handler
 SerialController serialController = SerialController();
 
 // ===== ENUMS =====
-
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
-
-// Globals
-long lastIntegralResetTime = 0;
-long lastUltrasonicTime = 0;
 
 // ===== FUNCTION PROTOTYPES =====
 
@@ -579,7 +574,6 @@ void handlePIDEncoderDrive(int BASE_SPEED) {
 }
 
 void handleFollowLine(int mode) {
-
   bool DO_ULTRASONIC_CHECK_OBSTACLE = false;
   bool DO_ULTRASONIC_CHECK_TURN = false;
   bool SHOW_RAW_IR_READINGS = true;
@@ -671,9 +665,8 @@ void handleFollowLine(int mode) {
     }
     */
 
-  if (millis() - lastIntegralResetTime > 5000) {
+  if (millis() - lineSensorGainHandler.getLastIntegralResetTime() > 5000) {
     lineSensorGainHandler.resetIntegral();
-    lastIntegralResetTime = millis();
   }
 
   // PID Line stuff...

@@ -28,7 +28,10 @@ ControlGainHandler::~ControlGainHandler() {
 void ControlGainHandler::resetError() { lastError = 0; }
 
 // Reset the integral term
-void ControlGainHandler::resetIntegral() { integral = 0; }
+void ControlGainHandler::resetIntegral() {
+  lastIntegralResetTime = millis();
+  integral = 0;
+}
 
 // Reset the error and integral terms
 void ControlGainHandler::reset() {
@@ -38,11 +41,6 @@ void ControlGainHandler::reset() {
 
 // Set the last error
 void ControlGainHandler::setLastError(int error) { lastError = error; }
-
-// Set the integral term
-void ControlGainHandler::setIntegral(int integral) {
-  this->integral = integral;
-}
 
 // Get the last error
 int ControlGainHandler::getLastError() { return lastError; }
@@ -71,4 +69,8 @@ float ControlGainHandler::getKd() { return kd; }
 void ControlGainHandler::incrementIntegral(int error) {
   // Increment the integral term
   integral += error;
+}
+
+unsigned long ControlGainHandler::getLastIntegralResetTime() {
+  return lastIntegralResetTime;
 }

@@ -1,6 +1,7 @@
 #ifndef CONTROL_GAIN_HANDLER_H
 #define CONTROL_GAIN_HANDLER_H
 
+#include <Arduino.h>
 class ControlGainHandler {
 public:
   ControlGainHandler();
@@ -12,12 +13,11 @@ public:
   void reset();
 
   void setLastError(int error);
-  void setIntegral(int integral);
-
   void incrementIntegral(int error);
 
   int getLastError();
   int getIntegral();
+  unsigned long getLastIntegralResetTime();
 
   void setKp(float kp);
   void setKi(float ki);
@@ -33,6 +33,8 @@ private:
   float kp;
   float ki;
   float kd;
+
+  unsigned long lastIntegralResetTime;
 };
 ;
 

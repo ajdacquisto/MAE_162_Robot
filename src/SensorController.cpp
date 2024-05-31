@@ -112,7 +112,10 @@ int SensorController::determineError(int lineSensorValue) {
   return error;
 }
 
-long SensorController::getUltrasonicDistance() { return hc.dist(); }
+long SensorController::getUltrasonicDistance() {
+  lastUltrasonicRead = millis();
+  return hc.dist();
+}
 
 long SensorController::getUltrasonicMemory() { return ultrasonicMemory; }
 
@@ -226,7 +229,7 @@ int SensorController::processBinaryNumber(int binaryNumber[]) {
 
   // Convert adjusted average position to the desired output
   int output = adjustedAvgPos;
-  
+
   if (abs(output) <= 1) {
     output = 0;
   }
@@ -267,7 +270,7 @@ void SensorController::init() {
   // Initialize ultrasonic sensor pins
   pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
   pinMode(ULTRASONIC_ECHO_PIN, INPUT);
-  
+
   // Reset encoders
   zeroEncoders();
 
@@ -286,7 +289,6 @@ void SensorController::turnLED(LED_STATE state) {
   }
 }
 
-
 bool SensorController::buttonCheck() {
   if (readButton() == SensorController::PRESSED) {
     // Button is pressed
@@ -297,4 +299,8 @@ bool SensorController::buttonCheck() {
     turnLED(SensorController::SensorController::OFF);
     return false;
   }
+}
+
+unsigned long SensorController::getLastUltrasonicRead() {
+  return lastUltrasonicRead;
 }

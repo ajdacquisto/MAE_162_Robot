@@ -34,6 +34,8 @@ private:
 
   LED_STATE currentLEDstate = OFF;
 
+  unsigned long lastUltrasonicRead = 0;
+
 public:
   MovingAverageSensor lineSensorA1; // Line sensor A1
   MovingAverageSensor lineSensorA2; // Line sensor A2
@@ -86,6 +88,8 @@ public:
 
   void turnLED(LED_STATE state);
   bool buttonCheck();
+
+  unsigned long getLastUltrasonicRead();
 };
 
 #endif // SENSORCONTROLLER_H
