@@ -304,3 +304,33 @@ bool SensorController::buttonCheck() {
 unsigned long SensorController::getLastUltrasonicRead() {
   return lastUltrasonicRead;
 }
+
+int SensorController::getFullIRReadingResults(bool printResults) {
+  int lineSensorValueA1 = lineSensorA1.cleanRead();
+  int lineSensorValueA2 = lineSensorA2.cleanRead();
+  int lineSensorValueA3 = lineSensorA3.cleanRead();
+  int lineSensorValueB1 = lineSensorB1.cleanRead();
+  int lineSensorValueB2 = lineSensorB2.cleanRead();
+  int lineSensorValueB3 = lineSensorB3.cleanRead();
+
+  // Debug messages.
+  if (printResults) {
+    Serial.print("Line sensors: ");
+    Serial.print("[");
+    Serial.print(lineSensorValueA1);
+    Serial.print(", ");
+    Serial.print(lineSensorValueA2);
+    Serial.print(", ");
+    Serial.print(lineSensorValueA3);
+    Serial.print("], [");
+    Serial.print(lineSensorValueB1);
+    Serial.print(", ");
+    Serial.print(lineSensorValueB2);
+    Serial.print(", ");
+    Serial.print(lineSensorValueB3);
+    Serial.println("], ");
+  }
+
+  return combineLineResult(lineSensorValueA1, lineSensorValueA2, lineSensorValueA3,
+                           lineSensorValueB1, lineSensorValueB2, lineSensorValueB3);
+}

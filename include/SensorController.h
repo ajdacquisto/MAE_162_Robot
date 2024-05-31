@@ -90,6 +90,8 @@ public:
   bool buttonCheck();
 
   unsigned long getLastUltrasonicRead();
+
+  int getFullIRReadingResults(bool printResults);
 };
 
 #endif // SENSORCONTROLLER_H

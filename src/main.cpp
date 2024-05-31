@@ -38,7 +38,6 @@ SerialController serialController = SerialController();
 
 // ===== ENUMS =====
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
-
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
 
 // ===== FUNCTION PROTOTYPES =====
@@ -457,41 +456,14 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
 }
 
 void handleIRIdle() {
-  // serialController.printlnWithTimestamp("Start of handleIRIdle.");
   bool SHOW_RAW_IR_READINGS = true;
   bool SHOW_BINARY_READING = true;
-  // Read the sensor values
-  int lineSensorReadingA1 = sensorController.lineSensorA1.cleanRead();
-  int lineSensorReadingA2 = sensorController.lineSensorA2.cleanRead();
-  int lineSensorReadingA3 = sensorController.lineSensorA3.cleanRead();
-  int lineSensorReadingB1 = sensorController.lineSensorB1.cleanRead();
-  int lineSensorReadingB2 = sensorController.lineSensorB2.cleanRead();
-  int lineSensorReadingB3 = sensorController.lineSensorB3.cleanRead();
-  // Combine.
-  int lineSensorResults = sensorController.combineLineResult(
-      lineSensorReadingA1, lineSensorReadingA2, lineSensorReadingA3,
-      lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
-  // Debug messages.
-  serialController.printWithTimestamp("Line sensors: ");
-  if (SHOW_RAW_IR_READINGS) {
-    Serial.print("[");
-    Serial.print(lineSensorReadingA1);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingA2);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingA3);
-    Serial.print("], [");
-    Serial.print(lineSensorReadingB1);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingB2);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingB3);
-    Serial.println("], ");
-  }
+  int lineSensorResults =
+      sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS);
 
   if (SHOW_BINARY_READING) {
-    serialController.printWithTimestamp("\t\t\t\t{ ");
+    serialController.printWithTimestamp("Sensor Mapping: { ");
     serialController.printBinaryWithLeadingZeros(lineSensorResults);
     Serial.println(" }\n");
   }
@@ -584,86 +556,42 @@ void handleFollowLine(int mode) {
 
   serialController.printlnWithTimestamp("Start of handleFollowLine.");
   // Read the sensor values
-  int lineSensorReadingA1 = sensorController.lineSensorA1.cleanRead();
-  int lineSensorReadingA2 = sensorController.lineSensorA2.cleanRead();
-  int lineSensorReadingA3 = sensorController.lineSensorA3.cleanRead();
-  int lineSensorReadingB1 = sensorController.lineSensorB1.cleanRead();
-  int lineSensorReadingB2 = sensorController.lineSensorB2.cleanRead();
-  int lineSensorReadingB3 = sensorController.lineSensorB3.cleanRead();
-  // Combine.
-  int lineSensorResults = sensorController.combineLineResult(
-      lineSensorReadingA1, lineSensorReadingA2, lineSensorReadingA3,
-      lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
-  // Debug messages.
-  serialController.printWithTimestamp("Line sensors: ");
-  if (SHOW_RAW_IR_READINGS) {
-    Serial.print("[");
-    Serial.print(lineSensorReadingA1);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingA2);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingA3);
-    Serial.print("], [");
-    Serial.print(lineSensorReadingB1);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingB2);
-    Serial.print(", ");
-    Serial.print(lineSensorReadingB3);
-    Serial.print("], ");
+  bool SHOW_BINARY_READING = true;
+
+  int lineSensorResults =
+      sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS);
+
+  if (SHOW_BINARY_READING) {
+    serialController.printWithTimestamp("Sensor Mapping: { ");
+    serialController.printBinaryWithLeadingZeros(lineSensorResults);
+    Serial.println(" }\n");
   }
 
-  Serial.print("{ ");
-  serialController.printBinaryWithLeadingZeros(lineSensorResults);
-  Serial.println(" }");
-  /*
-    switch (mode) {
-    case PICKUP: { // Code for line following in pickup mode
-
-      int targetLocation;
-      switch (branchHandler.getTargetNum()) {
-      case 1:
-        // Serial.println("<First target>");
-        targetLocation = PICKUP_LOCATION_1;
-        break;
-      case 2:
-        // Serial.println("<Second target>");
-        targetLocation = PICKUP_LOCATION_2;
-      default:
-        logError("Invalid target number");
-        break;
-      }
-
-      int targetBranchNum =
-          branchHandler.getTargetBranchNumFromLocation(targetLocation);
-
-      // Check if the robot is currently over a branch.
-      branchHandler.doBranchCheck(lineSensorResults);
-      bool atBranch = branchHandler.getIsCurrentlyOverBranch();
-      int branchNum = branchHandler.getCurrentLocation();
-
-      if ((millis() - systemStateHandler.getLastStateChangeTime()) > 1000 &&
-          atBranch && (branchNum == targetBranchNum)) {
-        // STOP.
-        Serial.println("<debug> At branch, stopping.");
-        systemStateHandler.advanceStateFlowIndex();
-        return;
-      } else {
-        // Follow the line.
-      }
-      break;
+  switch (mode) {
+  case PICKUP: { // Code for line following in pickup mode
+    // Check if at target branch.
+    if ((millis() - systemStateHandler.getLastStateChangeTime()) > 1000 &&
+        branchHandler.isAtTargetLocation()) {
+      // STOP.
+      Serial.println("<debug> At branch, stopping.");
+      systemStateHandler.advanceStateFlowIndex();
+      return;
+    } else {
+      // Follow the line.
     }
-    case REGULAR: {
-      break;
-    }
-    case DROPOFF: {
-      break;
-    }
-    default:
-      logError("Invalid mode");
-      break;
-    }
-    */
+    break;
+  }
+  case REGULAR: {
+    break;
+  }
+  case DROPOFF: {
+    break;
+  }
+  default:
+    logError("Invalid mode");
+    break;
+  }
 
   if (millis() - lineSensorGainHandler.getLastIntegralResetTime() > 5000) {
     lineSensorGainHandler.resetIntegral();
