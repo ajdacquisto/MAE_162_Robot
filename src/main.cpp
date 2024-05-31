@@ -19,6 +19,7 @@
 
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
+
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
