@@ -41,6 +41,8 @@ public:
   int getStateFlowIndex();
   void advanceStateFlowIndex();
   bool isNewStateFlowIndex();
+
+  void init(SystemState::State state);
 };
 
 #endif // SYSTEMSTATEHANDLER_H

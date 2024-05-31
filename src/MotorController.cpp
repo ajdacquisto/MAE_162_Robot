@@ -3,7 +3,6 @@
 // Implement the member functions of the MotorController class here
 MotorController::MotorController()
     : motorDriver(), // Motor driver
-      motorDriverYellow(), // Motor driver for yellow motor
       stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION, STEPPER_PIN_A1,
                     STEPPER_PIN_A2, STEPPER_PIN_A3,
                     STEPPER_PIN_A4), // Stepper motor A (four-bar)
@@ -19,8 +18,6 @@ MotorController::~MotorController() {
 void MotorController::attachServoMotors() {
   motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
   motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
-
-  motorDriverYellow.attachMotorA(YELLOW_MOTOR_PIN_1, YELLOW_MOTOR_PIN_2);
 }
 
 void MotorController::rotateStepperAdeg(int degrees) {
@@ -128,4 +125,9 @@ void MotorController::handleFourBar(FOUR_BAR_DIRECTION direction) {
   } else {
     Serial.println("Invalid four-bar direction");
   }
+}
+
+void MotorController::init() {
+  attachServoMotors();
+  setStepperMotorSpeedsToMax();
 }

@@ -4,7 +4,7 @@
 class ControlGainHandler {
 public:
   ControlGainHandler();
-  ControlGainHandler(float kp, float kd, float ki);
+  ControlGainHandler(float kp, float ki, float kd);
   ~ControlGainHandler();
 
   void resetError();
@@ -20,19 +20,20 @@ public:
   int getIntegral();
 
   void setKp(float kp);
-  void setKd(float kd);
   void setKi(float ki);
+  void setKd(float kd);
 
   float getKp();
-  float getKd();
   float getKi();
+  float getKd();
 
 private:
   int lastError;
   int integral;
   float kp;
-  float kd;
   float ki;
+  float kd;
 };
+;
 
 #endif // CONTROL_GAIN_HANDLER_H

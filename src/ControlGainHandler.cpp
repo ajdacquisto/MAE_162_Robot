@@ -4,94 +4,71 @@
 
 // Constructor
 ControlGainHandler::ControlGainHandler() {
-    kd = 0;
-    ki = 0;
-    kp = 0;
-    lastError = 0;
-    integral = 0;
+  kd = 0;
+  ki = 0;
+  kp = 0;
+  lastError = 0;
+  integral = 0;
 }
 
-ControlGainHandler::ControlGainHandler(float kp, float kd, float ki) {
-    this->kp = kp;
-    this->kd = kd;
-    this->ki = ki;
-    lastError = 0;
-    integral = 0;
+ControlGainHandler::ControlGainHandler(float kp, float ki, float kd) {
+  this->kp = kp;
+  this->ki = ki;
+  this->kd = kd;
+  lastError = 0;
+  integral = 0;
 }
 
 // Destructor
 ControlGainHandler::~ControlGainHandler() {
-    // Clean up any dynamically allocated resources here
+  // Clean up any dynamically allocated resources here
 }
 
-void ControlGainHandler::resetError() {
-    // Reset the error to zero
-    lastError = 0;
-}
+// Reset the error term
+void ControlGainHandler::resetError() { lastError = 0; }
 
-void ControlGainHandler::resetIntegral() {
-    // Reset the integral to zero
-    integral = 0;
-}
+// Reset the integral term
+void ControlGainHandler::resetIntegral() { integral = 0; }
 
+// Reset the error and integral terms
 void ControlGainHandler::reset() {
-    // Reset both the error and integral to zero
-    //resetError();
-    lastError = 0;
-    integral = 0;
+  lastError = 0;
+  integral = 0;
 }
 
-void ControlGainHandler::setLastError(int error) {
-    // Set the last error value
-    lastError = error;
-}
+// Set the last error
+void ControlGainHandler::setLastError(int error) { lastError = error; }
 
+// Set the integral term
 void ControlGainHandler::setIntegral(int integral) {
-    // Set the integral value
-    this->integral = integral;
+  this->integral = integral;
 }
 
-int ControlGainHandler::getLastError() {
-    // Return the last error value
-    return lastError;
-}
+// Get the last error
+int ControlGainHandler::getLastError() { return lastError; }
 
-int ControlGainHandler::getIntegral() {
-    // Return the integral value
-    return integral;
-}
+// Get the integral term
+int ControlGainHandler::getIntegral() { return integral; }
 
-void ControlGainHandler::setKp(float kp) {
-    // Set the proportional gain
-    this->kp = kp;
-}
+// Set the proportional gain
+void ControlGainHandler::setKp(float kp) { this->kp = kp; }
 
-void ControlGainHandler::setKd(float kd) {
-    // Set the derivative gain
-    this->kd = kd;
-}
+// Set the integral gain
+void ControlGainHandler::setKi(float ki) { this->ki = ki; }
 
-void ControlGainHandler::setKi(float ki) {
-    // Set the integral gain
-    this->ki = ki;
-}
+// Set the derivative gain
+void ControlGainHandler::setKd(float kd) { this->kd = kd; }
 
-float ControlGainHandler::getKp() {
-    // Return the proportional gain
-    return kp;
-}
+// Get the proportional gain
+float ControlGainHandler::getKp() { return kp; }
 
-float ControlGainHandler::getKd() {
-    // Return the derivative gain
-    return kd;
-}
+// Get the integral gain
+float ControlGainHandler::getKi() { return ki; }
 
-float ControlGainHandler::getKi() {
-    // Return the integral gain
-    return ki;
-}
+// Get the derivative gain
+float ControlGainHandler::getKd() { return kd; }
 
 void ControlGainHandler::incrementIntegral(int error) {
-    // Increment the integral term
-    integral += error;
+  // Increment the integral term
+  integral += error;
 }

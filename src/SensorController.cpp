@@ -240,3 +240,61 @@ void SensorController::intToBinaryArray(int num, int binaryArray[]) {
     num >>= 1;
   }
 }
+
+SensorController::BUTTON_STATE SensorController::readButton() {
+  return (!digitalRead(BUTTON_PIN)) == HIGH ? SensorController::PRESSED
+                                            : SensorController::UNPRESSED;
+}
+
+void SensorController::init() {
+  // Initialize button pin as a pull-up input
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  // Initialize encoder pins as pull-up inputs
+  pinMode(ENCODER_PIN_A1, INPUT_PULLUP); // Encoder A
+  pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
+  pinMode(ENCODER_PIN_B1, INPUT_PULLUP); // Encoder B
+  pinMode(ENCODER_PIN_B2, INPUT_PULLUP);
+
+  // Initialize line sensor pins as inputs
+  pinMode(LINE_SENSOR_PIN_A1, INPUT); // Line Sensor A
+  pinMode(LINE_SENSOR_PIN_A2, INPUT);
+  pinMode(LINE_SENSOR_PIN_A3, INPUT);
+  pinMode(LINE_SENSOR_PIN_B1, INPUT); // Line Sensor B
+  pinMode(LINE_SENSOR_PIN_B2, INPUT);
+  pinMode(LINE_SENSOR_PIN_B3, INPUT);
+
+  // Initialize ultrasonic sensor pins
+  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
+  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
+  
+  // Reset encoders
+  zeroEncoders();
+
+  // Initialize LED pin as an output
+  pinMode(LED_PIN, OUTPUT);
+
+  turnLED(OFF);
+}
+
+void SensorController::turnLED(LED_STATE state) {
+  if (currentLEDstate != state) {
+    currentLEDstate = state;
+    digitalWrite(LED_PIN, state);
+  } else {
+    // do nothing.
+  }
+}
+
+
+bool SensorController::buttonCheck() {
+  if (readButton() == SensorController::PRESSED) {
+    // Button is pressed
+    turnLED(SensorController::SensorController::ON);
+    return true;
+  } else {
+    // Button is not pressed
+    turnLED(SensorController::SensorController::OFF);
+    return false;
+  }
+}

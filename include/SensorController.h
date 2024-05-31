@@ -5,8 +5,19 @@
 #include "HCSR04.h"
 #include "MovingAverageSensor.h"
 #include "config.h"
+#include <Arduino.h>
 
 class SensorController {
+public:
+  // Constructor
+  SensorController();
+
+  // Destructor
+  ~SensorController();
+
+  enum BUTTON_STATE { PRESSED = HIGH, UNPRESSED = LOW };
+  enum LED_STATE { OFF = LOW, ON = HIGH };
+
 private:
   Encoder encoderA; // Encoder A
   Encoder encoderB; // Encoder B
@@ -21,15 +32,9 @@ private:
   long encoderBLastValue = 0;
   long encoderBLastTime = 0;
 
+  LED_STATE currentLEDstate = OFF;
+
 public:
-  // Constructor
-  SensorController();
-
-  // Destructor
-  ~SensorController();
-
-  enum BUTTON_STATE { PRESSED = HIGH, UNPRESSED = LOW };
-
   MovingAverageSensor lineSensorA1; // Line sensor A1
   MovingAverageSensor lineSensorA2; // Line sensor A2
   MovingAverageSensor lineSensorA3; // Line sensor A3
@@ -74,6 +79,13 @@ public:
 
   int processBinaryNumber(int binaryNumber[]);
   void intToBinaryArray(int num, int binaryArray[]);
+
+  BUTTON_STATE readButton();
+
+  void init();
+
+  void turnLED(LED_STATE state);
+  bool buttonCheck();
 };
 
 #endif // SENSORCONTROLLER_H

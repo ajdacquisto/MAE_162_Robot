@@ -14,6 +14,8 @@
 #include "ControlGainHandler.h"
 // This library provides an interface for handling branches on the track.
 #include "BranchHandler.h"
+// This library provides an interface for handling serial communication.
+#include "SerialController.h"
 
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
@@ -26,30 +28,25 @@ SystemStateHandler systemStateHandler =
 MotorController motorController = MotorController();    // Motor controller
 SensorController sensorController = SensorController(); // Sensor controller
 ControlGainHandler lineSensorGainHandler =
-    ControlGainHandler(LINE_FOLLOW_REGULAR_KP, LINE_FOLLOW_REGULAR_KD,
-                       LINE_FOLLOW_REGULAR_KI); // Line sensor gain handler
+    ControlGainHandler(LINE_FOLLOW_REGULAR_KP, LINE_FOLLOW_REGULAR_KI,
+                       LINE_FOLLOW_REGULAR_KD); // Line sensor gain handler
 ControlGainHandler encoderGainHandler =
-    ControlGainHandler(ENCODER_DRIVE_KP, ENCODER_DRIVE_KD,
-                       ENCODER_DRIVE_KI);      // Encoder gain handler
+    ControlGainHandler(ENCODER_DRIVE_KP, ENCODER_DRIVE_KI,
+                       ENCODER_DRIVE_KD);      // Encoder gain handler
 BranchHandler branchHandler = BranchHandler(); // Branch handler
+SerialController serialController = SerialController();
 
 // ===== ENUMS =====
-enum LED_STATE { OFF = LOW, ON = HIGH };
 
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
 
 // Globals
-long lastPrintTime = 0;
-long lastIntegralRestTime = 0;
-LED_STATE currentLEDstate = OFF;
+long lastIntegralResetTime = 0;
 long lastUltrasonicTime = 0;
 
 // ===== FUNCTION PROTOTYPES =====
-// Setup
-void initializePins();
-void initializeSerialPort();
 
 // State handlers
 void handleTest();
@@ -64,43 +61,26 @@ void handleUltrasonicApproach();
 void handleUltrasonicReverse();
 void handleLift(int direction);
 
-// Other IO
-void turnLED(LED_STATE state);
-void buttonCheck();
-SensorController::BUTTON_STATE getBUTTON_STATE();
-
 // Helper functions
 void resetAllPIDMemory();
 void calculateRotation(int rotationType, int targetLocation);
 
 // LOGGING
 void logError(const char *message);
-void printWithTimestamp(const char *message);
-void printlnWithTimestamp(const char *message);
-void printBinaryWithLeadingZeros(byte number);
 
 // ===== MAIN SETUP =====
 void setup() {
-
   delay(1000);
-
-  initializePins();
-  initializeSerialPort();
-  motorController.attachServoMotors();
-  motorController.setStepperMotorSpeedsToMax();
-  sensorController.zeroEncoders();
-
-  turnLED(OFF);
-
-  printlnWithTimestamp("Starting...");
-
-  systemStateHandler.changeState(DEFAULT_STATE);
+  serialController.init();
+  sensorController.init();
+  motorController.init();
+  systemStateHandler.init(DEFAULT_STATE);
 }
 
 // ===== MAIN LOOP =====
 void loop() {
   if (systemStateHandler.isNewStateFlowIndex()) {
-    printlnWithTimestamp("STATE CHANGE");
+    serialController.printlnWithTimestamp("STATE CHANGE");
     // On state change.
     resetAllPIDMemory();
     motorController.servosOff();
@@ -120,7 +100,7 @@ void loop() {
   case 1:
     // Line follow to pickup location 1
     if (currentState != SystemState::LINE_FOLLOW_PICKUP) {
-      printlnWithTimestamp("changeState call.");
+      serialController.printlnWithTimestamp("changeState call.");
       systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
       branchHandler.setTargetNum(1);
     }
@@ -243,7 +223,7 @@ void loop() {
     break;
   case SystemState::LINE_FOLLOW_PICKUP:
     // Code for line following in pickup mode
-    buttonCheck();
+    sensorController.buttonCheck();
     handleFollowLine(PICKUP);
     break;
   case SystemState::LINE_FOLLOW_DROPOFF:
@@ -323,11 +303,11 @@ void handleTest() {
   Serial.print(millis() - myTimerStart);
   Serial.print(", ");
 
-  if (getBUTTON_STATE() == SensorController::PRESSED) {
-    turnLED(ON);
+  if (sensorController.readButton() == SensorController::PRESSED) {
+    sensorController.turnLED(SensorController::ON);
     logError("Button pressed");
   } else {
-    turnLED(OFF);
+    sensorController.turnLED(SensorController::OFF);
 
     if (millis() - myTimerStart <
         MOTOR_A_FWD_TEST_START + MOTOR_A_TEST_LENGTH) {
@@ -388,11 +368,11 @@ void handleTest() {
 
 void handleIdle() {
   motorController.servosOff();
-  turnLED(ON);
-  if (getBUTTON_STATE() == SensorController::PRESSED) {
-    turnLED(OFF);
-    printlnWithTimestamp("Exiting idle phase...");
-    while (getBUTTON_STATE() == SensorController::PRESSED)
+  sensorController.turnLED(SensorController::ON);
+  if (sensorController.readButton() == SensorController::PRESSED) {
+    sensorController.turnLED(SensorController::OFF);
+    serialController.printlnWithTimestamp("Exiting idle phase...");
+    while (sensorController.readButton() == SensorController::PRESSED)
       ;
     systemStateHandler.advanceStateFlowIndex();
   }
@@ -404,13 +384,13 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     int FOUR_BAR_CALIBRATION_MODE = 2;
 
     if (FOUR_BAR_CALIBRATION_MODE == 1) {
-      if (getBUTTON_STATE() == SensorController::PRESSED) {
+      if (sensorController.readButton() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
-        turnLED(ON);
+        sensorController.turnLED(SensorController::ON);
         // motorController.rotateStepperAsteps(1);
         delay(200);
       } else {
-        turnLED(OFF);
+        sensorController.turnLED(SensorController::OFF);
       }
     } else if (FOUR_BAR_CALIBRATION_MODE == 2) {
       // Just do one rotation.
@@ -422,39 +402,39 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     break;
   }
   case MotorController::LIFT: {
-    if (getBUTTON_STATE() == SensorController::PRESSED) {
+    if (sensorController.readButton() == SensorController::PRESSED) {
       // Hold down button until lift is in lowest position.
-      turnLED(ON);
+      sensorController.turnLED(SensorController::ON);
       motorController.rotateStepperBsteps(20);
       delay(200);
     } else {
-      turnLED(OFF);
+      sensorController.turnLED(SensorController::OFF);
     }
     break;
   }
   case MotorController::RIGHT_WHEEL: {
-    if (getBUTTON_STATE() == SensorController::PRESSED) {
+    if (sensorController.readButton() == SensorController::PRESSED) {
       motorController.motorDriver.motorAForward(255); // full speed
       int actualRightSpeed = sensorController.getEncoderASpeed();
       Serial.print("Actual right speed: ");
       Serial.println(actualRightSpeed);
-      turnLED(ON);
+      sensorController.turnLED(SensorController::ON);
     } else {
       motorController.servosOff();
-      turnLED(OFF);
+      sensorController.turnLED(SensorController::OFF);
     }
     break;
   }
   case MotorController::LEFT_WHEEL: {
-    if (getBUTTON_STATE() == SensorController::PRESSED) {
+    if (sensorController.readButton() == SensorController::PRESSED) {
       motorController.motorDriver.motorBForward(255); // full speed
       int actualLeftSpeed = sensorController.getEncoderBSpeed();
       Serial.print("Actual left speed: ");
       Serial.println(actualLeftSpeed);
-      turnLED(ON);
+      sensorController.turnLED(SensorController::ON);
     } else {
       motorController.servosOff();
-      turnLED(OFF);
+      sensorController.turnLED(SensorController::OFF);
     }
     break;
   }
@@ -468,7 +448,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       motorController.servoDrive(MotorController::SERVO_A, -speed);
       motorController.servoDrive(MotorController::SERVO_B, -speed);
     }
-    while (getBUTTON_STATE() == SensorController::PRESSED) {
+    while (sensorController.readButton() == SensorController::PRESSED) {
       motorController.servosOff();
       while (true)
         ;
@@ -482,7 +462,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
 }
 
 void handleIRIdle() {
-  // printlnWithTimestamp("Start of handleIRIdle.");
+  // serialController.printlnWithTimestamp("Start of handleIRIdle.");
   bool SHOW_RAW_IR_READINGS = true;
   bool SHOW_BINARY_READING = true;
   // Read the sensor values
@@ -498,7 +478,7 @@ void handleIRIdle() {
       lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
   // Debug messages.
-  printWithTimestamp("Line sensors: ");
+  serialController.printWithTimestamp("Line sensors: ");
   if (SHOW_RAW_IR_READINGS) {
     Serial.print("[");
     Serial.print(lineSensorReadingA1);
@@ -516,8 +496,8 @@ void handleIRIdle() {
   }
 
   if (SHOW_BINARY_READING) {
-    printWithTimestamp("\t\t\t\t{ ");
-    printBinaryWithLeadingZeros(lineSensorResults);
+    serialController.printWithTimestamp("\t\t\t\t{ ");
+    serialController.printBinaryWithLeadingZeros(lineSensorResults);
     Serial.println(" }\n");
   }
 
@@ -608,7 +588,7 @@ void handleFollowLine(int mode) {
   bool PRINT_MOTOR_COMMAND = true;
   bool DO_EMERGENCY_REVERSE = true;
 
-  printlnWithTimestamp("Start of handleFollowLine.");
+  serialController.printlnWithTimestamp("Start of handleFollowLine.");
   // Read the sensor values
   int lineSensorReadingA1 = sensorController.lineSensorA1.cleanRead();
   int lineSensorReadingA2 = sensorController.lineSensorA2.cleanRead();
@@ -622,7 +602,7 @@ void handleFollowLine(int mode) {
       lineSensorReadingB1, lineSensorReadingB2, lineSensorReadingB3);
 
   // Debug messages.
-  printWithTimestamp("Line sensors: ");
+  serialController.printWithTimestamp("Line sensors: ");
   if (SHOW_RAW_IR_READINGS) {
     Serial.print("[");
     Serial.print(lineSensorReadingA1);
@@ -640,7 +620,7 @@ void handleFollowLine(int mode) {
   }
 
   Serial.print("{ ");
-  printBinaryWithLeadingZeros(lineSensorResults);
+  serialController.printBinaryWithLeadingZeros(lineSensorResults);
   Serial.println(" }");
   /*
     switch (mode) {
@@ -691,9 +671,9 @@ void handleFollowLine(int mode) {
     }
     */
 
-  if (millis() - lastIntegralRestTime > 5000) {
+  if (millis() - lastIntegralResetTime > 5000) {
     lineSensorGainHandler.resetIntegral();
-    lastIntegralRestTime = millis();
+    lastIntegralResetTime = millis();
   }
 
   // PID Line stuff...
@@ -703,23 +683,24 @@ void handleFollowLine(int mode) {
     lineSensorGainHandler.resetIntegral();
   }
 
-  printWithTimestamp("Line error: ");
+  serialController.printWithTimestamp("Line error: ");
   Serial.println(lineError);
 
   // ============================
   // ===== ULTRASONIC CHECK =====s
   if (DO_ULTRASONIC_CHECK_OBSTACLE) {
     if (sensorController.isObstacle(OBSTACLE_DISTANCE_THRESHOLD)) {
-      printlnWithTimestamp("<!> Obstacle detected.");
+      serialController.printlnWithTimestamp("<!> Obstacle detected.");
       motorController.servosOff();
       delay(100);
       return;
     }
   } else if (DO_ULTRASONIC_CHECK_TURN) {
     if (sensorController.isObstacle(NINETY_DEGREE_TURN_DISTANCE)) {
-      printlnWithTimestamp("<!> 90 degree turn detected.");
+      serialController.printlnWithTimestamp("<!> 90 degree turn detected.");
       motorController.servosOff();
-      while(true);
+      while (true)
+        ;
       delay(100);
       return;
     }
@@ -730,7 +711,7 @@ void handleFollowLine(int mode) {
   // =====================================
   // ===== EMERGENCY REVERSE COMMAND =====
   if (DO_EMERGENCY_REVERSE && lineError == 99) {
-    printlnWithTimestamp("<!> Reverse command");
+    serialController.printlnWithTimestamp("<!> Reverse command");
     motorController.servosOff();
     motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
     motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
@@ -755,7 +736,7 @@ void handleFollowLine(int mode) {
                  lineSensorGainHandler.getKd() * D;
   lineSensorGainHandler.setLastError(lineError);
 
-  printWithTimestamp("PID: P(");
+  serialController.printWithTimestamp("PID: P(");
   Serial.print(P);
   Serial.print("), I(");
   Serial.print(I);
@@ -771,7 +752,7 @@ void handleFollowLine(int mode) {
   int desiredRightSpeed = BASE_SPEED + output;
 
   if (PRINT_DESIRED_SPEEDS) {
-    printWithTimestamp("Desired speeds: L(");
+    serialController.printWithTimestamp("Desired speeds: L(");
     Serial.print(desiredLeftSpeed);
     Serial.print("), R(");
     Serial.print(desiredRightSpeed);
@@ -786,7 +767,7 @@ void handleFollowLine(int mode) {
   actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, MIN_SPEED);
 
   if (PRINT_ACTUAL_SPEEDS) {
-    printWithTimestamp("Actual speeds: L(");
+    serialController.printWithTimestamp("Actual speeds: L(");
     Serial.print(actualLeftSpeed);
     Serial.print("), R(");
     Serial.print(actualRightSpeed);
@@ -822,14 +803,14 @@ void handleFollowLine(int mode) {
   motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
 
   if (PRINT_MOTOR_COMMAND) {
-    printWithTimestamp("Motor command: L(");
+    serialController.printWithTimestamp("Motor command: L(");
     Serial.print(leftMotorSpeed);
     Serial.print("), R(");
     Serial.print(rightMotorSpeed);
     Serial.println(")");
   }
 
-  printlnWithTimestamp("End of handleFollowLine.");
+  serialController.printlnWithTimestamp("End of handleFollowLine.");
 }
 
 void handleRotation(MotorController::ROTATE_DIRECTION direction) {
@@ -900,57 +881,12 @@ void handleLift(int direction) {
 }
 
 // ===== HELPER FUNCTIONS =====
-void initializePins() {
-  // Initialize button pin as a pull-up input
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-
-  // Initialize encoder pins as pull-up inputs
-  pinMode(ENCODER_PIN_A1, INPUT_PULLUP); // Encoder A
-  pinMode(ENCODER_PIN_A2, INPUT_PULLUP);
-  pinMode(ENCODER_PIN_B1, INPUT_PULLUP); // Encoder B
-  pinMode(ENCODER_PIN_B2, INPUT_PULLUP);
-
-  // Initialize line sensor pins as inputs
-  pinMode(LINE_SENSOR_PIN_A1, INPUT); // Line Sensor A
-  pinMode(LINE_SENSOR_PIN_A2, INPUT);
-  pinMode(LINE_SENSOR_PIN_A3, INPUT);
-  pinMode(LINE_SENSOR_PIN_B1, INPUT); // Line Sensor B
-  pinMode(LINE_SENSOR_PIN_B2, INPUT);
-  pinMode(LINE_SENSOR_PIN_B3, INPUT);
-
-  // Initialize ultrasonic sensor pins
-  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
-  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
-
-  // Initialize LED pin as an output
-  pinMode(LED_PIN, OUTPUT);
-}
-
-void initializeSerialPort() {
-  Serial.begin(115200); // Initialize Serial port
-  while (!Serial)
-    ; // Waits for the Serial port to connect.
-}
-
-void turnLED(LED_STATE state) {
-  if (currentLEDstate != state) {
-    currentLEDstate = state;
-    digitalWrite(LED_PIN, state);
-  } else {
-    // do nothing.
-  }
-}
-
-SensorController::BUTTON_STATE getBUTTON_STATE() {
-  return (!digitalRead(BUTTON_PIN)) == HIGH ? SensorController::PRESSED
-                                            : SensorController::UNPRESSED;
-}
 
 void logError(const char *message) {
   systemStateHandler.changeState(SystemState::IDLE);
-  turnLED(ON);
+  sensorController.turnLED(SensorController::ON);
   motorController.servosOff();
-  printWithTimestamp(message);
+  serialController.printWithTimestamp(message);
   while (true)
     ; // Stop the program
 }
@@ -961,54 +897,32 @@ void resetAllPIDMemory() {
 }
 
 void calculateRotation(int rotationType, int targetLocation) {
-  if (rotationType == TOWARDS) {
-    if (motorController.getDirectionToRotate(targetLocation) ==
-        MotorController::LEFT) {
-      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
-    } else {
-      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
-    }
-  } else if (rotationType == AWAY_FROM) {
-    if (motorController.getDirectionToRotate(targetLocation) ==
-        MotorController::LEFT) {
-      systemStateHandler.changeState(SystemState::ROTATE_RIGHT);
-    } else {
-      systemStateHandler.changeState(SystemState::ROTATE_LEFT);
-    }
+  MotorController::ROTATE_DIRECTION directionToRotate =
+      motorController.getDirectionToRotate(targetLocation);
+  SystemState::State outputRotationState = SystemState::ROTATE_LEFT;
+
+  if (rotationType == TOWARDS && directionToRotate == MotorController::LEFT) {
+    // If ( TOWARDS, LEFT ), go left.
+    outputRotationState = SystemState::ROTATE_LEFT;
+
+  } else if (rotationType == AWAY_FROM &&
+             directionToRotate == MotorController::LEFT) {
+    // If ( AWAY_FROM, LEFT ), go right.
+    outputRotationState = SystemState::ROTATE_RIGHT;
+
+  } else if (rotationType == TOWARDS &&
+             directionToRotate == MotorController::RIGHT) {
+    // If ( TOWARDS, RIGHT ), go right.
+    outputRotationState = SystemState::ROTATE_RIGHT;
+
+  } else if (rotationType == AWAY_FROM &&
+             directionToRotate == MotorController::RIGHT) {
+    // If ( AWAY_FROM, RIGHT ), go left.
+    outputRotationState = SystemState::ROTATE_LEFT;
+
   } else {
     logError("Invalid rotation type");
   }
-}
 
-void buttonCheck() {
-  if (getBUTTON_STATE() == SensorController::PRESSED) {
-    // Button is pressed
-    turnLED(ON);
-    logError("Button pressed");
-  } else {
-    // Button is not pressed
-    turnLED(OFF);
-  }
-}
-
-void printWithTimestamp(const char *message) {
-  Serial.print("< time: ");
-  Serial.print(millis() - lastPrintTime);
-  lastPrintTime = millis();
-  Serial.print(" > ");
-  Serial.print(message);
-}
-
-void printlnWithTimestamp(const char *message) {
-  Serial.print("< time: ");
-  Serial.print(millis() - lastPrintTime);
-  lastPrintTime = millis();
-  Serial.print(" > ");
-  Serial.println(message);
-}
-
-void printBinaryWithLeadingZeros(byte number) {
-  for (int i = 5; i >= 0; i--) {
-    Serial.print(bitRead(number, i));
-  }
+  systemStateHandler.changeState(outputRotationState);
 }

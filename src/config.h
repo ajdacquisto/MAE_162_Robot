@@ -122,10 +122,6 @@ const int STEPPER_PIN_A3 = 42, STEPPER_PIN_A4 = 43;
 const int STEPPER_PIN_B1 = 30, STEPPER_PIN_B2 = 31;
 const int STEPPER_PIN_B3 = 32, STEPPER_PIN_B4 = 33;
 
-// - New four-bar Yellow Motor
-const int YELLOW_MOTOR_PIN_1 = 2;
-const int YELLOW_MOTOR_PIN_2 = 22;
-
 // ==================================
 // ==================================
 // ==================================

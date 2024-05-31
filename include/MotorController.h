@@ -11,7 +11,6 @@ private:
 
 public:
   DRV8833 motorDriver;
-  DRV8833 motorDriverYellow;
   Stepper stepperMotorA;
   Stepper stepperMotorB;
 
@@ -45,6 +44,7 @@ public:
   ROTATE_DIRECTION getDirectionToRotate(int pickupLocation);
   void servoDrive(SERVO whichServo, int speed);
   void handleFourBar(FOUR_BAR_DIRECTION direction);
+  void init();
 };
 
 #endif // MOTORCONTROLLER_H

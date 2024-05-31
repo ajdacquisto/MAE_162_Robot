@@ -37,3 +37,11 @@ bool SystemStateHandler::isNewStateFlowIndex() {
         return false;
     }
 }
+
+void SystemStateHandler::init(SystemState::State state) {
+    currentState = state;
+    stateflowIndex = 0;
+    previousStateflowIndex = -1;
+    lastStateChangeTime = millis();
+    stateDuration = 0;
+}
