@@ -32,14 +32,14 @@ const int LA_LOOK_AHEAD_DISTANCE = 10;
 const int LA_BASE_SPEED = 100;
 const int LA_MIN_SPEED = 80;
 const int LA_MAX_ROWS = 10; // Maximum number of rows for buffer
-const int LA_UPPER_CONSTRAINT = 255;
-const int LA_LOWER_CONSTRAINT = -255;
+const int LA_UPPER_CONSTRAINT = 120;
+const int LA_LOWER_CONSTRAINT = -100;
 
 // =============================
 // ===== SOFTWARE SETTINGS =====
 // =============================
 
-const int LINE_SENSOR_THRESHOLD = 890;
+const int LINE_SENSOR_THRESHOLD = 860;
 // - Line Sensor A (front)
 // const int LINE_SENSOR_A_THRESHOLD = 850;
 

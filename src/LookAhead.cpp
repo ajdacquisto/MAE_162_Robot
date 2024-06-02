@@ -1,19 +1,18 @@
 #include "LookAhead.h"
-#include <Arduino.h>
 
 // Constructor
 LookAhead::LookAhead() {
-  // Initialize member variables
   Serial.println("LookAhead initialized");
 }
 
 // Destructor
 LookAhead::~LookAhead() {
-  // Clean up any resources
   Serial.println("LookAhead destroyed");
 }
 
-void LookAhead::init() { Serial.println("LookAhead initialized"); }
+void LookAhead::init() {
+  Serial.println("LookAhead initialized");
+}
 
 /**
  * Collect sensor data and store it in a buffer.
@@ -21,21 +20,19 @@ void LookAhead::init() { Serial.println("LookAhead initialized"); }
  * @param newSensorData The new sensor data to be collected.
  */
 void LookAhead::collectSensorData(int newSensorData) {
-  Serial.println("Collecting sensor data:");
   for (int i = numRows - 1; i > 0; i--) {
     for (int j = 0; j < LA_NUM_SENSORS; j++) {
-      sensorData[i][j] =
-          sensorData[i - 1][j]; // Copy previous row to the current row
+      sensorData[i][j] = sensorData[i - 1][j]; // Copy previous row to the current row
     }
   }
 
-  // Store the new sensor data in the first row (convert newSensorData to array,
-  // reversed order)
+  // Store the new sensor data in the first row (convert newSensorData to array, reversed order)
   for (int j = 0; j < LA_NUM_SENSORS; j++) {
     sensorData[0][j] = (newSensorData >> (LA_NUM_SENSORS - 1 - j)) & 1;
   }
 
   // Print the sensor data buffer
+  Serial.println("Sensor data buffer:");
   for (int i = 0; i < numRows; i++) {
     Serial.print("Row ");
     Serial.print(i);
@@ -61,7 +58,7 @@ int LookAhead::calculateLinePosition(int sensorReading) {
   for (int i = 0; i < LA_NUM_SENSORS; i++) {
     if ((sensorReading >> i) & 1) {
       numActiveSensors++;
-      if (i <= 2) {
+      if (i < 3) {
         linePosition -= (3 - i);
       } else {
         linePosition += (i - 2);
@@ -69,47 +66,123 @@ int LookAhead::calculateLinePosition(int sensorReading) {
     }
   }
 
-  // Handle edge cases where the line is partially out of sensor range
   if (numActiveSensors == 0) {
-    Serial.println("No line detected");
     return 0; // No line detected
   }
 
-  int calculatedPosition = linePosition / numActiveSensors;
-  Serial.print("Sensor Reading: ");
-  Serial.print(sensorReading, BIN);
-  Serial.print(" Calculated Line Position: ");
-  Serial.println(calculatedPosition);
-  return calculatedPosition;
+  if (numActiveSensors < 3) {
+    int adjustedLinePosition = 0;
+    for (int i = 0; i < LA_NUM_SENSORS; i++) {
+      if ((sensorReading >> i) & 1) {
+        if (i < 3) {
+          adjustedLinePosition -= (3 - i);
+        } else {
+          adjustedLinePosition += (i - 2);
+        }
+      }
+    }
+    return adjustedLinePosition / 3; // Average position for assumed width of 3
+  }
+
+  return linePosition / numActiveSensors;
 }
 
 /**
- * Interpolate a point on a spline curve.
+ * Check if the points form a straight line.
  *
- * @param p0 The first control point.
- * @param p1 The second control point.
- * @param p2 The third control point.
- * @param p3 The fourth control point.
- * @param t The parameter value.
+ * @param points The array of points.
+ * @param numPoints The number of points.
+ * @return True if the points form a straight line, false otherwise.
+ */
+bool LookAhead::isStraightLine(Point points[], int numPoints) {
+  if (numPoints < 2) {
+    return true; // Not enough points to determine curvature
+  }
+
+  float initialSlope = (points[1].y - points[0].y) / (points[1].x - points[0].x);
+
+  for (int i = 2; i < numPoints; i++) {
+    float slope = (points[i].y - points[i - 1].y) / (points[i].x - points[i - 1].x);
+    if (fabs(slope - initialSlope) > 0.01) { // Allow some tolerance for straightness
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Use Euler method to follow a straight line.
+ *
+ * @param points The array of points.
+ * @param numPoints The number of points.
+ * @param xTarget The x-value for interpolation.
  * @return The interpolated point.
  */
-LookAhead::Point LookAhead::interpolateSpline(Point p0, Point p1, Point p2,
-                                              Point p3, float t) {
-  Point result;
-  float t2 = t * t;
-  float t3 = t2 * t;
-  result.x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t +
-                    (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
-                    (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
-  result.y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t +
-                    (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
-                    (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
-  Serial.print("Interpolated Point: (");
-  Serial.print(result.x);
+LookAhead::Point LookAhead::eulerMethod(Point points[], int numPoints, float xTarget) {
+  float slope = (points[numPoints - 1].y - points[0].y) / (points[numPoints - 1].x - points[0].x);
+  float intercept = points[0].y - slope * points[0].x;
+
+  float yTarget = slope * xTarget + intercept;
+
+  Serial.print("Euler Method Point at x=");
+  Serial.print(xTarget);
+  Serial.print(": (");
+  Serial.print(xTarget);
   Serial.print(", ");
-  Serial.print(result.y);
+  Serial.print(yTarget);
   Serial.println(")");
-  return result;
+
+  return {xTarget, yTarget};
+}
+
+/**
+ * Interpolate a point on a spline curve using all points.
+ *
+ * @param points The array of points.
+ * @param numPoints The number of points.
+ * @param xTarget The x-value for interpolation.
+ * @return The interpolated point.
+ */
+LookAhead::Point LookAhead::interpolateSpline(Point points[], int numPoints, float xTarget) {
+  if (numPoints < 2) {
+    Serial.println("Error: Not enough points for interpolation");
+    return {0, 0};
+  }
+
+  // Polynomial regression to fit a curve (swap x and y)
+  float sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  for (int i = 0; i < numPoints; i++) {
+    sumX += points[i].x;
+    sumY += points[i].y;
+    sumXY += points[i].x * points[i].y;
+    sumX2 += points[i].x * points[i].x;
+  }
+
+  float denominator = (numPoints * sumX2 - sumX * sumX);
+  if (denominator == 0) {
+    Serial.println("Error: denominator is zero");
+    return {0, 0};
+  }
+
+  float a = (numPoints * sumXY - sumX * sumY) / denominator;
+  float b = (sumY * sumX2 - sumX * sumXY) / denominator;
+
+  float yTarget = a * xTarget + b;
+
+  if (isnan(yTarget) || isinf(yTarget)) {
+    Serial.println("Error: invalid yTarget");
+    return {0, 0};
+  }
+
+  Serial.print("Interpolated Point at x=");
+  Serial.print(xTarget);
+  Serial.print(": (");
+  Serial.print(xTarget);
+  Serial.print(", ");
+  Serial.print(yTarget);
+  Serial.println(")");
+
+  return {xTarget, yTarget};
 }
 
 /**
@@ -119,30 +192,30 @@ LookAhead::Point LookAhead::interpolateSpline(Point p0, Point p1, Point p2,
  * @return The look-ahead point.
  */
 LookAhead::Point LookAhead::getLookAheadPoint(float lookAheadDistance) {
-  // Convert sensor data to points
   Point points[numRows];
+  int validRowCount = 0;
+
   for (int i = 0; i < numRows; i++) {
-    int linePosition = 0;
-    int numActiveSensors = 0;
+    int sensorReading = 0;
+    bool allZeros = true;
+
     for (int j = 0; j < LA_NUM_SENSORS; j++) {
-      if (sensorData[i][j] == 1) {
-        numActiveSensors++;
-        if (j <= 2) {
-          linePosition -= (3 - j);
-        } else {
-          linePosition += (j - 2);
-        }
+      sensorReading |= (sensorData[i][j] << j);
+      if (sensorData[i][j] != 0) {
+        allZeros = false;
       }
     }
 
-    // Calculate the average position if there are active sensors
-    if (numActiveSensors > 0) {
-      points[i].x = (float)linePosition / numActiveSensors;
-    } else {
-      points[i].x = 0; // Default to 0 if no sensors are active
+    if (!allZeros) {
+      int linePosition = calculateLinePosition(sensorReading);
+      points[validRowCount].x = (float)i;  // Use positive values for x
+      points[validRowCount].y = (float)linePosition;
+      validRowCount++;
     }
-    points[i].y = i; // Use row index as y-coordinate
+  }
 
+  Serial.println("Points used for interpolation:");
+  for (int i = 0; i < validRowCount; i++) {
     Serial.print("Point ");
     Serial.print(i);
     Serial.print(": (");
@@ -152,11 +225,18 @@ LookAhead::Point LookAhead::getLookAheadPoint(float lookAheadDistance) {
     Serial.println(")");
   }
 
-  // Interpolate spline to find look-ahead point
-  Point lookAheadPoint;
-  float t = lookAheadDistance / numRows; // Normalize t to the range [0, 1]
-  lookAheadPoint = interpolateSpline(points[0], points[1], points[2],
-                                     points[numRows - 1], t);
+  if (validRowCount < 2) {
+    Serial.println("Not enough valid points for interpolation");
+    return {0, 0}; // Return a default point
+  }
+
+  LookAhead::Point lookAheadPoint;
+
+  if (isStraightLine(points, validRowCount)) {
+    lookAheadPoint = eulerMethod(points, validRowCount, 5.0);  // Change to x=5
+  } else {
+    lookAheadPoint = interpolateSpline(points, validRowCount, 5.0);  // Change to x=5
+  }
 
   Serial.print("Look-Ahead Point: (");
   Serial.print(lookAheadPoint.x);

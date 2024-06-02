@@ -96,22 +96,40 @@ MotorController::ROTATE_DIRECTION MotorController::getDirectionToRotate(int pick
 }
 
 void MotorController::servoDrive(SERVO whichServo, int speed) {
+int *lastSpeed;
+  void (DRV8833::*forward)(int);
+  void (DRV8833::*reverse)(int);
   
-  switch(whichServo) {
-    case SERVO_A:
-      if (speed < 0) {
-        motorDriver.motorAReverse(-speed);
-      } else {
-        motorDriver.motorAForward(speed);
+  if (whichServo == SERVO_A) {
+    lastSpeed = &lastSpeedA;
+    forward = &DRV8833::motorAForward;
+    reverse = &DRV8833::motorAReverse;
+  } else {
+    lastSpeed = &lastSpeedB;
+    forward = &DRV8833::motorBForward;
+    reverse = &DRV8833::motorBReverse;
+  }
+  
+  while (*lastSpeed != speed) {
+    if (*lastSpeed < speed) {
+      *lastSpeed += rampRate;
+      if (*lastSpeed > speed) {
+        *lastSpeed = speed;
       }
-      break;
-    case SERVO_B:
-      if (speed < 0) {
-        motorDriver.motorBReverse(-speed);
-      } else {
-        motorDriver.motorBForward(speed);
+    } else {
+      *lastSpeed -= rampRate;
+      if (*lastSpeed < speed) {
+        *lastSpeed = speed;
       }
-      break;
+    }
+    
+    if (*lastSpeed < 0) {
+      (motorDriver.*reverse)(-*lastSpeed);
+    } else {
+      (motorDriver.*forward)(*lastSpeed);
+    }
+    
+    delay(10); // Small delay for smooth ramping (adjust as needed)
   }
 }
 

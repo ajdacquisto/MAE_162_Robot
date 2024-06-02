@@ -44,33 +44,35 @@ void SensorController::readLineSensorB() {
   lineSensorB3.read();
 }
 
-int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4,
-                                        int avg5, int avg6) {
-  // CONVENTION: 1 = black ON-TARGET, 0 = white OFF-TARGET
-  bool DO_READ_ONE_BY_ONE = false;
+int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4, int avg5, int avg6) {
+    // Define the average values for each sensor
+    const int AVERAGE_VALUES[6] = {770, 712, 796, 787, 765, 847};
 
-  int lineSensorValueA1 = (avg1 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
-  int lineSensorValueA2 = (avg2 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
-  int lineSensorValueA3 = (avg3 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
-  int lineSensorValueB1 = (avg4 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
-  int lineSensorValueB2 = (avg5 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
-  int lineSensorValueB3 = (avg6 > LINE_SENSOR_THRESHOLD) ? 1 : 0;
+    // Calculate the threshold for each sensor dynamically based on the provided averages
+    int lineSensorValueA1 = (avg1 > (AVERAGE_VALUES[0] - 5 + 0*(1000 - AVERAGE_VALUES[0]) / 2)) ? 1 : 0;
+    int lineSensorValueA2 = (avg2 > (AVERAGE_VALUES[1] - 5 + 0*(1000 - AVERAGE_VALUES[1]) / 2)) ? 1 : 0;
+    int lineSensorValueA3 = (avg3 > (AVERAGE_VALUES[2] - 5 + 0*(1000 - AVERAGE_VALUES[2]) / 2)) ? 1 : 0;
+    int lineSensorValueB1 = (avg4 > (AVERAGE_VALUES[3] - 5 + 0*(1000 - AVERAGE_VALUES[3]) / 2)) ? 1 : 0;
+    int lineSensorValueB2 = (avg5 > (AVERAGE_VALUES[4] - 5 + 0*(1000 - AVERAGE_VALUES[4]) / 2)) ? 1 : 0;
+    int lineSensorValueB3 = (avg6 > (AVERAGE_VALUES[5] - 5 + 0*(1000 - AVERAGE_VALUES[5]) / 2)) ? 1 : 0;
 
-  if (DO_READ_ONE_BY_ONE) {
-    Serial.print(lineSensorValueA1);
-    Serial.print(lineSensorValueA2);
-    Serial.print(lineSensorValueA3);
-    Serial.print(lineSensorValueB1);
-    Serial.print(lineSensorValueB2);
-    Serial.println(lineSensorValueB3);
-  }
+    // Optional: Print the sensor values for debugging
+    bool DO_READ_ONE_BY_ONE = false;
+    if (DO_READ_ONE_BY_ONE) {
+        Serial.print(lineSensorValueA1);
+        Serial.print(lineSensorValueA2);
+        Serial.print(lineSensorValueA3);
+        Serial.print(lineSensorValueB1);
+        Serial.print(lineSensorValueB2);
+        Serial.println(lineSensorValueB3);
+    }
 
-  // COMBINE values into one variable (e.g. 000001, 000000, 111111, 101101, etc)
-  int lineSensorValue = (lineSensorValueA1 << 5) | (lineSensorValueA2 << 4) |
-                        (lineSensorValueA3 << 3) | (lineSensorValueB1 << 2) |
-                        (lineSensorValueB2 << 1) | lineSensorValueB3;
+    // Combine values into one variable (e.g. 000001, 000000, 111111, 101101, etc)
+    int lineSensorValue = (lineSensorValueA1 << 5) | (lineSensorValueA2 << 4) |
+                          (lineSensorValueA3 << 3) | (lineSensorValueB1 << 2) |
+                          (lineSensorValueB2 << 1) | lineSensorValueB3;
 
-  return lineSensorValue;
+    return lineSensorValue;
 }
 
 int SensorController::determineError(int lineSensorValue) {

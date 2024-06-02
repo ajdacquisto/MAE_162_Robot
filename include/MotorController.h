@@ -8,6 +8,9 @@
 class MotorController {
 private:
   bool hasLeftLineYet = false;
+  int lastSpeedA = 0; // Last commanded speed for motor A
+  int lastSpeedB = 0; // Last commanded speed for motor B
+  const int rampRate = 10; // Tunable ramp rate (adjust as needed)
 
 public:
   DRV8833 motorDriver;
