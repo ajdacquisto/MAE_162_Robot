@@ -1,251 +1,12 @@
 #include "LookAhead.h"
 
 // Constructor
-LookAhead::LookAhead() {
-  Serial.println("LookAhead initialized");
-}
+LookAhead::LookAhead() { Serial.println("LookAhead initialized"); }
 
 // Destructor
-LookAhead::~LookAhead() {
-  Serial.println("LookAhead destroyed");
-}
+LookAhead::~LookAhead() { Serial.println("LookAhead destroyed"); }
 
-void LookAhead::init() {
-  Serial.println("LookAhead initialized");
-}
-
-/**
- * Collect sensor data and store it in a buffer.
- *
- * @param newSensorData The new sensor data to be collected.
- */
-void LookAhead::collectSensorData(int newSensorData) {
-  for (int i = numRows - 1; i > 0; i--) {
-    for (int j = 0; j < LA_NUM_SENSORS; j++) {
-      sensorData[i][j] = sensorData[i - 1][j]; // Copy previous row to the current row
-    }
-  }
-
-  // Store the new sensor data in the first row (convert newSensorData to array, reversed order)
-  for (int j = 0; j < LA_NUM_SENSORS; j++) {
-    sensorData[0][j] = (newSensorData >> (LA_NUM_SENSORS - 1 - j)) & 1;
-  }
-
-  // Print the sensor data buffer
-  Serial.println("Sensor data buffer:");
-  for (int i = 0; i < numRows; i++) {
-    Serial.print("Row ");
-    Serial.print(i);
-    Serial.print(": ");
-    for (int j = 0; j < LA_NUM_SENSORS; j++) {
-      Serial.print(sensorData[i][j], BIN);
-      Serial.print(" ");
-    }
-    Serial.println();
-  }
-}
-
-/**
- * Calculate the line position based on the sensor reading.
- *
- * @param sensorReading The sensor reading.
- * @return The calculated line position.
- */
-int LookAhead::calculateLinePosition(int sensorReading) {
-  int linePosition = 0;
-  int numActiveSensors = 0;
-
-  for (int i = 0; i < LA_NUM_SENSORS; i++) {
-    if ((sensorReading >> i) & 1) {
-      numActiveSensors++;
-      if (i < 3) {
-        linePosition -= (3 - i);
-      } else {
-        linePosition += (i - 2);
-      }
-    }
-  }
-
-  if (numActiveSensors == 0) {
-    return 0; // No line detected
-  }
-
-  if (numActiveSensors < 3) {
-    int adjustedLinePosition = 0;
-    for (int i = 0; i < LA_NUM_SENSORS; i++) {
-      if ((sensorReading >> i) & 1) {
-        if (i < 3) {
-          adjustedLinePosition -= (3 - i);
-        } else {
-          adjustedLinePosition += (i - 2);
-        }
-      }
-    }
-    return adjustedLinePosition / 3; // Average position for assumed width of 3
-  }
-
-  return linePosition / numActiveSensors;
-}
-
-/**
- * Check if the points form a straight line.
- *
- * @param points The array of points.
- * @param numPoints The number of points.
- * @return True if the points form a straight line, false otherwise.
- */
-bool LookAhead::isStraightLine(Point points[], int numPoints) {
-  if (numPoints < 2) {
-    return true; // Not enough points to determine curvature
-  }
-
-  float initialSlope = (points[1].y - points[0].y) / (points[1].x - points[0].x);
-
-  for (int i = 2; i < numPoints; i++) {
-    float slope = (points[i].y - points[i - 1].y) / (points[i].x - points[i - 1].x);
-    if (fabs(slope - initialSlope) > 0.01) { // Allow some tolerance for straightness
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Use Euler method to follow a straight line.
- *
- * @param points The array of points.
- * @param numPoints The number of points.
- * @param xTarget The x-value for interpolation.
- * @return The interpolated point.
- */
-LookAhead::Point LookAhead::eulerMethod(Point points[], int numPoints, float xTarget) {
-  float slope = (points[numPoints - 1].y - points[0].y) / (points[numPoints - 1].x - points[0].x);
-  float intercept = points[0].y - slope * points[0].x;
-
-  float yTarget = slope * xTarget + intercept;
-
-  Serial.print("Euler Method Point at x=");
-  Serial.print(xTarget);
-  Serial.print(": (");
-  Serial.print(xTarget);
-  Serial.print(", ");
-  Serial.print(yTarget);
-  Serial.println(")");
-
-  return {xTarget, yTarget};
-}
-
-/**
- * Interpolate a point on a spline curve using all points.
- *
- * @param points The array of points.
- * @param numPoints The number of points.
- * @param xTarget The x-value for interpolation.
- * @return The interpolated point.
- */
-LookAhead::Point LookAhead::interpolateSpline(Point points[], int numPoints, float xTarget) {
-  if (numPoints < 2) {
-    Serial.println("Error: Not enough points for interpolation");
-    return {0, 0};
-  }
-
-  // Polynomial regression to fit a curve (swap x and y)
-  float sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (int i = 0; i < numPoints; i++) {
-    sumX += points[i].x;
-    sumY += points[i].y;
-    sumXY += points[i].x * points[i].y;
-    sumX2 += points[i].x * points[i].x;
-  }
-
-  float denominator = (numPoints * sumX2 - sumX * sumX);
-  if (denominator == 0) {
-    Serial.println("Error: denominator is zero");
-    return {0, 0};
-  }
-
-  float a = (numPoints * sumXY - sumX * sumY) / denominator;
-  float b = (sumY * sumX2 - sumX * sumXY) / denominator;
-
-  float yTarget = a * xTarget + b;
-
-  if (isnan(yTarget) || isinf(yTarget)) {
-    Serial.println("Error: invalid yTarget");
-    return {0, 0};
-  }
-
-  Serial.print("Interpolated Point at x=");
-  Serial.print(xTarget);
-  Serial.print(": (");
-  Serial.print(xTarget);
-  Serial.print(", ");
-  Serial.print(yTarget);
-  Serial.println(")");
-
-  return {xTarget, yTarget};
-}
-
-/**
- * Get the look-ahead point based on the look-ahead distance.
- *
- * @param lookAheadDistance The look-ahead distance.
- * @return The look-ahead point.
- */
-LookAhead::Point LookAhead::getLookAheadPoint(float lookAheadDistance) {
-  Point points[numRows];
-  int validRowCount = 0;
-
-  for (int i = 0; i < numRows; i++) {
-    int sensorReading = 0;
-    bool allZeros = true;
-
-    for (int j = 0; j < LA_NUM_SENSORS; j++) {
-      sensorReading |= (sensorData[i][j] << j);
-      if (sensorData[i][j] != 0) {
-        allZeros = false;
-      }
-    }
-
-    if (!allZeros) {
-      int linePosition = calculateLinePosition(sensorReading);
-      points[validRowCount].x = (float)i;  // Use positive values for x
-      points[validRowCount].y = (float)linePosition;
-      validRowCount++;
-    }
-  }
-
-  Serial.println("Points used for interpolation:");
-  for (int i = 0; i < validRowCount; i++) {
-    Serial.print("Point ");
-    Serial.print(i);
-    Serial.print(": (");
-    Serial.print(points[i].x);
-    Serial.print(", ");
-    Serial.print(points[i].y);
-    Serial.println(")");
-  }
-
-  if (validRowCount < 2) {
-    Serial.println("Not enough valid points for interpolation");
-    return {0, 0}; // Return a default point
-  }
-
-  LookAhead::Point lookAheadPoint;
-
-  if (isStraightLine(points, validRowCount)) {
-    lookAheadPoint = eulerMethod(points, validRowCount, 5.0);  // Change to x=5
-  } else {
-    lookAheadPoint = interpolateSpline(points, validRowCount, 5.0);  // Change to x=5
-  }
-
-  Serial.print("Look-Ahead Point: (");
-  Serial.print(lookAheadPoint.x);
-  Serial.print(", ");
-  Serial.print(lookAheadPoint.y);
-  Serial.println(")");
-
-  return lookAheadPoint;
-}
+void LookAhead::init() { Serial.println("LookAhead initialized"); }
 
 /**
  * Perform PID control based on the error.
@@ -265,4 +26,124 @@ float LookAhead::PID(float error) {
   Serial.println(output);
 
   return output;
+}
+
+// Intermediate function to convert the combined line result to uint8_t
+uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
+  // Ensure that the lineSensorValue is within the range of 0-63 (6 bits)
+  lineSensorValue &= 0x3F; // 0x3F is 00111111 in binary, masking the six least
+                           // significant bits
+
+  // Cast the result to uint8_t
+  return static_cast<uint8_t>(lineSensorValue);
+}
+
+// Add a new sensor reading to the buffer
+void LookAhead::addSensorReading(uint8_t sensor_reading) {
+  buffer[bufferIndex] = sensor_reading;
+  bufferIndex = (bufferIndex + 1) % BUFFER_SIZE;
+  if (bufferCount < BUFFER_SIZE) {
+    bufferCount++;
+  }
+}
+
+// Function to get the (X, Y) points from the buffer
+void LookAhead::getPoints(float points[][2], int &num_points) {
+  num_points = 0;
+  for (int i = 0; i < bufferCount; ++i) {
+    int index = (bufferIndex - 1 - i + BUFFER_SIZE) % BUFFER_SIZE;
+    uint8_t sensor_reading = buffer[index];
+
+    // Skip all-zero readings
+    if (sensor_reading == 0)
+      continue;
+
+    float x_position = calculateXPosition(sensor_reading);
+    float y_position = -i;
+
+    points[num_points][0] = x_position;
+    points[num_points][1] = y_position;
+    num_points++;
+  }
+}
+
+// Calculate the x-position for a given sensor reading
+float LookAhead::calculateXPosition(uint8_t sensor_reading) {
+  const float positions[6] = {-2.5, -1.5, -0.5, 0.5, 1.5, 2.5};
+  int count_ones = 0;
+  float sum_positions = 0.0;
+
+  for (int i = 0; i < 6; ++i) {
+    if (sensor_reading & (1 << (5 - i))) {
+      count_ones++;
+      sum_positions += positions[i];
+    }
+  }
+
+  if (count_ones > 3) {
+    return sum_positions / count_ones;
+  } else if (count_ones == 3) {
+    return sum_positions / count_ones;
+  } else if (count_ones == 2) {
+    if (sensor_reading & 0b100000) {
+      sum_positions += positions[0] - 1.0;
+      count_ones++;
+    } else if (sensor_reading & 0b000001) {
+      sum_positions += positions[5] + 1.0;
+      count_ones++;
+    }
+    return sum_positions / count_ones;
+  } else if (count_ones == 1) {
+    if (sensor_reading & 0b100000) {
+      sum_positions += positions[0] - 1.0;
+      sum_positions += positions[1] - 1.0;
+      count_ones += 2;
+    } else if (sensor_reading & 0b000001) {
+      sum_positions += positions[5] + 1.0;
+      sum_positions += positions[4] + 1.0;
+      count_ones += 2;
+    }
+    return sum_positions / count_ones;
+  }
+
+  return 0.0;
+}
+
+// Function to calculate linear regression
+void LookAhead::linearRegression(const float points[][2], int num_points,
+                                 int recent_points, float &slope,
+                                 float &intercept) {
+  if (recent_points > num_points) {
+    recent_points = num_points;
+  }
+
+  float sum_x = 0;
+  float sum_y = 0;
+  float sum_xy = 0;
+  float sum_xx = 0;
+
+  for (int i = 0; i < recent_points; ++i) {
+    float x = points[i][0];
+    float y = points[i][1];
+    sum_x += x;
+    sum_y += y;
+    sum_xy += x * y;
+    sum_xx += x * x;
+  }
+
+  float n = static_cast<float>(recent_points);
+  float denominator = n * sum_xx - sum_x * sum_x;
+  if (denominator == 0) {
+    slope = 0;
+    intercept = 0;
+    return;
+  }
+
+  slope = (n * sum_xy - sum_x * sum_y) / denominator;
+  intercept = (sum_y * sum_xx - sum_x * sum_xy) / denominator;
+}
+
+// Function to predict the x-value for a given y-value using the regression line
+float LookAhead::predictX(float slope, float intercept, float y) {
+  return (y - intercept) / slope;
 }

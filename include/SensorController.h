@@ -3,7 +3,7 @@
 
 #include "Encoder.h"
 #include "HCSR04.h"
-#include "MovingAverageSensor.h"
+#include "SimpleSensor.h"
 #include "config.h"
 #include <Arduino.h>
 
@@ -37,12 +37,12 @@ private:
   unsigned long lastUltrasonicRead = 0;
 
 public:
-  MovingAverageSensor lineSensorA1; // Line sensor A1
-  MovingAverageSensor lineSensorA2; // Line sensor A2
-  MovingAverageSensor lineSensorA3; // Line sensor A3
-  MovingAverageSensor lineSensorB1; // Line sensor B1
-  MovingAverageSensor lineSensorB2; // Line sensor B2
-  MovingAverageSensor lineSensorB3; // Line sensor B3
+  SimpleSensor lineSensorA1; // Line sensor A1
+  SimpleSensor lineSensorA2; // Line sensor A2
+  SimpleSensor lineSensorA3; // Line sensor A3
+  SimpleSensor lineSensorB1; // Line sensor B1
+  SimpleSensor lineSensorB2; // Line sensor B2
+  SimpleSensor lineSensorB3; // Line sensor B3
 
   void zeroEncoders();
   long getUltrasonicDistance();

@@ -814,17 +814,42 @@ void handleLift(int direction) {
 }
 
 void handleLookAheadLineFollow() {
+  // Get int of sensor data in 1s and 0s.
   int newSensorData = sensorController.getFullIRReadingResults(true);
 
-  // Collect sensor data and store it in a buffer
-  lookAhead.collectSensorData(newSensorData);
+  // Convert to a different data type.
+  uint8_t newSensorDataUint8 = lookAhead.convertToUint8_t(newSensorData);
 
-  // Get the look-ahead point based on the look-ahead distance.
-  LookAhead::Point lookAheadPoint =
-      lookAhead.getLookAheadPoint(LA_LOOK_AHEAD_DISTANCE);
+  // Add the new binary number to the buffer.
+  lookAhead.addSensorReading(newSensorDataUint8);
 
-  // Calculate error (distance from center)
-  float error = lookAheadPoint.x;
+  // Define a 2D array to store the points.
+  float points[10][2];
+
+  // Define a variable to store the number of points.
+  int num_points;
+
+  // Get the points from the buffer.
+  lookAhead.getPoints(points, num_points);
+
+  // Define variables to store the slope and intercept.
+  float slope, intercept;
+
+  // Define the number of recent points to use for regression.
+  int recent_points = 5; // Tunable value
+
+  // Perform linear regression on the points.
+  lookAhead.linearRegression(points, num_points, recent_points, slope,
+                             intercept);
+
+  // Define a y-value to predict the x-value for.
+  float y_value = 5.0;
+
+  // Predict the x-value for the given y-value.
+  float predicted_x = lookAhead.predictX(slope, intercept, y_value);
+
+  // Calculate the error.
+  float error = predicted_x;
 
   // PID control for line following
   float pidOutput = lookAhead.PID(error);
@@ -837,19 +862,23 @@ void handleLookAheadLineFollow() {
   int actualLeftSpeed = sensorController.getEncoderBSpeed();
   int actualRightSpeed = sensorController.getEncoderASpeed();
 
+  // Keep the actual speeds within above a minimum speed threshold.
   actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, LA_MIN_SPEED);
-  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, LA_MIN_SPEED);
+  actualRightSpeed =
+      sensorController.speedAdjust(actualRightSpeed, LA_MIN_SPEED);
 
   // Adjust motor speeds based on encoder feedback
   float kP_encoder = encoderGainHandler.getKp();
 
   int Enc_error = desiredLeftSpeed - actualLeftSpeed;
   int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
-  int leftMotorSpeed = constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
+  int leftMotorSpeed =
+      constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
 
   Enc_error = desiredRightSpeed - actualRightSpeed;
   adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
-  int rightMotorSpeed = constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
+  int rightMotorSpeed =
+      constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
 
   // Ensure minimum speed
   if (abs(leftMotorSpeed) < LA_MIN_SPEED && leftMotorSpeed != 0) {

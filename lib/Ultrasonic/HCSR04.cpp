@@ -13,9 +13,9 @@ HCSR04::HCSR04(int out, int echo) { this->init(out, new int[1]{echo}, 1); }
 HCSR04::HCSR04(int out, int echo[], int n) { this->init(out, echo, n); }
 HCSR04::~HCSR04()
 {
-	~this->out;
-	delete[] this->echo;
-	~this->n;
+	//~this->out;
+	//delete[] this->echo;
+	//~this->n;
 }
 
 ///////////////////////////////////////////////////dist
