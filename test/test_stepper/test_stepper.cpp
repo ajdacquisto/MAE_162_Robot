@@ -4,7 +4,7 @@
 
 void test_stepper_initialization() {
     Stepper stepper(200, 2, 3, 4, 5);
-    TEST_ASSERT_EQUAL(200, 300);
+    TEST_ASSERT_EQUAL(200, 300); // Adjust as needed
     // Add more assertions as needed
 }
 

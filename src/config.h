@@ -23,6 +23,15 @@ const int PICKUP_LOCATION_1 = FIRST_ON_LEFT;
 const int PICKUP_LOCATION_2 = SECOND_ON_LEFT;
 const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 
+// ===============================
+// ===== LOOK AHEAD SETTINGS =====
+// ===============================
+
+const int LA_NUM_SENSORS = 6;
+const int LA_LOOK_AHEAD_DISTANCE = 10;
+const int LA_BASE_SPEED = 100;
+const int LA_MAX_ROWS = 10; // Maximum number of rows for buffer
+
 // =============================
 // ===== SOFTWARE SETTINGS =====
 // =============================

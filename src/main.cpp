@@ -17,6 +17,8 @@
 // This library provides an interface for handling serial communication.
 #include "SerialController.h"
 
+#include "LookAhead.h"
+
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
 
@@ -36,6 +38,7 @@ ControlGainHandler encoderGainHandler =
                        ENCODER_DRIVE_KD);      // Encoder gain handler
 BranchHandler branchHandler = BranchHandler(); // Branch handler
 SerialController serialController = SerialController();
+LookAhead lookAhead = LookAhead();
 
 // ===== ENUMS =====
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
@@ -55,6 +58,7 @@ void handleRotation(MotorController::ROTATE_DIRECTION direction);
 void handleUltrasonicApproach();
 void handleUltrasonicReverse();
 void handleLift(int direction);
+void handleLookAheadLineFollow();
 
 // Helper functions
 void resetAllPIDMemory();
@@ -547,6 +551,13 @@ void handlePIDEncoderDrive(int BASE_SPEED) {
 }
 
 void handleFollowLine(int mode) {
+  bool DO_LOOK_AHEAD = true;
+
+  if (DO_LOOK_AHEAD) {
+    handleLookAheadLineFollow();
+    return;
+  }
+
   bool DO_ULTRASONIC_CHECK_OBSTACLE = false;
   bool DO_ULTRASONIC_CHECK_TURN = false;
   bool SHOW_RAW_IR_READINGS = true;
@@ -800,6 +811,58 @@ void handleLift(int direction) {
     logError("Invalid direction");
     break;
   }
+}
+
+void handleLookAheadLineFollow() {
+  int newSensorData = sensorController.getFullIRReadingResults(false);
+
+  // Collect sensor data and store it in a buffer
+  lookAhead.collectSensorData(newSensorData);
+
+  // Get the look-ahead point based on the look-ahead distance.
+  LookAhead::Point lookAheadPoint = lookAhead.getLookAheadPoint(LA_LOOK_AHEAD_DISTANCE);
+
+  // Calculate error (distance from center)
+  float error = lookAheadPoint.x;
+
+  // PID control for line following
+  float pidOutput = lookAhead.PID(error);
+
+  // Calculate desired motor speeds
+  int desiredLeftSpeed = LA_BASE_SPEED + pidOutput;
+  int desiredRightSpeed = LA_BASE_SPEED - pidOutput;
+
+  // Calculate actual speed using encoders
+  int actualLeftSpeed = sensorController.getEncoderBSpeed();
+  int actualRightSpeed = sensorController.getEncoderASpeed();
+
+  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, MIN_SPEED);
+  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, MIN_SPEED);
+
+  // Adjust motor speeds based on encoder feedback
+  float kP_encoder = encoderGainHandler.getKp();
+
+  int Enc_error = desiredLeftSpeed - actualLeftSpeed;
+  int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
+  int leftMotorSpeed = constrain(adjustedSpeed, LOWER_CONSTRAINT, CONSTRAINT);
+
+  Enc_error = desiredRightSpeed - actualRightSpeed;
+  adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
+  int rightMotorSpeed = constrain(adjustedSpeed, LOWER_CONSTRAINT, CONSTRAINT);
+
+  // Ensure minimum speed
+  if (abs(leftMotorSpeed) < MIN_SPEED && leftMotorSpeed != 0) {
+    leftMotorSpeed = (leftMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
+  }
+  if (abs(rightMotorSpeed) < MIN_SPEED && rightMotorSpeed != 0) {
+    rightMotorSpeed = (rightMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
+  }
+
+  // Enable motors with adjusted speeds
+  motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
+  motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
+
+  delay(10); // Small delay to stabilize the loop
 }
 
 // ===== HELPER FUNCTIONS =====
