@@ -16,7 +16,7 @@
 #include "BranchHandler.h"
 // This library provides an interface for handling serial communication.
 #include "SerialController.h"
-
+// This library provides an interface for handling look-ahead line following.
 #include "LookAhead.h"
 
 // ===== GLOBAL VARIABLES =====
@@ -814,13 +814,14 @@ void handleLift(int direction) {
 }
 
 void handleLookAheadLineFollow() {
-  int newSensorData = sensorController.getFullIRReadingResults(false);
+  int newSensorData = sensorController.getFullIRReadingResults(true);
 
   // Collect sensor data and store it in a buffer
   lookAhead.collectSensorData(newSensorData);
 
   // Get the look-ahead point based on the look-ahead distance.
-  LookAhead::Point lookAheadPoint = lookAhead.getLookAheadPoint(LA_LOOK_AHEAD_DISTANCE);
+  LookAhead::Point lookAheadPoint =
+      lookAhead.getLookAheadPoint(LA_LOOK_AHEAD_DISTANCE);
 
   // Calculate error (distance from center)
   float error = lookAheadPoint.x;
@@ -861,6 +862,12 @@ void handleLookAheadLineFollow() {
   // Enable motors with adjusted speeds
   motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
   motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
+
+  serialController.printWithTimestamp("Motor command: L(");
+  Serial.print(leftMotorSpeed);
+  Serial.print("), R(");
+  Serial.print(rightMotorSpeed);
+  Serial.println(")");
 
   delay(10); // Small delay to stabilize the loop
 }
