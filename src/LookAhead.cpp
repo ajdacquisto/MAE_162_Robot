@@ -6,6 +6,7 @@ LookAhead::LookAhead() { Serial.println("LookAhead initialized"); }
 // Destructor
 LookAhead::~LookAhead() { Serial.println("LookAhead destroyed"); }
 
+// Initialize the LookAhead object
 void LookAhead::init() { Serial.println("LookAhead initialized"); }
 
 /**
@@ -47,7 +48,12 @@ void LookAhead::addSensorReading(uint8_t sensor_reading) {
   }
 }
 
-// Function to get the (X, Y) points from the buffer
+/**
+ * Get the (X, Y) points from the buffer.
+ *
+ * @param points The array to store the (X, Y) points.
+ * @param num_points The number of points to retrieve.
+ */
 void LookAhead::getPoints(float points[][2], int &num_points) {
   num_points = 0;
   for (int i = 0; i < bufferCount; ++i) {
@@ -67,7 +73,12 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
   }
 }
 
-// Calculate the x-position for a given sensor reading
+/**
+ * Calculate the x-position for a given sensor reading.
+ *
+ * @param sensor_reading The sensor reading value.
+ * @return The x-position.
+ */
 float LookAhead::calculateXPosition(uint8_t sensor_reading) {
   const float positions[6] = {-2.5, -1.5, -0.5, 0.5, 1.5, 2.5};
   int count_ones = 0;
@@ -109,7 +120,15 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading) {
   return 0.0;
 }
 
-// Function to calculate linear regression
+/**
+ * Calculate linear regression for the given points.
+ *
+ * @param points The array of points.
+ * @param num_points The number of points.
+ * @param recent_points The number of recent points to consider for regression.
+ * @param slope The calculated slope of the regression line.
+ * @param intercept The calculated intercept of the regression line.
+ */
 void LookAhead::linearRegression(const float points[][2], int num_points,
                                  int recent_points, float &slope,
                                  float &intercept) {
@@ -143,7 +162,14 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   intercept = (sum_y * sum_xx - sum_x * sum_xy) / denominator;
 }
 
-// Function to predict the x-value for a given y-value using the regression line
+/**
+ * Predict the x-value for a given y-value using the regression line.
+ *
+ * @param slope The slope of the regression line.
+ * @param intercept The intercept of the regression line.
+ * @param y The y-value.
+ * @return The predicted x-value.
+ */
 float LookAhead::predictX(float slope, float intercept, float y) {
   return (y - intercept) / slope;
 }

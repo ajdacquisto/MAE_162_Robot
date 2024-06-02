@@ -813,6 +813,12 @@ void handleLift(int direction) {
   }
 }
 
+/**
+ * Performs line following using look-ahead control.
+ * This function reads sensor data, performs linear regression on the data points,
+ * calculates the error, applies PID control, adjusts motor speeds based on encoder feedback,
+ * and drives the motors accordingly.
+ */
 void handleLookAheadLineFollow() {
   // Get int of sensor data in 1s and 0s.
   int newSensorData = sensorController.getFullIRReadingResults(true);

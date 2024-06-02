@@ -1,3 +1,11 @@
+/**
+ * @file config.h
+ * @brief Configuration file for the robot project.
+ * 
+ * This file contains various settings and parameters used in the robot project.
+ * It includes location settings, look ahead settings, software settings, hardware parameters,
+ * input and output pin assignments, and a list of all the input and output devices used in the project.
+ */
 // config.h
 #ifndef CONFIG_H
 #define CONFIG_H
