@@ -77,7 +77,7 @@ public:
 private:
 #endif
   // Variables
-  const float m_kp = 20.0, m_ki = 0.5, m_kd = 0.0;
+  const float m_kp = LA_KP, m_ki = LA_KI, m_kd = LA_KD;
   float m_lastError = 0, m_integral = 0;
 
   static const int BUFFER_SIZE = 10;
