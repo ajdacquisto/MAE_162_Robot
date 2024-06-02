@@ -30,7 +30,10 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 const int LA_NUM_SENSORS = 6;
 const int LA_LOOK_AHEAD_DISTANCE = 10;
 const int LA_BASE_SPEED = 100;
+const int LA_MIN_SPEED = 80;
 const int LA_MAX_ROWS = 10; // Maximum number of rows for buffer
+const int LA_UPPER_CONSTRAINT = 255;
+const int LA_LOWER_CONSTRAINT = -255;
 
 // =============================
 // ===== SOFTWARE SETTINGS =====

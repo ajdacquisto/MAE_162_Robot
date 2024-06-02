@@ -837,26 +837,26 @@ void handleLookAheadLineFollow() {
   int actualLeftSpeed = sensorController.getEncoderBSpeed();
   int actualRightSpeed = sensorController.getEncoderASpeed();
 
-  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, MIN_SPEED);
-  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, MIN_SPEED);
+  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, LA_MIN_SPEED);
+  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, LA_MIN_SPEED);
 
   // Adjust motor speeds based on encoder feedback
   float kP_encoder = encoderGainHandler.getKp();
 
   int Enc_error = desiredLeftSpeed - actualLeftSpeed;
   int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
-  int leftMotorSpeed = constrain(adjustedSpeed, LOWER_CONSTRAINT, CONSTRAINT);
+  int leftMotorSpeed = constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
 
   Enc_error = desiredRightSpeed - actualRightSpeed;
   adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
-  int rightMotorSpeed = constrain(adjustedSpeed, LOWER_CONSTRAINT, CONSTRAINT);
+  int rightMotorSpeed = constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
 
   // Ensure minimum speed
-  if (abs(leftMotorSpeed) < MIN_SPEED && leftMotorSpeed != 0) {
-    leftMotorSpeed = (leftMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
+  if (abs(leftMotorSpeed) < LA_MIN_SPEED && leftMotorSpeed != 0) {
+    leftMotorSpeed = (leftMotorSpeed < 0) ? -LA_MIN_SPEED : LA_MIN_SPEED;
   }
-  if (abs(rightMotorSpeed) < MIN_SPEED && rightMotorSpeed != 0) {
-    rightMotorSpeed = (rightMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
+  if (abs(rightMotorSpeed) < LA_MIN_SPEED && rightMotorSpeed != 0) {
+    rightMotorSpeed = (rightMotorSpeed < 0) ? -LA_MIN_SPEED : LA_MIN_SPEED;
   }
 
   // Enable motors with adjusted speeds
