@@ -137,6 +137,27 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   }
 
   float sum_x = 0;
+  for (int i = 0; i < recent_points; ++i) {
+    sum_x += points[i][0];
+  }
+
+  float mean_x = sum_x / recent_points;
+  bool isVerticalLine = true;
+  for (int i = 0; i < recent_points; ++i) {
+    if (points[i][0] != mean_x) {
+      isVerticalLine = false;
+      break;
+    }
+  }
+
+  if (isVerticalLine) {
+    // Handle vertical line case
+    slope = INFINITY_VALUE;
+    intercept = mean_x; // Can use intercept to store x-value of the line
+    return;
+  }
+
+  // Continue with regular linear regression calculation
   float sum_y = 0;
   float sum_xy = 0;
   float sum_xx = 0;
@@ -144,7 +165,6 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   for (int i = 0; i < recent_points; ++i) {
     float x = points[i][0];
     float y = points[i][1];
-    sum_x += x;
     sum_y += y;
     sum_xy += x * y;
     sum_xx += x * x;
@@ -171,5 +191,9 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
  * @return The predicted x-value.
  */
 float LookAhead::predictX(float slope, float intercept, float y) {
+  if (slope == INFINITY_VALUE) {
+    // Handle vertical line case by returning the x-location stored in intercept
+    return intercept;
+  }
   return (y - intercept) / slope;
 }

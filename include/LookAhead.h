@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include <Arduino.h>
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -61,7 +62,8 @@ public:
                         int recent_points, float &slope, float &intercept);
 
   /**
-   * @brief Predicts the x-coordinate based on the given slope, intercept, and y-coordinate.
+   * @brief Predicts the x-coordinate based on the given slope, intercept, and
+   * y-coordinate.
    * @param slope The slope of the regression line.
    * @param intercept The intercept of the regression line.
    * @param y The y-coordinate.
@@ -82,6 +84,7 @@ private:
   uint8_t buffer[BUFFER_SIZE];
   int bufferIndex;
   int bufferCount;
+  float INFINITY_VALUE = 1e30; // Member variable for infinity value
 
   // Functions
   /**
