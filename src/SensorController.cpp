@@ -116,7 +116,10 @@ int SensorController::determineError(int lineSensorValue) {
 
 long SensorController::getUltrasonicDistance() {
   lastUltrasonicRead = millis();
-  return hc.dist();
+  long output = hc.dist();
+  previousDistance = currentDistance;
+  currentDistance = output;
+  return output;
 }
 
 long SensorController::getUltrasonicMemory() { return ultrasonicMemory; }
@@ -201,14 +204,25 @@ float SensorController::speedAdjust(int speedReading, float constraintValue) {
 
 bool SensorController::isObstacle(long distanceThreshold) {
   long distance = getUltrasonicDistance();
-  Serial.print("Ultrasonic distance measurement: ");
+  long prevDist = getPreviousDistance();
+  Serial.print("Ultrasonic data: (old) ");
+  Serial.print(prevDist);
+  Serial.print(", (new) ");
   Serial.println(distance);
-  if (distance < distanceThreshold) {
+  if (distance < distanceThreshold &&
+      prevDist < distanceThreshold) {
+    Serial.print(distance);
+    Serial.print(" and ");
+    Serial.print(prevDist);
+    Serial.println(" are both less than ");
+    Serial.println(distanceThreshold);
     return true;
   } else {
     return false;
   }
 }
+
+long SensorController::getPreviousDistance() { return previousDistance; }
 
 // Function to process the input binary number and return the desired output
 int SensorController::processBinaryNumber(int binaryNumber[]) {

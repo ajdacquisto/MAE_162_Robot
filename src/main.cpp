@@ -906,6 +906,11 @@ void handleLookAheadLineFollow() {
 // ===== HELPER FUNCTIONS =====
 
 void ultrasonicTurnCheck() {
+  int numSecondsGracePeriod = 30;
+  if (millis() - systemStateHandler.getLastStateChangeTime() <
+      (unsigned long)(numSecondsGracePeriod * 1000)) {
+    return;
+  }
   if (sensorController.isObstacle(NINETY_DEGREE_TURN_DISTANCE)) {
     serialController.printlnWithTimestamp("<!> 90 degree turn detected.");
     motorController.servosOff();

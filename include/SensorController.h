@@ -26,6 +26,8 @@ private:
   long ultrasonicMemory;
   int lineSensorAThreshold;
   int lineSensorBThreshold;
+  long previousDistance = 0;
+  long currentDistance = 0;
 
   long encoderALastValue = 0;
   long encoderALastTime = 0;
@@ -49,6 +51,8 @@ public:
   long readEncoderA();
   long readEncoderB();
   int determineError(int lineSensorValue);
+
+  long getPreviousDistance();
 
   void readLineSensorA();
   void readLineSensorB();
