@@ -1,16 +1,19 @@
 /**
  * @file main.cpp
- * @brief This file contains the main Arduino sketch for the MAE_162_Robot project.
- * 
- * This sketch initializes various libraries and objects, and defines the main setup() and loop() functions.
- * It also includes function prototypes and global variables used throughout the sketch.
- * The main loop() function handles the state flow of the system and calls the appropriate functions based on the current state.
- * The handleTest() function is used for testing purposes.
- * 
- * @note This code is specific to the MAE_162_Robot project and assumes the presence of certain libraries and hardware components.
- * 
+ * @brief This file contains the main Arduino sketch for the MAE_162_Robot
+ * project.
+ *
+ * This sketch initializes various libraries and objects, and defines the main
+ * setup() and loop() functions. It also includes function prototypes and global
+ * variables used throughout the sketch. The main loop() function handles the
+ * state flow of the system and calls the appropriate functions based on the
+ * current state. The handleTest() function is used for testing purposes.
+ *
+ * @note This code is specific to the MAE_162_Robot project and assumes the
+ * presence of certain libraries and hardware components.
+ *
  * @author Austin D'Acquisto
- * 
+ *
  * @date June 3, 2024
  */
 // This is the main Arduino library, which provides the core functionality for
@@ -33,7 +36,6 @@
 #include "SerialController.h"
 // This library provides an interface for handling look-ahead line following.
 #include "LookAhead.h"
-
 
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
@@ -87,8 +89,12 @@ void logError(const char *message);
 // ===== MAIN SETUP =====
 /**
  * @brief Initializes the robot's setup.
- * 
- * This function is called once when the microcontroller starts up. It initializes various components of the robot, such as the serial controller, sensor controller, motor controller, and system state handler. It also introduces a delay of 1000 milliseconds before proceeding with the initialization.
+ *
+ * This function is called once when the microcontroller starts up. It
+ * initializes various components of the robot, such as the serial controller,
+ * sensor controller, motor controller, and system state handler. It also
+ * introduces a delay of 1000 milliseconds before proceeding with the
+ * initialization.
  */
 void setup() {
   delay(1000);
@@ -98,14 +104,14 @@ void setup() {
   systemStateHandler.init(DEFAULT_STATE);
 }
 
-
 // ===== MAIN LOOP =====
 /**
  * @brief The main loop function that runs repeatedly in the program.
- * 
+ *
  * This function is responsible for executing the robot's state machine logic.
- * It checks the current state and performs the corresponding actions based on the state flow index.
- * It also handles error cases and executes specific code for each state.
+ * It checks the current state and performs the corresponding actions based on
+ * the state flow index. It also handles error cases and executes specific code
+ * for each state.
  */
 void loop() {
   if (systemStateHandler.isNewStateFlowIndex()) {
@@ -297,12 +303,13 @@ void loop() {
 // ===== OTHER FUNCTIONS =====
 /**
  * @brief Function to handle the test.
- * 
+ *
  * This function performs a series of tests for motors and steppers.
  * It checks the button status and controls the LEDs accordingly.
  * It also controls the motors and steppers based on the elapsed time.
- * 
- * @note This function assumes that the necessary objects and libraries are properly initialized.
+ *
+ * @note This function assumes that the necessary objects and libraries are
+ * properly initialized.
  */
 void handleTest() {
   // Code for testing
@@ -407,8 +414,8 @@ void handleTest() {
 /**
  * Handles the idle phase of the robot.
  * Turns off the servos, turns on the LED, and waits for a button press.
- * When the button is pressed, the LED is turned off, a message is printed to the serial monitor,
- * and the state flow index is advanced.
+ * When the button is pressed, the LED is turned off, a message is printed to
+ * the serial monitor, and the state flow index is advanced.
  */
 void handleIdle() {
   motorController.servosOff();
@@ -513,9 +520,10 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
 
 /**
  * Function to handle the idle state of the IR sensor.
- * This function retrieves the full IR reading results from the sensor controller,
- * and optionally displays the raw IR readings and binary reading mapping.
- * It turns off the servos of the motor controller and introduces a delay of 100ms.
+ * This function retrieves the full IR reading results from the sensor
+ * controller, and optionally displays the raw IR readings and binary reading
+ * mapping. It turns off the servos of the motor controller and introduces a
+ * delay of 100ms.
  */
 void handleIRIdle() {
   bool SHOW_RAW_IR_READINGS = true;
@@ -554,7 +562,7 @@ void handleUltraSonicIdle() {
 
 /**
  * Handles the PID control for encoder-based drive.
- * 
+ *
  * @param BASE_SPEED The base speed for the motors.
  */
 void handlePIDEncoderDrive(int BASE_SPEED) {
@@ -619,7 +627,7 @@ void handlePIDEncoderDrive(int BASE_SPEED) {
 
 /**
  * Handles the line following behavior based on the given mode.
- * 
+ *
  * @param mode The mode of line following (PICKUP, REGULAR, DROPOFF).
  */
 void handleFollowLine(int mode) {
@@ -825,7 +833,8 @@ void handleRotation(MotorController::ROTATE_DIRECTION direction) {
 
 /**
  * Handles the ultrasonic approach behavior.
- * Reads the ultrasonic sensor, prints the distance, and performs actions based on the distance.
+ * Reads the ultrasonic sensor, prints the distance, and performs actions based
+ * on the distance.
  */
 void handleUltrasonicApproach() {
   // Read the ultrasonic sensor
@@ -852,9 +861,10 @@ void handleUltrasonicApproach() {
 
 /**
  * Handles the reverse movement based on the ultrasonic sensor reading.
- * If the distance measured by the ultrasonic sensor is less than the stored ultrasonic memory,
- * the robot will move in reverse at a predefined speed. Otherwise, the motor servos will be turned off
- * and the state flow index will be advanced.
+ * If the distance measured by the ultrasonic sensor is less than the stored
+ * ultrasonic memory, the robot will move in reverse at a predefined speed.
+ * Otherwise, the motor servos will be turned off and the state flow index will
+ * be advanced.
  */
 void handleUltrasonicReverse() {
   int REVERSE_SPEED = 64;
@@ -876,7 +886,8 @@ void handleUltrasonicReverse() {
 /**
  * Handles the lift movement based on the specified direction.
  *
- * @param direction The direction of the lift movement. Should be MotorController::UP or MotorController::DOWN.
+ * @param direction The direction of the lift movement. Should be
+ * MotorController::UP or MotorController::DOWN.
  */
 void handleLift(int direction) {
   const int LIFT_SPEED = 64;    // from 0 to 255
@@ -900,9 +911,9 @@ void handleLift(int direction) {
 
 /**
  * Performs line following using look-ahead control.
- * This function reads sensor data, performs linear regression on the data points,
- * calculates the error, applies PID control, adjusts motor speeds based on encoder feedback,
- * and drives the motors accordingly.
+ * This function reads sensor data, performs linear regression on the data
+ * points, calculates the error, applies PID control, adjusts motor speeds based
+ * on encoder feedback, and drives the motors accordingly.
  */
 void handleLookAheadLineFollow() {
   ultrasonicTurnCheck();
@@ -1004,9 +1015,10 @@ void handleLookAheadLineFollow() {
 // ===== HELPER FUNCTIONS =====
 
 /**
- * Checks if a 90 degree turn is required based on the ultrasonic sensor readings.
- * If a turn is required, it stops the servo motors and enters an infinite loop.
- * This function has a grace period of 40 seconds before checking for a turn.
+ * Checks if a 90 degree turn is required based on the ultrasonic sensor
+ * readings. If a turn is required, it stops the servo motors and enters an
+ * infinite loop. This function has a grace period of 40 seconds before checking
+ * for a turn.
  */
 void ultrasonicTurnCheck() {
   int numSecondsGracePeriod = 40;
@@ -1026,7 +1038,7 @@ void ultrasonicTurnCheck() {
 
 /**
  * Logs an error message and performs necessary actions to handle the error.
- * 
+ *
  * @param message The error message to be logged.
  */
 void logError(const char *message) {
@@ -1040,9 +1052,10 @@ void logError(const char *message) {
 
 /**
  * @brief Resets the memory of all PID controllers.
- * 
- * This function resets the memory of the line sensor gain handler and the encoder gain handler.
- * It is used to clear any accumulated error or state in the PID controllers.
+ *
+ * This function resets the memory of the line sensor gain handler and the
+ * encoder gain handler. It is used to clear any accumulated error or state in
+ * the PID controllers.
  */
 void resetAllPIDMemory() {
   lineSensorGainHandler.reset();
@@ -1050,8 +1063,8 @@ void resetAllPIDMemory() {
 }
 
 /**
- * Calculates the rotation direction based on the rotation type and target location.
- * Updates the system state accordingly.
+ * Calculates the rotation direction based on the rotation type and target
+ * location. Updates the system state accordingly.
  *
  * @param rotationType The type of rotation (TOWARDS or AWAY_FROM).
  * @param targetLocation The target location for rotation.

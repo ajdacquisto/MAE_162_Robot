@@ -1,12 +1,29 @@
 #include "LookAhead.h"
 
-// Constructor
+/**
+ * @brief Initializes a new instance of the LookAhead class.
+ *
+ * This constructor is called when a new LookAhead object is created. It prints
+ * a message to the serial monitor indicating that the LookAhead object has been
+ * initialized.
+ */
 LookAhead::LookAhead() { Serial.println("LookAhead initialized"); }
 
-// Destructor
+/**
+ * @brief Destructor for the LookAhead class.
+ *
+ * This destructor is responsible for destroying an instance of the LookAhead
+ * class. It prints a message to the serial monitor indicating that the
+ * LookAhead object has been destroyed.
+ */
 LookAhead::~LookAhead() { Serial.println("LookAhead destroyed"); }
 
-// Initialize the LookAhead object
+/**
+ * Initializes the LookAhead module.
+ * This function is called to initialize the LookAhead module.
+ * It prints a message to the serial monitor indicating that the initialization
+ * has been called.
+ */
 void LookAhead::init() { Serial.println("LookAhead init called"); }
 
 /**
@@ -29,7 +46,12 @@ float LookAhead::PID(float error) {
   return output;
 }
 
-// Intermediate function to convert the combined line result to uint8_t
+/**
+ * Converts the given line sensor value to a uint8_t value.
+ *
+ * @param lineSensorValue The line sensor value to be converted.
+ * @return The converted uint8_t value.
+ */
 uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
   Serial.print("Converting line sensor value: ");
   Serial.println(lineSensorValue, BIN);
@@ -50,7 +72,11 @@ uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
   return result;
 }
 
-// Add a new sensor reading to the buffer
+/**
+ * Adds a sensor reading to the LookAhead buffer.
+ *
+ * @param sensor_reading The sensor reading to be added.
+ */
 void LookAhead::addSensorReading(uint8_t sensor_reading) {
   Serial.print("Adding sensor reading: ");
   uint8_t leastSignificantBits =
@@ -194,7 +220,7 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading) {
 bool LookAhead::linearRegression(const float points[][2], int num_points,
                                  int recent_points, float &slope,
                                  float &intercept) {
-  
+
   if (recent_points > num_points) {
     recent_points = num_points;
   }
