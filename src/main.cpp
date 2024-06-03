@@ -629,14 +629,7 @@ void handleFollowLine(int mode) {
       return;
     }
   } else if (DO_ULTRASONIC_CHECK_TURN) {
-    if (sensorController.isObstacle(NINETY_DEGREE_TURN_DISTANCE)) {
-      serialController.printlnWithTimestamp("<!> 90 degree turn detected.");
-      motorController.servosOff();
-      while (true)
-        ;
-      delay(100);
-      return;
-    }
+    ultrasonicTurnCheck();
   }
   // ============================
   // ============================
@@ -815,11 +808,13 @@ void handleLift(int direction) {
 
 /**
  * Performs line following using look-ahead control.
- * This function reads sensor data, performs linear regression on the data points,
- * calculates the error, applies PID control, adjusts motor speeds based on encoder feedback,
- * and drives the motors accordingly.
+ * This function reads sensor data, performs linear regression on the data
+ * points, calculates the error, applies PID control, adjusts motor speeds based
+ * on encoder feedback, and drives the motors accordingly.
  */
 void handleLookAheadLineFollow() {
+  ultrasonicTurnCheck();
+
   // Get int of sensor data in 1s and 0s.
   int newSensorData = sensorController.getFullIRReadingResults(true);
 
@@ -908,6 +903,17 @@ void handleLookAheadLineFollow() {
 }
 
 // ===== HELPER FUNCTIONS =====
+
+void ultrasonicTurnCheck() {
+  if (sensorController.isObstacle(NINETY_DEGREE_TURN_DISTANCE)) {
+    serialController.printlnWithTimestamp("<!> 90 degree turn detected.");
+    motorController.servosOff();
+    while (true)
+      ;
+    delay(100);
+    return;
+  }
+}
 
 void logError(const char *message) {
   systemStateHandler.changeState(SystemState::IDLE);

@@ -194,6 +194,7 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading) {
 void LookAhead::linearRegression(const float points[][2], int num_points,
                                  int recent_points, float &slope,
                                  float &intercept) {
+  
   if (recent_points > num_points) {
     recent_points = num_points;
   }
@@ -201,6 +202,13 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   Serial.print("Performing linear regression with ");
   Serial.print(recent_points);
   Serial.println(" recent points");
+
+  if (recent_points == 0) {
+    slope = 0;
+    intercept = 0;
+    Serial.println("<!> No recent points, slope and intercept set to 0");
+    return;
+  }
 
   float sum_x = 0;
   for (int i = 0; i < recent_points; ++i) {
@@ -242,7 +250,14 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
     sum_xx += x * x;
   }
 
+  Serial.print("float n = static_cast<float>(");
+  Serial.print(recent_points);
+  Serial.print("); -> ");
+
   float n = static_cast<float>(recent_points);
+
+  Serial.println(n);
+
   float denominator = n * sum_xx - sum_x * sum_x;
   if (denominator == 0) {
     slope = 0;
@@ -251,8 +266,37 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
     return;
   }
 
+  Serial.print("slope = (");
+  Serial.print(n);
+  Serial.print(" * ");
+  Serial.print(sum_xy);
+  Serial.print(" - ");
+  Serial.print(sum_x);
+  Serial.print(" * ");
+  Serial.print(sum_y);
+  Serial.print(") / ");
+  Serial.print(denominator);
+
   slope = (n * sum_xy - sum_x * sum_y) / denominator;
+
+  Serial.print(" -> ");
+  Serial.println(slope);
+
+  Serial.print("intercept = (");
+  Serial.print(sum_y);
+  Serial.print(" * ");
+  Serial.print(sum_xx);
+  Serial.print(" - ");
+  Serial.print(sum_x);
+  Serial.print(" * ");
+  Serial.print(sum_xy);
+  Serial.print(") / ");
+  Serial.print(denominator);
+
   intercept = (sum_y * sum_xx - sum_x * sum_xy) / denominator;
+
+  Serial.print(" -> ");
+  Serial.println(intercept);
 
   Serial.print("Calculated line: y = (");
   Serial.print(slope);
@@ -272,6 +316,10 @@ float LookAhead::predictX(float slope, float intercept, float y) {
   if (slope == INFINITY_VALUE) {
     // Handle vertical line case by returning the x-location stored in intercept
     Serial.print("Vertical line detected, returning x-value: ");
+    Serial.println(intercept);
+    return intercept;
+  } else if (slope == 0) {
+    Serial.print("Slope is zero, returning intercept: ");
     Serial.println(intercept);
     return intercept;
   }
