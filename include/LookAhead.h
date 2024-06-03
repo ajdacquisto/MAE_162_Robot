@@ -35,20 +35,20 @@ public:
    * @param lineSensorValue The line sensor value.
    * @return The converted 8-bit unsigned integer value.
    */
-  uint8_t convertToUint8_t(int lineSensorValue);
+  uint8_t convertToUint8_t(int lineSensorValue, bool useNewIR);
 
   /**
    * @brief Adds a sensor reading to the buffer.
    * @param sensor_reading The sensor reading to add.
    */
-  void addSensorReading(uint8_t sensor_reading);
+  void addSensorReading(uint8_t sensor_reading, bool useNewIR);
 
   /**
    * @brief Retrieves the points stored in the buffer.
    * @param points The array to store the points.
    * @param num_points The number of points retrieved.
    */
-  void getPoints(float points[][2], int &num_points);
+  void getPoints(float points[][2], int &num_points, bool useNewIR);
 
   /**
    * @brief Performs linear regression on the given points.
@@ -154,7 +154,7 @@ private:
    * @param sensor_reading The sensor reading.
    * @return The calculated x-position.
    */
-  float calculateXPosition(uint8_t sensor_reading);
+  float calculateXPosition(uint8_t sensor_reading, bool useNewIR);
 };
 
 #endif // LOOKAHEAD_H

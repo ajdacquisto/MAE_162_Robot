@@ -52,22 +52,33 @@ float LookAhead::PID(float error) {
  * @param lineSensorValue The line sensor value to be converted.
  * @return The converted uint8_t value.
  */
-uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
+uint8_t LookAhead::convertToUint8_t(int lineSensorValue, bool useNewIR) {
+
   Serial.print("Converting line sensor value: ");
   Serial.println(lineSensorValue, BIN);
 
   // Ensure that the lineSensorValue is within the range of 0-63 (6 bits)
-  lineSensorValue &= 0x3F; // 0x3F is 00111111 in binary, masking the six least
-                           // significant bits
+  lineSensorValue &= 0x3F; // 0x3F is 00111111 in binary, masking the six
+                           // least significant bits
 
   // Cast the result to uint8_t
   uint8_t result = static_cast<uint8_t>(lineSensorValue);
   Serial.print("Converted value: ");
-  uint8_t leastSignificantBits =
-      result & 0x3F;             // Masking to get the 6 least significant bits
-  for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
-    Serial.print((leastSignificantBits >> i) & 0x01);
+
+  if (!useNewIR) {
+    uint8_t leastSignificantBits =
+        result & 0x3F; // Masking to get the 6 least significant bits
+    for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+      Serial.print((leastSignificantBits >> i) & 0x01);
+    }
+  } else {
+    uint8_t leastSignificantBits =
+        result & 0x1F; // Masking to get the 5 least significant bits
+    for (int i = 4; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+      Serial.print((leastSignificantBits >> i) & 0x01);
+    }
   }
+
   Serial.println();
   return result;
 }
@@ -77,13 +88,23 @@ uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
  *
  * @param sensor_reading The sensor reading to be added.
  */
-void LookAhead::addSensorReading(uint8_t sensor_reading) {
+void LookAhead::addSensorReading(uint8_t sensor_reading, bool useNewIR) {
   Serial.print("Adding sensor reading: ");
-  uint8_t leastSignificantBits =
-      sensor_reading & 0x3F;     // Masking to get the 6 least significant bits
-  for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
-    Serial.print((leastSignificantBits >> i) & 0x01);
+
+  if (!useNewIR) {
+    uint8_t leastSignificantBits =
+        sensor_reading & 0x3F; // Masking to get the 6 least significant bits
+    for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+      Serial.print((leastSignificantBits >> i) & 0x01);
+    }
+  } else {
+    uint8_t leastSignificantBits =
+        sensor_reading & 0x1F; // Masking to get the 5 least significant bits
+    for (int i = 4; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+      Serial.print((leastSignificantBits >> i) & 0x01);
+    }
   }
+
   Serial.println();
 
   buffer[bufferIndex] = sensor_reading;
@@ -104,7 +125,7 @@ void LookAhead::addSensorReading(uint8_t sensor_reading) {
  * @param points The array to store the (X, Y) points.
  * @param num_points The number of points to retrieve.
  */
-void LookAhead::getPoints(float points[][2], int &num_points) {
+void LookAhead::getPoints(float points[][2], int &num_points, bool useNewIR) {
   num_points = 0;
   for (int i = 0; i < bufferCount; ++i) {
     int index = (bufferIndex - 1 - i + BUFFER_SIZE) % BUFFER_SIZE;
@@ -115,16 +136,26 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
       Serial.print("Buffer [");
       Serial.print(index);
       Serial.print("] = ");
-      uint8_t leastSignificantBits =
-          sensor_reading & 0x3F; // Masking to get the 6 least significant bits
-      for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
-        Serial.print((leastSignificantBits >> i) & 0x01);
+      if (!useNewIR) {
+        uint8_t leastSignificantBits =
+            sensor_reading &
+            0x3F; // Masking to get the 6 least significant bits
+        for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+          Serial.print((leastSignificantBits >> i) & 0x01);
+        }
+      } else {
+        uint8_t leastSignificantBits =
+            sensor_reading &
+            0x1F; // Masking to get the 5 least significant bits
+        for (int i = 4; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+          Serial.print((leastSignificantBits >> i) & 0x01);
+        }
       }
       Serial.println(" -> skipped");
       continue;
     }
 
-    float x_position = calculateXPosition(sensor_reading);
+    float x_position = calculateXPosition(sensor_reading, useNewIR);
     float y_position = -i;
 
     points[num_points][0] = x_position;
@@ -134,10 +165,18 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
     Serial.print("Buffer [");
     Serial.print(index);
     Serial.print("] = ");
-    uint8_t leastSignificantBits =
-        sensor_reading & 0x3F; // Masking to get the 6 least significant bits
-    for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
-      Serial.print((leastSignificantBits >> i) & 0x01);
+    if (!useNewIR) {
+      uint8_t leastSignificantBits =
+          sensor_reading & 0x3F; // Masking to get the 6 least significant bits
+      for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+        Serial.print((leastSignificantBits >> i) & 0x01);
+      }
+    } else {
+      uint8_t leastSignificantBits =
+          sensor_reading & 0x1F; // Masking to get the 5 least significant bits
+      for (int i = 4; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+        Serial.print((leastSignificantBits >> i) & 0x01);
+      }
     }
 
     Serial.print(" -> (");
@@ -147,8 +186,8 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
     Serial.println(")");
   }
 
-  Serial.print("Number of points retrieved: ");
-  Serial.println(num_points);
+  //Serial.print("Number of points retrieved: ");
+  //Serial.println(num_points);
 }
 
 /**
@@ -157,55 +196,104 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
  * @param sensor_reading The sensor reading value.
  * @return The x-position.
  */
-float LookAhead::calculateXPosition(uint8_t sensor_reading) {
-  const float positions[6] = {-2.5, -1.5, -0.5, 0.5, 1.5, 2.5};
-  int count_ones = 0;
-  float sum_positions = 0.0;
+float LookAhead::calculateXPosition(uint8_t sensor_reading, bool useNewIR) {
+  if (!useNewIR) {
+    const float positions[6] = {-2.5, -1.5, -0.5, 0.5, 1.5, 2.5};
+    int count_ones = 0;
+    float sum_positions = 0.0;
 
-  for (int i = 0; i < 6; ++i) {
-    if (sensor_reading & (1 << (5 - i))) {
-      count_ones++;
-      sum_positions += positions[i];
+    for (int i = 0; i < 6; ++i) {
+      if (sensor_reading & (1 << (5 - i))) {
+        count_ones++;
+        sum_positions += positions[i];
+      }
     }
-  }
+    // Serial.print("<call> calculateXPosition(");
+    // uint8_t leastSignificantBits =
+    //     sensor_reading & 0x3F; // Masking to get the 6 least significant bits
+    // for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+    //   Serial.print((leastSignificantBits >> i) & 0x01);
+    // }
+    // Serial.print(") <- contains ");
+    // Serial.print(count_ones);
+    // Serial.println(" ones.");
 
-  Serial.print("<call> calculateXPosition(");
-  uint8_t leastSignificantBits =
-      sensor_reading & 0x3F;     // Masking to get the 6 least significant bits
-  for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
-    Serial.print((leastSignificantBits >> i) & 0x01);
-  }
-  Serial.print(") <- contains ");
-  Serial.print(count_ones);
-  Serial.println(" ones.");
-
-  if (count_ones > 3) {
-    return sum_positions / count_ones;
-  } else if (count_ones == 3) {
-    return sum_positions / count_ones;
-  } else if (count_ones == 2) {
-    if (sensor_reading & 0b100000) {
-      sum_positions += positions[0] - 1.0;
-      count_ones++;
-    } else if (sensor_reading & 0b000001) {
-      sum_positions += positions[5] + 1.0;
-      count_ones++;
+    if (count_ones > 3) {
+      return sum_positions / count_ones;
+    } else if (count_ones == 3) {
+      return sum_positions / count_ones;
+    } else if (count_ones == 2) {
+      if (sensor_reading & 0b100000) {
+        sum_positions += positions[0] - 1.0;
+        count_ones++;
+      } else if (sensor_reading & 0b000001) {
+        sum_positions += positions[5] + 1.0;
+        count_ones++;
+      }
+      return sum_positions / count_ones;
+    } else if (count_ones == 1) {
+      if (sensor_reading & 0b100000) {
+        sum_positions += positions[0] - 1.0;
+        sum_positions += positions[1] - 1.0;
+        count_ones += 2;
+      } else if (sensor_reading & 0b000001) {
+        sum_positions += positions[5] + 1.0;
+        sum_positions += positions[4] + 1.0;
+        count_ones += 2;
+      }
+      return sum_positions / count_ones;
     }
-    return sum_positions / count_ones;
-  } else if (count_ones == 1) {
-    if (sensor_reading & 0b100000) {
-      sum_positions += positions[0] - 1.0;
-      sum_positions += positions[1] - 1.0;
-      count_ones += 2;
-    } else if (sensor_reading & 0b000001) {
-      sum_positions += positions[5] + 1.0;
-      sum_positions += positions[4] + 1.0;
-      count_ones += 2;
-    }
-    return sum_positions / count_ones;
-  }
 
-  return 0.0;
+    return 0.0;
+  } else {
+    const float positions[5] = {-2.0, -1.0, 0.0, 1.0, 2.0};
+    int count_ones = 0;
+    float sum_positions = 0.0;
+
+    for (int i = 0; i < 5; ++i) {
+      if (sensor_reading & (1 << (4 - i))) {
+        count_ones++;
+        sum_positions += positions[i];
+      }
+    }
+    // Serial.print("<call> calculateXPosition(");
+    // uint8_t leastSignificantBits =
+    //     sensor_reading & 0x1F; // Masking to get the 5 least significant bits
+    // for (int i = 4; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+    //   Serial.print((leastSignificantBits >> i) & 0x01);
+    // }
+    // Serial.print(") <- contains ");
+    // Serial.print(count_ones);
+    // Serial.println(" ones.");
+
+    if (count_ones > 3) {
+      return sum_positions / count_ones;
+    } else if (count_ones == 3) {
+      return sum_positions / count_ones;
+    } else if (count_ones == 2) {
+      if (sensor_reading & 0b10000) {
+        sum_positions += positions[0] - 1.0;
+        count_ones++;
+      } else if (sensor_reading & 0b00001) {
+        sum_positions += positions[4] + 1.0;
+        count_ones++;
+      }
+      return sum_positions / count_ones;
+    } else if (count_ones == 1) {
+      if (sensor_reading & 0b10000) {
+        sum_positions += positions[0] - 1.0;
+        sum_positions += positions[1] - 1.0;
+        count_ones += 2;
+      } else if (sensor_reading & 0b00001) {
+        sum_positions += positions[4] + 1.0;
+        sum_positions += positions[3] + 1.0;
+        count_ones += 2;
+      }
+      return sum_positions / count_ones;
+    }
+
+    return 0.0;
+  }
 }
 
 /**

@@ -35,14 +35,14 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 // ===== LOOK AHEAD SETTINGS =====
 // ===============================
 
-const int LA_BASE_SPEED = 80;
+const int LA_BASE_SPEED = 150;
 const int LA_MIN_SPEED = 80;
-const int LA_UPPER_CONSTRAINT = 100;
-const int LA_LOWER_CONSTRAINT = -80;
+const int LA_UPPER_CONSTRAINT = 80;
+const int LA_LOWER_CONSTRAINT = -180;
 
 const float LA_KP = 30.0;
-const float LA_KI = 0.5;
-const float LA_KD = 2.0;
+const float LA_KI = 0.0;
+const float LA_KD = 5.0;
 
 // =============================
 // ===== SOFTWARE SETTINGS =====
@@ -74,9 +74,9 @@ const float LINE_FOLLOW_REGULAR_KD = 5.0;
 // - Other drive parameters
 const int REVERSE_SPEED = 100;
 const int BASE_SPEED = 100;
-const int CONSTRAINT = 120;
-const int LOWER_CONSTRAINT = -80;
-const float MIN_SPEED = 80;
+const int CONSTRAINT = 250;
+const int LOWER_CONSTRAINT = -150;
+const float MIN_SPEED = 120;
 
 // - Stop lineFollow for obstacle avoidance
 const long OBSTACLE_DISTANCE_THRESHOLD = 10;
@@ -121,6 +121,16 @@ const int LINE_SENSOR_PIN_B3 = A3;
 
 // - Ultrasonic Sensor
 const int ULTRASONIC_TRIG_PIN = 46, ULTRASONIC_ECHO_PIN = 50;
+
+// =========================
+// ===== NEW IR SENSOR =====
+// =========================
+
+const int NEW_IR_PIN_1 = 22; // left
+const int NEW_IR_PIN_2 = 23;
+const int NEW_IR_PIN_3 = 24;
+const int NEW_IR_PIN_4 = 25;
+const int NEW_IR_PIN_5 = 26; // right
 
 // ==================================
 // ===== OUTPUT PIN ASSIGNMENTS =====

@@ -40,7 +40,7 @@
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
 // ===== CONTROL OBJECTS =====
@@ -526,20 +526,38 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
  * delay of 100ms.
  */
 void handleIRIdle() {
-  bool SHOW_RAW_IR_READINGS = true;
-  bool SHOW_BINARY_READING = true;
+  bool isNewSensor = true;
 
-  int lineSensorResults =
-      sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS);
+  if (isNewSensor) {
+    uint8_t sensorReading = sensorController.getNewIRSensor().readSensorData();
 
-  if (SHOW_BINARY_READING) {
-    serialController.printWithTimestamp("Sensor Mapping: { ");
-    serialController.printBinaryWithLeadingZeros(lineSensorResults);
-    Serial.println(" }\n");
+    Serial.print("New IR value: ");
+    uint8_t leastSignificantBits =
+        sensorReading & 0x1F; // Masking to get the 5 least significant bits
+    for (int i = 4; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+      Serial.print((leastSignificantBits >> i) & 0x01);
+    }
+    Serial.println(); // To move to the next line after printing the bits
+
+    motorController.servosOff();
+    delay(100);
+
+  } else {
+    bool SHOW_RAW_IR_READINGS = true;
+    bool SHOW_BINARY_READING = true;
+
+    int lineSensorResults =
+        sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS, false);
+
+    if (SHOW_BINARY_READING) {
+      serialController.printWithTimestamp("Sensor Mapping: { ");
+      serialController.printBinaryWithLeadingZeros(lineSensorResults);
+      Serial.println(" }\n");
+    }
+
+    motorController.servosOff();
+    delay(100);
   }
-
-  motorController.servosOff();
-  delay(100);
 }
 
 /**
@@ -652,7 +670,7 @@ void handleFollowLine(int mode) {
   bool SHOW_BINARY_READING = true;
 
   int lineSensorResults =
-      sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS);
+      sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS, false);
 
   if (SHOW_BINARY_READING) {
     serialController.printWithTimestamp("Sensor Mapping: { ");
@@ -916,16 +934,24 @@ void handleLift(int direction) {
  * on encoder feedback, and drives the motors accordingly.
  */
 void handleLookAheadLineFollow() {
+  // Check for a 90 degree turn based on the ultrasonic sensor readings.
   ultrasonicTurnCheck();
 
+  // Decide whether to use the new IR sensor.
+  bool doNewIR = true;
+
   // Get int of sensor data in 1s and 0s.
-  int newSensorData = sensorController.getFullIRReadingResults(true);
+  // int newSensorData = sensorController.getFullIRReadingResults(true,
+  // doNewIR);
 
   // Convert to a different data type.
-  uint8_t newSensorDataUint8 = lookAhead.convertToUint8_t(newSensorData);
+  // uint8_t newSensorDataUint8 = lookAhead.convertToUint8_t(newSensorData,
+  // doNewIR);
+  uint8_t newSensorDataUint8 =
+      sensorController.getNewIRSensor().readSensorData();
 
   // Add the new binary number to the buffer.
-  lookAhead.addSensorReading(newSensorDataUint8);
+  lookAhead.addSensorReading(newSensorDataUint8, doNewIR);
 
   // Define a 2D array to store the points.
   float points[10][2];
@@ -934,7 +960,7 @@ void handleLookAheadLineFollow() {
   int num_points;
 
   // Get the points from the buffer.
-  lookAhead.getPoints(points, num_points);
+  lookAhead.getPoints(points, num_points, doNewIR);
 
   // Define variables to store the slope and intercept.
   float slope, intercept;
@@ -967,6 +993,16 @@ void handleLookAheadLineFollow() {
     motorController.getLastDesiredSpeeds(desiredLeftSpeed, desiredRightSpeed);
   } else {
     motorController.setLastDesiredSpeeds(desiredLeftSpeed, desiredRightSpeed);
+  }
+
+  if (doNewIR) {
+    desiredLeftSpeed = -desiredLeftSpeed;
+    desiredRightSpeed = -desiredRightSpeed;
+
+    int temp = desiredLeftSpeed;
+
+    desiredLeftSpeed = desiredRightSpeed;
+    desiredRightSpeed = temp;
   }
 
   // Calculate actual speed using encoders
@@ -1009,7 +1045,7 @@ void handleLookAheadLineFollow() {
   Serial.print(rightMotorSpeed);
   Serial.println(")");
 
-  delay(10); // Small delay to stabilize the loop
+  // delay(10); // Small delay to stabilize the loop
 }
 
 // ===== HELPER FUNCTIONS =====

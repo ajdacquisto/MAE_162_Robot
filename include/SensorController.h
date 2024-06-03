@@ -6,6 +6,7 @@
 #include "SimpleSensor.h"
 #include "config.h"
 #include <Arduino.h>
+#include "NewIRSensor.h"
 
 class SensorController {
 public:
@@ -19,9 +20,10 @@ public:
   enum LED_STATE { OFF = LOW, ON = HIGH };
 
 private:
+  HCSR04 hc;        // Ultrasonic sensor
   Encoder encoderA; // Encoder A
   Encoder encoderB; // Encoder B
-  HCSR04 hc;        // Ultrasonic sensor
+  NewIRSensor newIR; // IR sensor
 
   long ultrasonicMemory;
   int lineSensorAThreshold;
@@ -95,7 +97,9 @@ public:
 
   unsigned long getLastUltrasonicRead();
 
-  int getFullIRReadingResults(bool printResults);
+  int getFullIRReadingResults(bool printResults, bool isNewIR);
+
+  NewIRSensor getNewIRSensor();
 };
 
 #endif // SENSORCONTROLLER_H
