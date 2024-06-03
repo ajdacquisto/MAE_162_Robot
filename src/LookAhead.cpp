@@ -1,19 +1,13 @@
 #include "LookAhead.h"
 
 // Constructor
-LookAhead::LookAhead() {
-  Serial.println("LookAhead initialized");
-}
+LookAhead::LookAhead() { Serial.println("LookAhead initialized"); }
 
 // Destructor
-LookAhead::~LookAhead() {
-  Serial.println("LookAhead destroyed");
-}
+LookAhead::~LookAhead() { Serial.println("LookAhead destroyed"); }
 
 // Initialize the LookAhead object
-void LookAhead::init() {
-  Serial.println("LookAhead init called");
-}
+void LookAhead::init() { Serial.println("LookAhead init called"); }
 
 /**
  * Perform PID control based on the error.
@@ -38,7 +32,7 @@ float LookAhead::PID(float error) {
 // Intermediate function to convert the combined line result to uint8_t
 uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
   Serial.print("Converting line sensor value: ");
-  Serial.println(lineSensorValue);
+  Serial.println(lineSensorValue, BIN);
 
   // Ensure that the lineSensorValue is within the range of 0-63 (6 bits)
   lineSensorValue &= 0x3F; // 0x3F is 00111111 in binary, masking the six least
@@ -47,14 +41,24 @@ uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
   // Cast the result to uint8_t
   uint8_t result = static_cast<uint8_t>(lineSensorValue);
   Serial.print("Converted value: ");
-  Serial.println(result);
+  uint8_t leastSignificantBits =
+      result & 0x3F;             // Masking to get the 6 least significant bits
+  for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+    Serial.print((leastSignificantBits >> i) & 0x01);
+  }
+  Serial.println();
   return result;
 }
 
 // Add a new sensor reading to the buffer
 void LookAhead::addSensorReading(uint8_t sensor_reading) {
   Serial.print("Adding sensor reading: ");
-  Serial.println(sensor_reading);
+  uint8_t leastSignificantBits =
+      sensor_reading & 0x3F;     // Masking to get the 6 least significant bits
+  for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+    Serial.print((leastSignificantBits >> i) & 0x01);
+  }
+  Serial.println();
 
   buffer[bufferIndex] = sensor_reading;
   bufferIndex = (bufferIndex + 1) % BUFFER_SIZE;
@@ -63,8 +67,8 @@ void LookAhead::addSensorReading(uint8_t sensor_reading) {
   }
 
   Serial.print("Buffer index: ");
-  Serial.println(bufferIndex);
-  Serial.print("Buffer count: ");
+  Serial.print(bufferIndex);
+  Serial.print(", Buffer count: ");
   Serial.println(bufferCount);
 }
 
@@ -80,14 +84,19 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
     int index = (bufferIndex - 1 - i + BUFFER_SIZE) % BUFFER_SIZE;
     uint8_t sensor_reading = buffer[index];
 
-    Serial.print("Reading from buffer at index ");
-    Serial.print(index);
-    Serial.print(": ");
-    Serial.println(sensor_reading);
-
     // Skip all-zero readings
-    if (sensor_reading == 0)
+    if (sensor_reading == 0) {
+      Serial.print("Buffer [");
+      Serial.print(index);
+      Serial.print("] = ");
+      uint8_t leastSignificantBits =
+          sensor_reading & 0x3F; // Masking to get the 6 least significant bits
+      for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+        Serial.print((leastSignificantBits >> i) & 0x01);
+      }
+      Serial.println(" -> skipped");
       continue;
+    }
 
     float x_position = calculateXPosition(sensor_reading);
     float y_position = -i;
@@ -95,6 +104,21 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
     points[num_points][0] = x_position;
     points[num_points][1] = y_position;
     num_points++;
+
+    Serial.print("Buffer [");
+    Serial.print(index);
+    Serial.print("] = ");
+    uint8_t leastSignificantBits =
+        sensor_reading & 0x3F; // Masking to get the 6 least significant bits
+    for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+      Serial.print((leastSignificantBits >> i) & 0x01);
+    }
+
+    Serial.print(" -> (");
+    Serial.print(x_position);
+    Serial.print(", ");
+    Serial.print(y_position);
+    Serial.println(")");
   }
 
   Serial.print("Number of points retrieved: ");
@@ -119,10 +143,15 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading) {
     }
   }
 
-  Serial.print("Sensor reading: ");
-  Serial.print(sensor_reading);
-  Serial.print(" Count of ones: ");
-  Serial.println(count_ones);
+  Serial.print("<call> calculateXPosition(");
+  uint8_t leastSignificantBits =
+      sensor_reading & 0x3F;     // Masking to get the 6 least significant bits
+  for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
+    Serial.print((leastSignificantBits >> i) & 0x01);
+  }
+  Serial.print(") <- contains ");
+  Serial.print(count_ones);
+  Serial.println(" ones.");
 
   if (count_ones > 3) {
     return sum_positions / count_ones;
@@ -190,8 +219,13 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   if (isVerticalLine) {
     // Handle vertical line case
     slope = INFINITY_VALUE;
-    intercept = mean_x; // Can use intercept to store x-value of the line
     Serial.println("Detected vertical line case");
+    if (isnan(mean_x)) {
+      Serial.println("Mean x is NaN");
+      intercept = 0;
+      return;
+    }
+    intercept = mean_x; // Can use intercept to store x-value of the line
     return;
   }
 
@@ -213,16 +247,16 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   if (denominator == 0) {
     slope = 0;
     intercept = 0;
-    Serial.println("Denominator is zero, slope and intercept set to 0");
+    Serial.println("<!> Denominator is zero, slope and intercept set to 0");
     return;
   }
 
   slope = (n * sum_xy - sum_x * sum_y) / denominator;
   intercept = (sum_y * sum_xx - sum_x * sum_xy) / denominator;
 
-  Serial.print("Calculated slope: ");
+  Serial.print("Calculated line: y = (");
   Serial.print(slope);
-  Serial.print(" intercept: ");
+  Serial.print(")x + ");
   Serial.println(intercept);
 }
 
@@ -242,9 +276,10 @@ float LookAhead::predictX(float slope, float intercept, float y) {
     return intercept;
   }
   float predicted_x = (y - intercept) / slope;
-  Serial.print("Predicted x for y = ");
+  Serial.print("Look ahead point: (x, y) = (");
+  Serial.print(predicted_x);
+  Serial.print(", ");
   Serial.print(y);
-  Serial.print(" is: ");
-  Serial.println(predicted_x);
+  Serial.println(")");
   return predicted_x;
 }

@@ -40,7 +40,7 @@ const int LA_MIN_SPEED = 80;
 const int LA_UPPER_CONSTRAINT = 120;
 const int LA_LOWER_CONSTRAINT = -100;
 
-const float LA_KP = 20.0;
+const float LA_KP = 40.0;
 const float LA_KI = 0.0;
 const float LA_KD = 0.0;
 
