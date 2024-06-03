@@ -59,6 +59,7 @@ void handleUltrasonicApproach();
 void handleUltrasonicReverse();
 void handleLift(int direction);
 void handleLookAheadLineFollow();
+void ultrasonicTurnCheck();
 
 // Helper functions
 void resetAllPIDMemory();
