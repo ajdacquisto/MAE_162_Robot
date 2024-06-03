@@ -49,12 +49,12 @@ int SensorController::combineLineResult(int avg1, int avg2, int avg3, int avg4, 
     const int AVERAGE_VALUES[6] = {770, 712, 796, 787, 765, 847};
 
     // Calculate the threshold for each sensor dynamically based on the provided averages
-    int lineSensorValueA1 = (avg1 > (AVERAGE_VALUES[0] - 5 + 0*(1000 - AVERAGE_VALUES[0]) / 2)) ? 1 : 0;
-    int lineSensorValueA2 = (avg2 > (AVERAGE_VALUES[1] - 5 + 0*(1000 - AVERAGE_VALUES[1]) / 2)) ? 1 : 0;
-    int lineSensorValueA3 = (avg3 > (AVERAGE_VALUES[2] - 5 + 0*(1000 - AVERAGE_VALUES[2]) / 2)) ? 1 : 0;
-    int lineSensorValueB1 = (avg4 > (AVERAGE_VALUES[3] - 5 + 0*(1000 - AVERAGE_VALUES[3]) / 2)) ? 1 : 0;
-    int lineSensorValueB2 = (avg5 > (AVERAGE_VALUES[4] - 5 + 0*(1000 - AVERAGE_VALUES[4]) / 2)) ? 1 : 0;
-    int lineSensorValueB3 = (avg6 > (AVERAGE_VALUES[5] - 5 + 0*(1000 - AVERAGE_VALUES[5]) / 2)) ? 1 : 0;
+    int lineSensorValueA1 = (avg1 > (AVERAGE_VALUES[0] - 0 + 0*(1000 - AVERAGE_VALUES[0]) / 2)) ? 1 : 0;
+    int lineSensorValueA2 = (avg2 > (AVERAGE_VALUES[1] - 0 + 0*(1000 - AVERAGE_VALUES[1]) / 2)) ? 1 : 0;
+    int lineSensorValueA3 = (avg3 > (AVERAGE_VALUES[2] - 0 + 0*(1000 - AVERAGE_VALUES[2]) / 2)) ? 1 : 0;
+    int lineSensorValueB1 = (avg4 > (AVERAGE_VALUES[3] - 0 + 0*(1000 - AVERAGE_VALUES[3]) / 2)) ? 1 : 0;
+    int lineSensorValueB2 = (avg5 > (AVERAGE_VALUES[4] - 0 + 0*(1000 - AVERAGE_VALUES[4]) / 2)) ? 1 : 0;
+    int lineSensorValueB3 = (avg6 > (AVERAGE_VALUES[5] - 0 + 0*(1000 - AVERAGE_VALUES[5]) / 2)) ? 1 : 0;
 
     // Optional: Print the sensor values for debugging
     bool DO_READ_ONE_BY_ONE = false;
@@ -201,6 +201,8 @@ float SensorController::speedAdjust(int speedReading, float constraintValue) {
 
 bool SensorController::isObstacle(long distanceThreshold) {
   long distance = getUltrasonicDistance();
+  Serial.print("Ultrasonic distance measurement: ");
+  Serial.println(distance);
   if (distance < distanceThreshold) {
     return true;
   } else {

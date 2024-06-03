@@ -35,10 +35,10 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 // ===== LOOK AHEAD SETTINGS =====
 // ===============================
 
-const int LA_BASE_SPEED = 100;
+const int LA_BASE_SPEED = 80;
 const int LA_MIN_SPEED = 80;
-const int LA_UPPER_CONSTRAINT = 120;
-const int LA_LOWER_CONSTRAINT = -100;
+const int LA_UPPER_CONSTRAINT = 100;
+const int LA_LOWER_CONSTRAINT = -80;
 
 const float LA_KP = 35.0;
 const float LA_KI = 0.0;
