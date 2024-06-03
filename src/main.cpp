@@ -841,7 +841,7 @@ void handleLookAheadLineFollow() {
   int recent_points = 5; // Tunable value
 
   // Perform linear regression on the points.
-  lookAhead.linearRegression(points, num_points, recent_points, slope,
+  bool doForward = lookAhead.linearRegression(points, num_points, recent_points, slope,
                              intercept);
 
   // Define a y-value to predict the x-value for.
@@ -859,6 +859,12 @@ void handleLookAheadLineFollow() {
   // Calculate desired motor speeds
   int desiredLeftSpeed = LA_BASE_SPEED + pidOutput;
   int desiredRightSpeed = LA_BASE_SPEED - pidOutput;
+
+  
+  if (!doForward) {
+    desiredLeftSpeed = -REVERSE_SPEED;
+    desiredRightSpeed = -REVERSE_SPEED;
+  }
 
   // Calculate actual speed using encoders
   int actualLeftSpeed = sensorController.getEncoderBSpeed();

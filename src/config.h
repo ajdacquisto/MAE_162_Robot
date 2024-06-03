@@ -73,10 +73,10 @@ const float LINE_FOLLOW_REGULAR_KD = 5.0;
 
 // - Other drive parameters
 const int REVERSE_SPEED = 100;
-const int BASE_SPEED = 60;
-const int CONSTRAINT = 90;
+const int BASE_SPEED = 100;
+const int CONSTRAINT = 120;
 const int LOWER_CONSTRAINT = -80;
-const float MIN_SPEED = 70;
+const float MIN_SPEED = 80;
 
 // - Stop lineFollow for obstacle avoidance
 const long OBSTACLE_DISTANCE_THRESHOLD = 10;

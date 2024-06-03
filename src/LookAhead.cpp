@@ -191,7 +191,7 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading) {
  * @param slope The calculated slope of the regression line.
  * @param intercept The calculated intercept of the regression line.
  */
-void LookAhead::linearRegression(const float points[][2], int num_points,
+bool LookAhead::linearRegression(const float points[][2], int num_points,
                                  int recent_points, float &slope,
                                  float &intercept) {
   
@@ -207,7 +207,7 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
     slope = 0;
     intercept = 0;
     Serial.println("<!> No recent points, slope and intercept set to 0");
-    return;
+    return false;
   }
 
   float sum_x = 0;
@@ -231,10 +231,10 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
     if (isnan(mean_x)) {
       Serial.println("Mean x is NaN");
       intercept = 0;
-      return;
+      return true;
     }
     intercept = mean_x; // Can use intercept to store x-value of the line
-    return;
+    return true;
   }
 
   // Continue with regular linear regression calculation
@@ -263,7 +263,7 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
     slope = 0;
     intercept = 0;
     Serial.println("<!> Denominator is zero, slope and intercept set to 0");
-    return;
+    return true;
   }
 
   Serial.print("slope = (");
@@ -302,6 +302,8 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   Serial.print(slope);
   Serial.print(")x + ");
   Serial.println(intercept);
+
+  return true;
 }
 
 /**

@@ -58,7 +58,7 @@ public:
    * @param slope The calculated slope of the regression line.
    * @param intercept The calculated intercept of the regression line.
    */
-  void linearRegression(const float points[][2], int num_points,
+  bool linearRegression(const float points[][2], int num_points,
                         int recent_points, float &slope, float &intercept);
 
   /**
