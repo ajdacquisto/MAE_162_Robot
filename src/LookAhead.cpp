@@ -1,13 +1,19 @@
 #include "LookAhead.h"
 
 // Constructor
-LookAhead::LookAhead() { Serial.println("LookAhead initialized"); }
+LookAhead::LookAhead() {
+  Serial.println("LookAhead initialized");
+}
 
 // Destructor
-LookAhead::~LookAhead() { Serial.println("LookAhead destroyed"); }
+LookAhead::~LookAhead() {
+  Serial.println("LookAhead destroyed");
+}
 
 // Initialize the LookAhead object
-void LookAhead::init() { Serial.println("LookAhead initialized"); }
+void LookAhead::init() {
+  Serial.println("LookAhead init called");
+}
 
 /**
  * Perform PID control based on the error.
@@ -31,21 +37,35 @@ float LookAhead::PID(float error) {
 
 // Intermediate function to convert the combined line result to uint8_t
 uint8_t LookAhead::convertToUint8_t(int lineSensorValue) {
+  Serial.print("Converting line sensor value: ");
+  Serial.println(lineSensorValue);
+
   // Ensure that the lineSensorValue is within the range of 0-63 (6 bits)
   lineSensorValue &= 0x3F; // 0x3F is 00111111 in binary, masking the six least
                            // significant bits
 
   // Cast the result to uint8_t
-  return static_cast<uint8_t>(lineSensorValue);
+  uint8_t result = static_cast<uint8_t>(lineSensorValue);
+  Serial.print("Converted value: ");
+  Serial.println(result);
+  return result;
 }
 
 // Add a new sensor reading to the buffer
 void LookAhead::addSensorReading(uint8_t sensor_reading) {
+  Serial.print("Adding sensor reading: ");
+  Serial.println(sensor_reading);
+
   buffer[bufferIndex] = sensor_reading;
   bufferIndex = (bufferIndex + 1) % BUFFER_SIZE;
   if (bufferCount < BUFFER_SIZE) {
     bufferCount++;
   }
+
+  Serial.print("Buffer index: ");
+  Serial.println(bufferIndex);
+  Serial.print("Buffer count: ");
+  Serial.println(bufferCount);
 }
 
 /**
@@ -60,6 +80,11 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
     int index = (bufferIndex - 1 - i + BUFFER_SIZE) % BUFFER_SIZE;
     uint8_t sensor_reading = buffer[index];
 
+    Serial.print("Reading from buffer at index ");
+    Serial.print(index);
+    Serial.print(": ");
+    Serial.println(sensor_reading);
+
     // Skip all-zero readings
     if (sensor_reading == 0)
       continue;
@@ -71,6 +96,9 @@ void LookAhead::getPoints(float points[][2], int &num_points) {
     points[num_points][1] = y_position;
     num_points++;
   }
+
+  Serial.print("Number of points retrieved: ");
+  Serial.println(num_points);
 }
 
 /**
@@ -90,6 +118,11 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading) {
       sum_positions += positions[i];
     }
   }
+
+  Serial.print("Sensor reading: ");
+  Serial.print(sensor_reading);
+  Serial.print(" Count of ones: ");
+  Serial.println(count_ones);
 
   if (count_ones > 3) {
     return sum_positions / count_ones;
@@ -136,6 +169,10 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
     recent_points = num_points;
   }
 
+  Serial.print("Performing linear regression with ");
+  Serial.print(recent_points);
+  Serial.println(" recent points");
+
   float sum_x = 0;
   for (int i = 0; i < recent_points; ++i) {
     sum_x += points[i][0];
@@ -154,6 +191,7 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
     // Handle vertical line case
     slope = INFINITY_VALUE;
     intercept = mean_x; // Can use intercept to store x-value of the line
+    Serial.println("Detected vertical line case");
     return;
   }
 
@@ -175,11 +213,17 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
   if (denominator == 0) {
     slope = 0;
     intercept = 0;
+    Serial.println("Denominator is zero, slope and intercept set to 0");
     return;
   }
 
   slope = (n * sum_xy - sum_x * sum_y) / denominator;
   intercept = (sum_y * sum_xx - sum_x * sum_xy) / denominator;
+
+  Serial.print("Calculated slope: ");
+  Serial.print(slope);
+  Serial.print(" intercept: ");
+  Serial.println(intercept);
 }
 
 /**
@@ -193,7 +237,14 @@ void LookAhead::linearRegression(const float points[][2], int num_points,
 float LookAhead::predictX(float slope, float intercept, float y) {
   if (slope == INFINITY_VALUE) {
     // Handle vertical line case by returning the x-location stored in intercept
+    Serial.print("Vertical line detected, returning x-value: ");
+    Serial.println(intercept);
     return intercept;
   }
-  return (y - intercept) / slope;
+  float predicted_x = (y - intercept) / slope;
+  Serial.print("Predicted x for y = ");
+  Serial.print(y);
+  Serial.print(" is: ");
+  Serial.println(predicted_x);
+  return predicted_x;
 }
