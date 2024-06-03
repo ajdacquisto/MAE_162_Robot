@@ -25,7 +25,8 @@ void MotorController::rotateStepperAdeg(int degrees) {
 }
 
 void MotorController::rotateStepperAsteps(int steps) {
-  stepperMotorA.step(steps);
+  //stepperMotorA.step(steps);
+  stepperDriverA.step();
 }
 
 void MotorController::rotateStepperBdeg(int degrees) {
@@ -42,7 +43,7 @@ void MotorController::servosOff() {
 }
 
 void MotorController::setStepperMotorSpeedsToMax() {
-  stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED);
+  //stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED);
   stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
 }
 
@@ -148,6 +149,10 @@ void MotorController::handleFourBar(FOUR_BAR_DIRECTION direction) {
 void MotorController::init() {
   attachServoMotors();
   setStepperMotorSpeedsToMax();
+
+  stepperDriverA.begin(STEPPER_A_DIRECTION_PIN, STEPPER_A_STEP_PIN);
+  //stepperDriverA.setStepsPerRotation(STEPPER_A_STEPS_PER_REVOLUTION);
+  stepperDriverA.setDirection(DRV8825_CLOCK_WISE);
 }
 
 void MotorController::getLastDesiredSpeeds(int &leftSpeed, int &rightSpeed) {

@@ -22,7 +22,7 @@
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LIFT;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
 // ===== CONTROL OBJECTS =====
@@ -381,14 +381,15 @@ void handleIdle() {
 void handleCalibrate(MotorController::COMPONENT componentCode) {
   switch (componentCode) {
   case MotorController::FOUR_BAR: {
-    int FOUR_BAR_CALIBRATION_MODE = 2;
+    int FOUR_BAR_CALIBRATION_MODE = 1;
 
     if (FOUR_BAR_CALIBRATION_MODE == 1) {
       if (sensorController.readButton() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
+        Serial.println("Button pressed");
         sensorController.turnLED(SensorController::ON);
         motorController.rotateStepperAsteps(1);
-        delay(200);
+        delay(10);
       } else {
         sensorController.turnLED(SensorController::OFF);
       }

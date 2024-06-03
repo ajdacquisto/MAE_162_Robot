@@ -143,6 +143,16 @@ const int STEPPER_PIN_A3 = 42, STEPPER_PIN_A4 = 43;
 const int STEPPER_PIN_B1 = 30, STEPPER_PIN_B2 = 31;
 const int STEPPER_PIN_B3 = 32, STEPPER_PIN_B4 = 33;
 
+// ==============================
+// ===== NEW STEPPER DRIVER =====
+// ==============================
+
+const int STEPPER_A_DIRECTION_PIN = 38;
+const int STEPPER_A_STEP_PIN = 36;
+
+const int STEPPER_B_DIRECTION_PIN = 0;
+const int STEPPER_B_STEP_PIN = 0;
+
 // ==================================
 // ==================================
 // ==================================

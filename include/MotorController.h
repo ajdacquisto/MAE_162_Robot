@@ -2,6 +2,7 @@
 #define MOTORCONTROLLER_H
 
 #include "DRV8833.h"
+#include "DRV8825.h"
 #include "Stepper.h"
 #include "config.h"
 
@@ -17,6 +18,7 @@ private:
 
 public:
   DRV8833 motorDriver;
+  DRV8825 stepperDriverA;
   Stepper stepperMotorA;
   Stepper stepperMotorB;
 
