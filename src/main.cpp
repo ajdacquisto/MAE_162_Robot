@@ -40,8 +40,8 @@
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
-MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
+MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::BACKWARD;
 
 // ===== CONTROL OBJECTS =====
 SystemStateHandler systemStateHandler =
@@ -484,13 +484,15 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
   }
   case MotorController::LEFT_WHEEL: {
     if (sensorController.readButton() == SensorController::PRESSED) {
-      motorController.motorDriver.motorBForward(255); // full speed
+      //motorController.motorDriver.motorBForward(255); // full speed
+      motorController.servoDrive(MotorController::SERVO_B, 255); // full speed
       int actualLeftSpeed = sensorController.getEncoderBSpeed();
       Serial.print("Actual left speed: ");
       Serial.println(actualLeftSpeed);
       sensorController.turnLED(SensorController::ON);
     } else {
-      motorController.servosOff();
+      motorController.servoDrive(MotorController::SERVO_B, 0); // full speed
+      //motorController.motorDriver.motorBStop();
       sensorController.turnLED(SensorController::OFF);
     }
     break;
@@ -966,7 +968,7 @@ void handleLookAheadLineFollow() {
   float slope, intercept;
 
   // Define the number of recent points to use for regression.
-  int recent_points = 5; // Tunable value
+  int recent_points = 6; // Tunable value
 
   // Perform linear regression on the points.
   bool doForward = lookAhead.linearRegression(points, num_points, recent_points,
