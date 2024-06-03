@@ -10,7 +10,10 @@ private:
   bool hasLeftLineYet = false;
   int lastSpeedA = 0; // Last commanded speed for motor A
   int lastSpeedB = 0; // Last commanded speed for motor B
-  const int rampRate = 10; // Tunable ramp rate (adjust as needed)
+  const int rampRate = 5; // Tunable ramp rate (adjust as needed)
+
+  int lastDesiredLeftSpeed = 0;
+  int lastDesiredRightSpeed = 0;
 
 public:
   DRV8833 motorDriver;
@@ -48,6 +51,9 @@ public:
   void servoDrive(SERVO whichServo, int speed);
   void handleFourBar(FOUR_BAR_DIRECTION direction);
   void init();
+
+  void getLastDesiredSpeeds(int &leftSpeed, int &rightSpeed);
+  void setLastDesiredSpeeds(int leftSpeed, int rightSpeed);
 };
 
 #endif // MOTORCONTROLLER_H

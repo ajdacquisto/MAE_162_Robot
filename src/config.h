@@ -40,9 +40,9 @@ const int LA_MIN_SPEED = 80;
 const int LA_UPPER_CONSTRAINT = 100;
 const int LA_LOWER_CONSTRAINT = -80;
 
-const float LA_KP = 35.0;
-const float LA_KI = 0.0;
-const float LA_KD = 1.0;
+const float LA_KP = 30.0;
+const float LA_KI = 0.5;
+const float LA_KD = 2.0;
 
 // =============================
 // ===== SOFTWARE SETTINGS =====
@@ -56,7 +56,7 @@ const int LINE_SENSOR_THRESHOLD = 860;
 // const int LINE_SENSOR_B_THRESHOLD = 850;
 
 // - Stepper Motor A (four-bar)
-const int STEPPER_A_MAX_SPEED = 10;
+const int STEPPER_A_MAX_SPEED = 1;
 
 // - Stepper Motor B (lift)
 const int STEPPER_B_MAX_SPEED = 12;

@@ -149,3 +149,13 @@ void MotorController::init() {
   attachServoMotors();
   setStepperMotorSpeedsToMax();
 }
+
+void MotorController::getLastDesiredSpeeds(int &leftSpeed, int &rightSpeed) {
+  leftSpeed = lastDesiredLeftSpeed;
+  rightSpeed = lastDesiredRightSpeed;
+}
+
+void MotorController::setLastDesiredSpeeds(int leftSpeed, int rightSpeed) {
+  lastDesiredLeftSpeed = leftSpeed;
+  lastDesiredRightSpeed = rightSpeed;
+}

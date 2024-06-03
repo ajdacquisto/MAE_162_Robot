@@ -22,7 +22,7 @@
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::IDLE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LIFT;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
 // ===== CONTROL OBJECTS =====
@@ -387,7 +387,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       if (sensorController.readButton() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
         sensorController.turnLED(SensorController::ON);
-        // motorController.rotateStepperAsteps(1);
+        motorController.rotateStepperAsteps(1);
         delay(200);
       } else {
         sensorController.turnLED(SensorController::OFF);
@@ -841,8 +841,8 @@ void handleLookAheadLineFollow() {
   int recent_points = 5; // Tunable value
 
   // Perform linear regression on the points.
-  bool doForward = lookAhead.linearRegression(points, num_points, recent_points, slope,
-                             intercept);
+  bool doForward = lookAhead.linearRegression(points, num_points, recent_points,
+                                              slope, intercept);
 
   // Define a y-value to predict the x-value for.
   float y_value = 5.0;
@@ -860,10 +860,11 @@ void handleLookAheadLineFollow() {
   int desiredLeftSpeed = LA_BASE_SPEED + pidOutput;
   int desiredRightSpeed = LA_BASE_SPEED - pidOutput;
 
-  
   if (!doForward) {
-    desiredLeftSpeed = -REVERSE_SPEED;
-    desiredRightSpeed = -REVERSE_SPEED;
+    Serial.println("<!> Reverse command");
+    motorController.getLastDesiredSpeeds(desiredLeftSpeed, desiredRightSpeed);
+  } else {
+    motorController.setLastDesiredSpeeds(desiredLeftSpeed, desiredRightSpeed);
   }
 
   // Calculate actual speed using encoders
@@ -912,7 +913,7 @@ void handleLookAheadLineFollow() {
 // ===== HELPER FUNCTIONS =====
 
 void ultrasonicTurnCheck() {
-  int numSecondsGracePeriod = 30;
+  int numSecondsGracePeriod = 40;
   if (millis() - systemStateHandler.getLastStateChangeTime() <
       (unsigned long)(numSecondsGracePeriod * 1000)) {
     return;

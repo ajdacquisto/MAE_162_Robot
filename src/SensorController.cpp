@@ -203,6 +203,9 @@ float SensorController::speedAdjust(int speedReading, float constraintValue) {
 }
 
 bool SensorController::isObstacle(long distanceThreshold) {
+  if (millis() - getLastUltrasonicRead() < 1000) {
+    return false;
+  }
   long distance = getUltrasonicDistance();
   long prevDist = getPreviousDistance();
   Serial.print("Ultrasonic data: (old) ");
