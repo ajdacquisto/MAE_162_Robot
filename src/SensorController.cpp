@@ -2,18 +2,16 @@
 
 // Constructor
 SensorController::SensorController()
-    : hc(ULTRASONIC_TRIG_PIN, ULTRASONIC_ECHO_PIN), // Ultrasonic sensor
-      encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2),     // Encoder A
-      encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2),     // Encoder B
-      lineSensorA1(LINE_SENSOR_PIN_A1),             // Line sensor A1
-      lineSensorA2(LINE_SENSOR_PIN_A2),             // Line sensor A2
-      lineSensorA3(LINE_SENSOR_PIN_A3),             // Line sensor A3
-      lineSensorB1(LINE_SENSOR_PIN_B1),             // Line sensor B1
-      lineSensorB2(LINE_SENSOR_PIN_B2),             // Line sensor B2
-      lineSensorB3(LINE_SENSOR_PIN_B3),             // Line sensor B3
+    : encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2), // Encoder A
+      encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2), // Encoder B
+      lineSensorA1(LINE_SENSOR_PIN_A1),         // Line sensor A1
+      lineSensorA2(LINE_SENSOR_PIN_A2),         // Line sensor A2
+      lineSensorA3(LINE_SENSOR_PIN_A3),         // Line sensor A3
+      lineSensorB1(LINE_SENSOR_PIN_B1),         // Line sensor B1
+      lineSensorB2(LINE_SENSOR_PIN_B2),         // Line sensor B2
+      lineSensorB3(LINE_SENSOR_PIN_B3),         // Line sensor B3
       newIR(NEW_IR_PIN_1, NEW_IR_PIN_2, NEW_IR_PIN_3, NEW_IR_PIN_4,
             NEW_IR_PIN_5) {
-  ultrasonicMemory = 0;
   lineSensorAThreshold = LINE_SENSOR_THRESHOLD;
 }
 
@@ -131,20 +129,6 @@ int SensorController::determineError(int lineSensorValue) {
   return error;
 }
 
-long SensorController::getUltrasonicDistance() {
-  lastUltrasonicRead = millis();
-  long output = hc.dist();
-  previousDistance = currentDistance;
-  currentDistance = output;
-  return output;
-}
-
-long SensorController::getUltrasonicMemory() { return ultrasonicMemory; }
-
-void SensorController::setUltrasonicMemory(long value) {
-  ultrasonicMemory = value;
-}
-
 int SensorController::getLineSensorAThreshold() { return lineSensorAThreshold; }
 
 int SensorController::getLineSensorBThreshold() { return lineSensorBThreshold; }
@@ -219,30 +203,6 @@ float SensorController::speedAdjust(int speedReading, float constraintValue) {
   }
 }
 
-bool SensorController::isObstacle(long distanceThreshold) {
-  if (millis() - getLastUltrasonicRead() < 1000) {
-    return false;
-  }
-  long distance = getUltrasonicDistance();
-  long prevDist = getPreviousDistance();
-  Serial.print("Ultrasonic data: (old) ");
-  Serial.print(prevDist);
-  Serial.print(", (new) ");
-  Serial.println(distance);
-  if (distance < distanceThreshold && prevDist < distanceThreshold) {
-    Serial.print(distance);
-    Serial.print(" and ");
-    Serial.print(prevDist);
-    Serial.println(" are both less than ");
-    Serial.println(distanceThreshold);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-long SensorController::getPreviousDistance() { return previousDistance; }
-
 // Function to process the input binary number and return the desired output
 int SensorController::processBinaryNumber(int binaryNumber[]) {
   int sum = 0;
@@ -307,8 +267,7 @@ void SensorController::init() {
   newIR.init();
 
   // Initialize ultrasonic sensor pins
-  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
-  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
+  ultrasonicHandler.init();
 
   // Reset encoders
   zeroEncoders();
@@ -338,10 +297,6 @@ bool SensorController::buttonCheck() {
     turnLED(SensorController::SensorController::OFF);
     return false;
   }
-}
-
-unsigned long SensorController::getLastUltrasonicRead() {
-  return lastUltrasonicRead;
 }
 
 int SensorController::getFullIRReadingResults(bool printResults, bool isNewIR) {
@@ -380,3 +335,7 @@ int SensorController::getFullIRReadingResults(bool printResults, bool isNewIR) {
 }
 
 NewIRSensor SensorController::getNewIRSensor() { return newIR; }
+
+UltrasonicHandler SensorController::getUltrasonicHandler() {
+  return ultrasonicHandler;
+}

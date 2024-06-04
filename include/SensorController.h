@@ -2,7 +2,7 @@
 #define SENSORCONTROLLER_H
 
 #include "Encoder.h"
-#include "HCSR04.h"
+#include "UltrasonicHandler.h"
 #include "SimpleSensor.h"
 #include "config.h"
 #include <Arduino.h>
@@ -20,16 +20,13 @@ public:
   enum LED_STATE { OFF = LOW, ON = HIGH };
 
 private:
-  HCSR04 hc;        // Ultrasonic sensor
   Encoder encoderA; // Encoder A
   Encoder encoderB; // Encoder B
   NewIRSensor newIR; // IR sensor
+  UltrasonicHandler ultrasonicHandler; // Ultrasonic sensor
 
-  long ultrasonicMemory;
   int lineSensorAThreshold;
   int lineSensorBThreshold;
-  long previousDistance = 0;
-  long currentDistance = 0;
 
   long encoderALastValue = 0;
   long encoderALastTime = 0;
@@ -37,8 +34,6 @@ private:
   long encoderBLastTime = 0;
 
   LED_STATE currentLEDstate = OFF;
-
-  unsigned long lastUltrasonicRead = 0;
 
 public:
   SimpleSensor lineSensorA1; // Line sensor A1
@@ -49,18 +44,12 @@ public:
   SimpleSensor lineSensorB3; // Line sensor B3
 
   void zeroEncoders();
-  long getUltrasonicDistance();
   long readEncoderA();
   long readEncoderB();
   int determineError(int lineSensorValue);
 
-  long getPreviousDistance();
-
   void readLineSensorA();
   void readLineSensorB();
-
-  long getUltrasonicMemory();
-  void setUltrasonicMemory(long value);
 
   int getLineSensorAThreshold();
   void setLineSensorAThreshold(int threshold);
@@ -83,8 +72,6 @@ public:
   float getEncoderBSpeed();
   float speedAdjust(int speedReading, float constraintValue);
 
-  bool isObstacle(long distanceThreshold);
-
   int processBinaryNumber(int binaryNumber[]);
   void intToBinaryArray(int num, int binaryArray[]);
 
@@ -100,6 +87,7 @@ public:
   int getFullIRReadingResults(bool printResults, bool isNewIR);
 
   NewIRSensor getNewIRSensor();
+  UltrasonicHandler getUltrasonicHandler();
 };
 
 #endif // SENSORCONTROLLER_H

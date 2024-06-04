@@ -38,10 +38,11 @@
 #include "LookAhead.h"
 
 // ===== GLOBAL VARIABLES =====
-SystemState::State DEFAULT_STATE = SystemState::IDLE;
+SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LEFT_WHEEL;
-MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::BACKWARD;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LIFT;
+MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION =
+    MotorController::BACKWARD;
 
 // ===== CONTROL OBJECTS =====
 SystemStateHandler systemStateHandler =
@@ -97,7 +98,6 @@ void logError(const char *message);
  * initialization.
  */
 void setup() {
-  delay(1000);
   serialController.init();
   sensorController.init();
   motorController.init();
@@ -119,8 +119,8 @@ void loop() {
     // On state change.
     resetAllPIDMemory();
     motorController.servosOff();
-    motorController.setStepperMotorSpeedsToMax();
-    // branchHandler.reset();
+    // motorController.setStepperMotorSpeedsToMax();
+    //  branchHandler.reset();
     delay(500);
   }
 
@@ -383,25 +383,33 @@ void handleTest() {
       Serial.print("Stepper A Forward");
       // Test stepper A (four-bar) FORWARD
       motorController.servosOff();
-      motorController.rotateStepperAsteps(1);
+      motorController.stepperDrive(
+          MotorController::STEPPER_FOUR_BAR, 1,
+          motorController.degToSteps(360, MotorController::STEPPER_FOUR_BAR));
     } else if (millis() - myTimerStart <
                STEPPER_A_REV_TEST_START + STEPPER_A_TEST_LENGTH) {
       Serial.print("Stepper A Reverse");
       // Test stepper A (four-bar) REVERSE
       motorController.servosOff();
-      motorController.rotateStepperAsteps(-1);
+      motorController.stepperDrive(
+          MotorController::STEPPER_FOUR_BAR, -1,
+          motorController.degToSteps(360, MotorController::STEPPER_FOUR_BAR));
     } else if (millis() - myTimerStart <
                STEPPER_B_FWD_TEST_START + STEPPER_B_TEST_LENGTH) {
       Serial.print("Stepper B Forward");
       // Test stepper B (lift) FORWARD
       motorController.servosOff();
-      motorController.rotateStepperBsteps(1);
+      motorController.stepperDrive(
+          MotorController::STEPPER_LIFT, 1,
+          motorController.degToSteps(360, MotorController::STEPPER_LIFT));
     } else if (millis() - myTimerStart <
                STEPPER_B_REV_TEST_START + STEPPER_B_TEST_LENGTH) {
       Serial.print("Stepper B Reverse");
       // Test stepper B (lift) REVERSE
       motorController.servosOff();
-      motorController.rotateStepperBsteps(-1);
+      motorController.stepperDrive(
+          MotorController::STEPPER_LIFT, -1,
+          motorController.degToSteps(360, MotorController::STEPPER_LIFT));
     } else {
       Serial.print("Resetting...");
       delay(DELAY_BETWEEN_LOOPS);
@@ -442,32 +450,50 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     if (FOUR_BAR_CALIBRATION_MODE == 1) {
       if (sensorController.readButton() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
-        Serial.println("Button pressed");
         sensorController.turnLED(SensorController::ON);
-        motorController.rotateStepperAsteps(1);
+        motorController.stepperDrive(MotorController::STEPPER_FOUR_BAR, 1, 1);
         delay(10);
       } else {
         sensorController.turnLED(SensorController::OFF);
       }
     } else if (FOUR_BAR_CALIBRATION_MODE == 2) {
-      // Just do one rotation.
-      delay(1000);
-      motorController.rotateStepperAdeg(360);
-      while (true)
-        ;
+      if (sensorController.readButton() == SensorController::PRESSED) {
+        // Do a full rotation.
+        sensorController.turnLED(SensorController::ON);
+        motorController.stepperDrive(
+            MotorController::STEPPER_FOUR_BAR, 1,
+            motorController.degToSteps(360, MotorController::STEPPER_FOUR_BAR));
+        delay(10);
+      } else {
+        sensorController.turnLED(SensorController::OFF);
+      }
     }
     break;
   }
   case MotorController::LIFT: {
-    if (sensorController.readButton() == SensorController::PRESSED) {
-      // Hold down button until lift is in lowest position.
-      sensorController.turnLED(SensorController::ON);
-      motorController.rotateStepperBsteps(20);
-      delay(200);
-    } else {
-      sensorController.turnLED(SensorController::OFF);
+    int LIFT_CALIBRATION_MODE = 1;
+
+    if (LIFT_CALIBRATION_MODE == 1) {
+      if (sensorController.readButton() == SensorController::PRESSED) {
+        // Hold down button until four-bar crank is in lowest position.
+        sensorController.turnLED(SensorController::ON);
+        motorController.stepperDrive(MotorController::STEPPER_LIFT, 1, 1);
+        delay(10);
+      } else {
+        sensorController.turnLED(SensorController::OFF);
+      }
+    } else if (LIFT_CALIBRATION_MODE == 2) {
+      if (sensorController.readButton() == SensorController::PRESSED) {
+        // Do a full rotation.
+        sensorController.turnLED(SensorController::ON);
+        motorController.stepperDrive(
+            MotorController::STEPPER_LIFT, 1,
+            motorController.degToSteps(360, MotorController::STEPPER_LIFT));
+        delay(10);
+      } else {
+        sensorController.turnLED(SensorController::OFF);
+      }
     }
-    break;
   }
   case MotorController::RIGHT_WHEEL: {
     if (sensorController.readButton() == SensorController::PRESSED) {
@@ -484,7 +510,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
   }
   case MotorController::LEFT_WHEEL: {
     if (sensorController.readButton() == SensorController::PRESSED) {
-      //motorController.motorDriver.motorBForward(255); // full speed
+      // motorController.motorDriver.motorBForward(255); // full speed
       motorController.servoDrive(MotorController::SERVO_B, 255); // full speed
       int actualLeftSpeed = sensorController.getEncoderBSpeed();
       Serial.print("Actual left speed: ");
@@ -492,7 +518,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       sensorController.turnLED(SensorController::ON);
     } else {
       motorController.servoDrive(MotorController::SERVO_B, 0); // full speed
-      //motorController.motorDriver.motorBStop();
+      // motorController.motorDriver.motorBStop();
       sensorController.turnLED(SensorController::OFF);
     }
     break;
@@ -569,7 +595,7 @@ void handleIRIdle() {
  */
 void handleUltraSonicIdle() {
   // Read the ultrasonic sensor
-  long distance = sensorController.getUltrasonicDistance();
+  long distance = sensorController.getUltrasonicHandler().getDist();
 
   // Print the distance
   Serial.print("Distance: ");
@@ -722,7 +748,8 @@ void handleFollowLine(int mode) {
   // ============================
   // ===== ULTRASONIC CHECK =====s
   if (DO_ULTRASONIC_CHECK_OBSTACLE) {
-    if (sensorController.isObstacle(OBSTACLE_DISTANCE_THRESHOLD)) {
+    if (sensorController.getUltrasonicHandler().isObstacle(
+            OBSTACLE_DISTANCE_THRESHOLD)) {
       serialController.printlnWithTimestamp("<!> Obstacle detected.");
       motorController.servosOff();
       delay(100);
@@ -859,10 +886,10 @@ void handleRotation(MotorController::ROTATE_DIRECTION direction) {
 void handleUltrasonicApproach() {
   // Read the ultrasonic sensor
   int DISTANCE_THRESHOLD = 10;
-  long distance = sensorController.getUltrasonicDistance();
+  long distance = sensorController.getUltrasonicHandler().getDist();
 
-  if (sensorController.getUltrasonicMemory() == 0) {
-    sensorController.setUltrasonicMemory(distance);
+  if (sensorController.getUltrasonicHandler().getMemory() == 0) {
+    sensorController.getUltrasonicHandler().setMemory(distance);
   }
 
   // Print the distance
@@ -889,13 +916,13 @@ void handleUltrasonicApproach() {
 void handleUltrasonicReverse() {
   int REVERSE_SPEED = 64;
 
-  long distance = sensorController.getUltrasonicDistance();
+  long distance = sensorController.getUltrasonicHandler().getDist();
 
   // Print the distance
   Serial.print("Distance: ");
   Serial.println(distance);
 
-  if (distance < sensorController.getUltrasonicMemory()) {
+  if (distance < sensorController.getUltrasonicHandler().getMemory()) {
     handlePIDEncoderDrive(-REVERSE_SPEED);
   } else {
     motorController.servosOff();
@@ -912,16 +939,17 @@ void handleUltrasonicReverse() {
 void handleLift(int direction) {
   const int LIFT_SPEED = 64;    // from 0 to 255
   const int LIFT_DISTANCE = 50; // steps
-  motorController.stepperMotorB.setSpeed(LIFT_SPEED);
 
   switch (direction) {
   case MotorController::UP:
     // Move the lift up
-    motorController.rotateStepperBsteps(LIFT_DISTANCE * 2);
+    motorController.stepperDrive(MotorController::STEPPER_LIFT, LIFT_SPEED,
+                                 2 * LIFT_DISTANCE);
     break;
   case MotorController::DOWN:
     // Move the lift down
-    motorController.rotateStepperBsteps(-LIFT_DISTANCE);
+    motorController.stepperDrive(MotorController::STEPPER_LIFT, -LIFT_SPEED,
+                                 LIFT_DISTANCE);
     break;
   default:
     logError("Invalid direction");
@@ -1064,7 +1092,8 @@ void ultrasonicTurnCheck() {
       (unsigned long)(numSecondsGracePeriod * 1000)) {
     return;
   }
-  if (sensorController.isObstacle(NINETY_DEGREE_TURN_DISTANCE)) {
+  if (sensorController.getUltrasonicHandler().isObstacle(
+          NINETY_DEGREE_TURN_DISTANCE)) {
     serialController.printlnWithTimestamp("<!> 90 degree turn detected.");
     motorController.servosOff();
     while (true)
