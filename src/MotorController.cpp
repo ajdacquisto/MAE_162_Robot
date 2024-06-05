@@ -81,6 +81,7 @@ void MotorController::init() {
  * @param speed The desired speed for the servo.
  */
 void MotorController::servoDrive(SERVO whichServo, int speed) {
+
   Serial.print("servoDrive: servo");
   if (whichServo == SERVO_A) {
     Serial.print("A ");
@@ -88,46 +89,60 @@ void MotorController::servoDrive(SERVO whichServo, int speed) {
     Serial.print("B ");
   }
   Serial.println(speed);
-  
-  if (whichServo == SERVO_B) {
-    speed *= -1;
-  }
-  speed *= -1; // Invert speed for correct direction
-  int *lastSpeed;
-  void (DRV8833::*forward)(int);
-  void (DRV8833::*reverse)(int);
 
   if (whichServo == SERVO_A) {
-    lastSpeed = &lastSpeedA;
-    forward = &DRV8833::motorAForward;
-    reverse = &DRV8833::motorAReverse;
+    if (speed > 0) {
+      motorDriver.motorAForward(speed);
+    } else {
+      motorDriver.motorAReverse(-speed);
+    }
   } else {
-    lastSpeed = &lastSpeedB;
-    forward = &DRV8833::motorBForward;
-    reverse = &DRV8833::motorBReverse;
+    if (speed > 0) {
+      motorDriver.motorBForward(speed);
+    } else {
+      motorDriver.motorBReverse(-speed);
+    }
   }
 
-  while (*lastSpeed != speed) {
-    if (*lastSpeed < speed) {
-      *lastSpeed += rampRate;
-      if (*lastSpeed > speed) {
-        *lastSpeed = speed;
-      }
-    } else {
-      *lastSpeed -= rampRate;
-      if (*lastSpeed < speed) {
-        *lastSpeed = speed;
-      }
-    }
+  // if (whichServo == SERVO_B) {
+  //   speed *= -1;
+  // }
+  // speed *= -1; // Invert speed for correct direction
+  // int *lastSpeed;
+  // void (DRV8833::*forward)(int);
+  // void (DRV8833::*reverse)(int);
 
-    if (*lastSpeed < 0) {
-      (motorDriver.*reverse)(-*lastSpeed);
-    } else {
-      (motorDriver.*forward)(*lastSpeed);
-    }
+  // if (whichServo == SERVO_A) {
+  //   lastSpeed = &lastSpeedA;
+  //   forward = &DRV8833::motorAForward;
+  //   reverse = &DRV8833::motorAReverse;
+  // } else {
+  //   lastSpeed = &lastSpeedB;
+  //   forward = &DRV8833::motorBForward;
+  //   reverse = &DRV8833::motorBReverse;
+  // }
 
-    delay(10); // Small delay for smooth ramping (adjust as needed)
-  }
+  // while (*lastSpeed != speed) {
+  //   if (*lastSpeed < speed) {
+  //     *lastSpeed += rampRate;
+  //     if (*lastSpeed > speed) {
+  //       *lastSpeed = speed;
+  //     }
+  //   } else {
+  //     *lastSpeed -= rampRate;
+  //     if (*lastSpeed < speed) {
+  //       *lastSpeed = speed;
+  //     }
+  //   }
+
+  //   if (*lastSpeed < 0) {
+  //     (motorDriver.*reverse)(-*lastSpeed);
+  //   } else {
+  //     (motorDriver.*forward)(*lastSpeed);
+  //   }
+
+  delay(50); // Small delay for smooth ramping (adjust as needed)
+  // }
 }
 
 /**
@@ -305,12 +320,12 @@ void MotorController::setLastDesiredSpeeds(int leftSpeed, int rightSpeed) {
 void MotorController::enableStepper(STEPPER whichStepper) {
   switch (whichStepper) {
   case STEPPER_FOUR_BAR:
-    digitalWrite(STEPPER_A_ENABLE_PIN, LOW); // ENABLE
+    digitalWrite(STEPPER_A_ENABLE_PIN, LOW);  // ENABLE
     digitalWrite(STEPPER_B_ENABLE_PIN, HIGH); // DISABLE
     break;
   case STEPPER_LIFT:
     digitalWrite(STEPPER_A_ENABLE_PIN, HIGH); // DISABLE
-    digitalWrite(STEPPER_B_ENABLE_PIN, LOW); // ENABLE
+    digitalWrite(STEPPER_B_ENABLE_PIN, LOW);  // ENABLE
     break;
   default:
     break;
@@ -318,6 +333,6 @@ void MotorController::enableStepper(STEPPER whichStepper) {
 }
 
 void MotorController::disableSteppers() {
-    digitalWrite(STEPPER_A_ENABLE_PIN, HIGH); // DISABLE
-    digitalWrite(STEPPER_B_ENABLE_PIN, HIGH); // DISABLE
+  digitalWrite(STEPPER_A_ENABLE_PIN, HIGH); // DISABLE
+  digitalWrite(STEPPER_B_ENABLE_PIN, HIGH); // DISABLE
 }

@@ -38,9 +38,9 @@
 #include "LookAhead.h"
 
 // ===== GLOBAL VARIABLES =====
-SystemState::State DEFAULT_STATE = SystemState::FOUR_BAR_LOAD;
+SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LIFT;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
 int counter = 0;
@@ -80,6 +80,7 @@ void handleUltrasonicReverse();
 void handleLift(int direction);
 void handleLookAheadLineFollow();
 void ultrasonicTurnCheck();
+void ultrasonicObstacleCheck();
 
 // Helper functions
 void resetAllPIDMemory();
@@ -105,7 +106,7 @@ void setup() {
   systemStateHandler.init(DEFAULT_STATE);
   motorController.disableSteppers();
 
-  systemStateHandler.setStateFlowIndex(4);
+  // systemStateHandler.setStateFlowIndex(4);
 }
 
 // ===== MAIN LOOP =====
@@ -125,7 +126,7 @@ void loop() {
     motorController.servosOff();
     // motorController.setStepperMotorSpeedsToMax();
     //  branchHandler.reset();
-    delay(500);
+    delay(2000);
   }
 
   SystemState::State currentState = systemStateHandler.getCurrentState();
@@ -532,8 +533,9 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       motorController.enableStepper(MotorController::STEPPER_LIFT);
       motorController.stepperDrive(MotorController::STEPPER_LIFT, 1, 200);
       motorController.disableSteppers();
-      while(true);
-      //delay(1000);
+      while (true)
+        ;
+      // delay(1000);
     }
     break;
   }
@@ -560,11 +562,22 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     break;
   }
   case MotorController::BOTH_WHEELS: {
-    delay(1000);
     int speed = 255;
     if (CALIBRATE_DIRECTION == MotorController::FORWARD) {
+
+      // if (millis() % 3000 < 1000) {
+      //   motorController.servoDrive(MotorController::SERVO_A, speed/2);
+      //   motorController.servoDrive(MotorController::SERVO_B, speed);
+      // } else if (millis() % 3000 < 2000) {
+      //   motorController.servoDrive(MotorController::SERVO_A, speed);
+      //   motorController.servoDrive(MotorController::SERVO_B, speed/2);
+      // } else {
+      //   motorController.servoDrive(MotorController::SERVO_A, speed);
+      //   motorController.servoDrive(MotorController::SERVO_B, speed);
+      // }
       motorController.servoDrive(MotorController::SERVO_A, speed);
       motorController.servoDrive(MotorController::SERVO_B, speed);
+
     } else {
       motorController.servoDrive(MotorController::SERVO_A, -speed);
       motorController.servoDrive(MotorController::SERVO_B, -speed);
@@ -714,6 +727,8 @@ void handlePIDEncoderDrive(int BASE_SPEED) {
  */
 void handleFollowLine(int mode) {
   bool DO_LOOK_AHEAD = true;
+
+  ultrasonicObstacleCheck();
 
   if (DO_LOOK_AHEAD) {
     handleLookAheadLineFollow();
@@ -974,7 +989,7 @@ void handleUltrasonicReverse() {
  */
 void handleLift(int direction) {
   const float LIFT_SPEED = 1.0;  // from 0 to 255
-  const int LIFT_DISTANCE = 200; // steps
+  const int LIFT_DISTANCE = 220; // steps
 
   switch (direction) {
   case MotorController::UP:
@@ -1056,8 +1071,8 @@ void handleLookAheadLineFollow() {
   }
 
   if (doNewIR) {
-    desiredLeftSpeed = -desiredLeftSpeed;
-    desiredRightSpeed = -desiredRightSpeed;
+    //desiredLeftSpeed = -desiredLeftSpeed;
+    //desiredRightSpeed = -desiredRightSpeed;
 
     int temp = desiredLeftSpeed;
 
@@ -1177,6 +1192,21 @@ void ultrasonicTurnCheck() {
     motorController.servosOff();
     while (true)
       ;
+    delay(100);
+    return;
+  }
+}
+
+void ultrasonicObstacleCheck() {
+  int numSecondsGracePeriod = 1;
+  if (millis() - systemStateHandler.getLastStateChangeTime() <
+      (unsigned long)(numSecondsGracePeriod * 1000)) {
+    return;
+  }
+  if (sensorController.getUltrasonicHandler().isObstacle(
+          OBSTACLE_DISTANCE_THRESHOLD)) {
+    serialController.printlnWithTimestamp("<!> Obstacle detected.");
+    motorController.servosOff();
     delay(100);
     return;
   }
