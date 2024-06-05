@@ -2,16 +2,17 @@
 
 // Constructor
 SensorController::SensorController()
-    : encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2), // Encoder A
+    : newIR(NEW_IR_PIN_1, NEW_IR_PIN_2, NEW_IR_PIN_3, NEW_IR_PIN_4,
+            NEW_IR_PIN_5),
+      encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2), // Encoder A
       encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2), // Encoder B
       lineSensorA1(LINE_SENSOR_PIN_A1),         // Line sensor A1
       lineSensorA2(LINE_SENSOR_PIN_A2),         // Line sensor A2
       lineSensorA3(LINE_SENSOR_PIN_A3),         // Line sensor A3
       lineSensorB1(LINE_SENSOR_PIN_B1),         // Line sensor B1
       lineSensorB2(LINE_SENSOR_PIN_B2),         // Line sensor B2
-      lineSensorB3(LINE_SENSOR_PIN_B3),         // Line sensor B3
-      newIR(NEW_IR_PIN_1, NEW_IR_PIN_2, NEW_IR_PIN_3, NEW_IR_PIN_4,
-            NEW_IR_PIN_5) {
+      lineSensorB3(LINE_SENSOR_PIN_B3)          // Line sensor B3
+{
   lineSensorAThreshold = LINE_SENSOR_THRESHOLD;
 }
 

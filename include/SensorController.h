@@ -20,9 +20,9 @@ public:
   enum LED_STATE { OFF = LOW, ON = HIGH };
 
 private:
+  NewIRSensor newIR; // IR sensor
   Encoder encoderA; // Encoder A
   Encoder encoderB; // Encoder B
-  NewIRSensor newIR; // IR sensor
   UltrasonicHandler ultrasonicHandler; // Ultrasonic sensor
 
   int lineSensorAThreshold;
