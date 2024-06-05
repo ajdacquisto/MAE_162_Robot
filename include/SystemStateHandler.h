@@ -41,6 +41,7 @@ public:
   int getStateFlowIndex();
   void advanceStateFlowIndex();
   bool isNewStateFlowIndex();
+  void setStateFlowIndex(int setVal);
 
   void init(SystemState::State state);
 };

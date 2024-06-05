@@ -16,7 +16,7 @@ CustomStepper::CustomStepper(int dirPin, int stepPin, int enablePin, int stepsPe
 }
 
 // Method to rotate the motor clockwise
-void CustomStepper::rotateClockwise(int numSteps, int rpm) {
+void CustomStepper::rotateClockwise(int numSteps, float rpm) {
   int delayMicroseconds = calculateDelayMicroseconds(rpm);
   digitalWrite(dirPin, HIGH);
   for (int i = 0; i < numSteps; i++) {
@@ -25,7 +25,7 @@ void CustomStepper::rotateClockwise(int numSteps, int rpm) {
 }
 
 // Method to rotate the motor counterclockwise
-void CustomStepper::rotateCounterclockwise(int numSteps, int rpm) {
+void CustomStepper::rotateCounterclockwise(int numSteps, float rpm) {
   int delayMicroseconds = calculateDelayMicroseconds(rpm);
   digitalWrite(dirPin, LOW);
   for (int i = 0; i < numSteps; i++) {
@@ -34,9 +34,9 @@ void CustomStepper::rotateCounterclockwise(int numSteps, int rpm) {
 }
 
 // Method to calculate the delay in microseconds based on RPM
-int CustomStepper::calculateDelayMicroseconds(int rpm) {
-  int stepRate = (rpm * stepsPerRev) / 60; // Steps per second
-  return 1000000 / stepRate; // Microseconds per step
+int CustomStepper::calculateDelayMicroseconds(float rpm) {
+  float stepRate = (rpm * stepsPerRev) / 60; // Steps per second
+  return (int)(1000000.0 / stepRate); // Microseconds per step
 }
 
 // Method to step the motor

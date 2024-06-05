@@ -38,9 +38,9 @@
 #include "LookAhead.h"
 
 // ===== GLOBAL VARIABLES =====
-SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
+SystemState::State DEFAULT_STATE = SystemState::IDLE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LIFT;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION =
     MotorController::BACKWARD;
 
@@ -102,6 +102,9 @@ void setup() {
   sensorController.init();
   motorController.init();
   systemStateHandler.init(DEFAULT_STATE);
+  motorController.disableSteppers();
+
+  //systemStateHandler.setStateFlowIndex(4);
 }
 
 // ===== MAIN LOOP =====
@@ -267,11 +270,19 @@ void loop() {
     break;
   case SystemState::FOUR_BAR_LOAD:
     // Code for four-bar mechanism
+    motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
     motorController.handleFourBar(MotorController::LOAD);
+    systemStateHandler.advanceStateFlowIndex();
+    motorController.disableSteppers();
+    delay(1000);
     break;
   case SystemState::FOUR_BAR_UNLOAD:
     // Code for four-bar mechanism
+    motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
     motorController.handleFourBar(MotorController::UNLOAD);
+    systemStateHandler.advanceStateFlowIndex();
+    motorController.disableSteppers();
+    delay(1000);
     break;
   case SystemState::ROTATE_LEFT:
     // Code for rotating the robot left
@@ -287,11 +298,19 @@ void loop() {
     break;
   case SystemState::LIFT_LOWER:
     // Lower the lift.
+    motorController.enableStepper(MotorController::STEPPER_LIFT);
     handleLift(MotorController::DOWN);
+    systemStateHandler.advanceStateFlowIndex();
+    motorController.disableSteppers();
+    delay(1000);
     break;
   case SystemState::LIFT_RAISE:
     // Raise the lift.
+    motorController.enableStepper(MotorController::STEPPER_LIFT);
     handleLift(MotorController::UP);
+    systemStateHandler.advanceStateFlowIndex();
+    motorController.disableSteppers();
+    delay(1000);
     break;
   default:
     // Error handling
@@ -451,8 +470,8 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       if (sensorController.readButton() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
         sensorController.turnLED(SensorController::ON);
-        motorController.stepperDrive(MotorController::STEPPER_FOUR_BAR, 1, 1);
-        delay(10);
+        motorController.stepperDrive(MotorController::STEPPER_FOUR_BAR, -10 , 1);
+        //delay(10);
       } else {
         sensorController.turnLED(SensorController::OFF);
       }
@@ -478,7 +497,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
         // Hold down button until four-bar crank is in lowest position.
         sensorController.turnLED(SensorController::ON);
         motorController.stepperDrive(MotorController::STEPPER_LIFT, 1, 1);
-        delay(10);
+        //delay(10);
       } else {
         sensorController.turnLED(SensorController::OFF);
       }
@@ -494,6 +513,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
         sensorController.turnLED(SensorController::OFF);
       }
     }
+    break;
   }
   case MotorController::RIGHT_WHEEL: {
     if (sensorController.readButton() == SensorController::PRESSED) {
@@ -937,8 +957,8 @@ void handleUltrasonicReverse() {
  * MotorController::UP or MotorController::DOWN.
  */
 void handleLift(int direction) {
-  const int LIFT_SPEED = 64;    // from 0 to 255
-  const int LIFT_DISTANCE = 50; // steps
+  const int LIFT_SPEED = 1;    // from 0 to 255
+  const int LIFT_DISTANCE = 40; // steps
 
   switch (direction) {
   case MotorController::UP:
@@ -954,6 +974,7 @@ void handleLift(int direction) {
   default:
     logError("Invalid direction");
     break;
+  while(true);
   }
 }
 
@@ -1039,10 +1060,10 @@ void handleLookAheadLineFollow() {
   int actualLeftSpeed = sensorController.getEncoderBSpeed();
   int actualRightSpeed = sensorController.getEncoderASpeed();
 
-  // Keep the actual speeds within above a minimum speed threshold.
-  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, LA_MIN_SPEED);
-  actualRightSpeed =
-      sensorController.speedAdjust(actualRightSpeed, LA_MIN_SPEED);
+  // // Keep the actual speeds within above a minimum speed threshold.
+  // actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, LA_MIN_SPEED);
+  // actualRightSpeed =
+  //     sensorController.speedAdjust(actualRightSpeed, LA_MIN_SPEED);
 
   // Adjust motor speeds based on encoder feedback
   float kP_encoder = encoderGainHandler.getKp();
@@ -1053,7 +1074,26 @@ void handleLookAheadLineFollow() {
       constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
 
   Enc_error = desiredRightSpeed - actualRightSpeed;
+
+  Serial.println("Enc_error = desiredRightSpeed - actualRightSpeed");
+  Serial.print(Enc_error);
+  Serial.print(" = ");
+  Serial.print(desiredRightSpeed);
+  Serial.print(" - ");
+  Serial.println(actualRightSpeed);
+
   adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
+
+  Serial.print("adjustedSpeed(");
+  Serial.print(adjustedSpeed);
+  Serial.print(") = desiredRightSpeed(");
+  Serial.print(desiredRightSpeed);
+  Serial.print(") + kP_encoder(");
+  Serial.print(kP_encoder);
+  Serial.print(") * Enc_error(");
+  Serial.print(Enc_error);
+  Serial.println(")");
+
   int rightMotorSpeed =
       constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
 

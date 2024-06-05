@@ -62,9 +62,9 @@ const int STEPPER_A_MAX_SPEED = 1;
 const int STEPPER_B_MAX_SPEED = 1;
 
 // - Encoder PID drive parameters
-const float ENCODER_DRIVE_KP = 0.05;
-const float ENCODER_DRIVE_KI = 0.01;
-const float ENCODER_DRIVE_KD = 0.005;
+const float ENCODER_DRIVE_KP = 5.0;
+const float ENCODER_DRIVE_KI = 0.50;
+const float ENCODER_DRIVE_KD = 0.50;
 
 // - Line follow PID parameters
 const float LINE_FOLLOW_REGULAR_KP = 50.0;
@@ -120,7 +120,7 @@ const int LINE_SENSOR_PIN_B2 = A4;
 const int LINE_SENSOR_PIN_B3 = A3;
 
 // - Ultrasonic Sensor
-const int ULTRASONIC_TRIG_PIN = 46, ULTRASONIC_ECHO_PIN = 50;
+const int ULTRASONIC_TRIG_PIN = 46, ULTRASONIC_ECHO_PIN = 52;
 
 // =========================
 // ===== NEW IR SENSOR =====
@@ -157,13 +157,15 @@ const int STEPPER_PIN_B3 = 32, STEPPER_PIN_B4 = 33;
 // ===== NEW STEPPER DRIVER =====
 // ==============================
 
+// Four-bar
 const int STEPPER_A_DIRECTION_PIN = 40;
 const int STEPPER_A_STEP_PIN = 41;
-const int STEPPER_A_ENABLE_PIN = 0;
+const int STEPPER_A_ENABLE_PIN = 51;
 
+// Lift
 const int STEPPER_B_DIRECTION_PIN = 30;
 const int STEPPER_B_STEP_PIN = 31;
-const int STEPPER_B_ENABLE_PIN = 0;
+const int STEPPER_B_ENABLE_PIN = 50;
 
 // ==================================
 // ==================================

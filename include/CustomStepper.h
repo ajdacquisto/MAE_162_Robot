@@ -9,10 +9,10 @@ class CustomStepper {
         CustomStepper(int dirPin, int stepPin, int enablePin, int stepsPerRev);
         
         // Method to rotate the motor clockwise
-        void rotateClockwise(int numSteps, int rpm);
+        void rotateClockwise(int numSteps, float rpm);
         
         // Method to rotate the motor counterclockwise
-        void rotateCounterclockwise(int numSteps, int rpm);
+        void rotateCounterclockwise(int numSteps, float rpm);
 
     private:
         int dirPin;
@@ -21,7 +21,7 @@ class CustomStepper {
         int stepsPerRev;
 
         // Method to calculate the delay in microseconds based on RPM
-        int calculateDelayMicroseconds(int rpm);
+        int calculateDelayMicroseconds(float rpm);
         
         // Method to step the motor
         void stepMotor(int delayMicroseconds);

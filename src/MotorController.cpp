@@ -66,6 +66,12 @@ void MotorController::init() {
 
   // stepperDriverLift.setSpeed(STEPPER_B_MAX_SPEED);
   // pinMode(STEPPER_B_DIRECTION_PIN, OUTPUT);
+
+  pinMode(STEPPER_A_ENABLE_PIN, OUTPUT);
+  pinMode(STEPPER_B_ENABLE_PIN, OUTPUT);
+
+  digitalWrite(STEPPER_A_ENABLE_PIN, HIGH); // DISABLE
+  digitalWrite(STEPPER_B_ENABLE_PIN, HIGH); // DISABLE
 }
 
 /**
@@ -75,6 +81,7 @@ void MotorController::init() {
  * @param speed The desired speed for the servo.
  */
 void MotorController::servoDrive(SERVO whichServo, int speed) {
+  speed *= -1; // Invert speed for correct direction
   int *lastSpeed;
   void (DRV8833::*forward)(int);
   void (DRV8833::*reverse)(int);
@@ -139,9 +146,9 @@ void MotorController::stepperDrive(STEPPER whichStepper, int speed, int steps) {
   switch (whichStepper) {
   case STEPPER_FOUR_BAR:
     if (goBackwards) {
-      customStepperA.rotateCounterclockwise(steps, speed);
-    } else {
       customStepperA.rotateClockwise(steps, speed);
+    } else {
+      customStepperA.rotateCounterclockwise(steps, speed);
     }
     break;
   case STEPPER_LIFT:
@@ -282,4 +289,24 @@ void MotorController::getLastDesiredSpeeds(int &leftSpeed, int &rightSpeed) {
 void MotorController::setLastDesiredSpeeds(int leftSpeed, int rightSpeed) {
   lastDesiredLeftSpeed = leftSpeed;
   lastDesiredRightSpeed = rightSpeed;
+}
+
+void MotorController::enableStepper(STEPPER whichStepper) {
+  switch (whichStepper) {
+  case STEPPER_FOUR_BAR:
+    digitalWrite(STEPPER_A_ENABLE_PIN, LOW); // ENABLE
+    digitalWrite(STEPPER_B_ENABLE_PIN, HIGH); // DISABLE
+    break;
+  case STEPPER_LIFT:
+    digitalWrite(STEPPER_A_ENABLE_PIN, HIGH); // DISABLE
+    digitalWrite(STEPPER_B_ENABLE_PIN, LOW); // ENABLE
+    break;
+  default:
+    break;
+  }
+}
+
+void MotorController::disableSteppers() {
+    digitalWrite(STEPPER_A_ENABLE_PIN, HIGH); // DISABLE
+    digitalWrite(STEPPER_B_ENABLE_PIN, HIGH); // DISABLE
 }

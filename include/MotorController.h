@@ -58,6 +58,9 @@ public:
 
   void getLastDesiredSpeeds(int &leftSpeed, int &rightSpeed);
   void setLastDesiredSpeeds(int leftSpeed, int rightSpeed);
+
+  void enableStepper(STEPPER whichStepper);
+  void disableSteppers();
 };
 
 #endif // MOTORCONTROLLER_H

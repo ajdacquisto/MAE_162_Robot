@@ -45,3 +45,7 @@ void SystemStateHandler::init(SystemState::State state) {
     lastStateChangeTime = millis();
     stateDuration = 0;
 }
+
+void SystemStateHandler::setStateFlowIndex(int setVal) {
+    stateflowIndex = setVal;
+}
