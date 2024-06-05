@@ -59,7 +59,7 @@ const int LINE_SENSOR_THRESHOLD = 860;
 const int STEPPER_A_MAX_SPEED = 1;
 
 // - Stepper Motor B (lift)
-const int STEPPER_B_MAX_SPEED = 12;
+const int STEPPER_B_MAX_SPEED = 1;
 
 // - Encoder PID drive parameters
 const float ENCODER_DRIVE_KP = 0.05;
