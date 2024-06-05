@@ -12,7 +12,7 @@ private:
   bool hasLeftLineYet = false;
   int lastSpeedA = 0;     // Last commanded speed for motor A
   int lastSpeedB = 0;     // Last commanded speed for motor B
-  const int rampRate = 5; // Tunable ramp rate (adjust as needed)
+  const int rampRate = 15; // Tunable ramp rate (adjust as needed)
 
   int lastDesiredLeftSpeed = 0;
   int lastDesiredRightSpeed = 0;

@@ -25,11 +25,17 @@ long UltrasonicHandler::getDist() {
   return reading;
 }
 
-long UltrasonicHandler::getOldDist() {}
+long UltrasonicHandler::getOldDist() {
+  return oldDist_;
+}
 
-unsigned long UltrasonicHandler::getNewDistTime() {}
+unsigned long UltrasonicHandler::getNewDistTime() {
+  return newTime_;
+}
 
-unsigned long UltrasonicHandler::getOldDistTime() {}
+unsigned long UltrasonicHandler::getOldDistTime() {
+  return oldTime_;
+}
 
 bool UltrasonicHandler::isObstacle(long threshold) {
   if (millis() - getNewDistTime() < 1000) {

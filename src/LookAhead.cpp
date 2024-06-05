@@ -38,10 +38,21 @@ float LookAhead::PID(float error) {
   float output = m_kp * error + m_ki * m_integral + m_kd * derivative;
   m_lastError = error;
 
-  Serial.print("PID Error: ");
+  Serial.print("PID: output(");
+  Serial.print(output);
+  Serial.print(") = kp(");
+  Serial.print(m_kp);
+  Serial.print(") * error(");
   Serial.print(error);
-  Serial.print(" Output: ");
-  Serial.println(output);
+  Serial.print(") + ki(");
+  Serial.print(m_ki);
+  Serial.print(") * integral(");
+  Serial.print(m_integral);
+  Serial.print(") + kd(");
+  Serial.print(m_kd);
+  Serial.print(") * derivative(");
+  Serial.print(derivative);
+  Serial.println(")");
 
   return output;
 }
@@ -112,11 +123,6 @@ void LookAhead::addSensorReading(uint8_t sensor_reading, bool useNewIR) {
   if (bufferCount < BUFFER_SIZE) {
     bufferCount++;
   }
-
-  Serial.print("Buffer index: ");
-  Serial.print(bufferIndex);
-  Serial.print(", Buffer count: ");
-  Serial.println(bufferCount);
 }
 
 /**
@@ -133,9 +139,9 @@ void LookAhead::getPoints(float points[][2], int &num_points, bool useNewIR) {
 
     // Skip all-zero readings
     if (sensor_reading == 0) {
-      Serial.print("Buffer [");
+      Serial.print("Buffer \t[");
       Serial.print(index);
-      Serial.print("] = ");
+      Serial.print("] \t= ");
       if (!useNewIR) {
         uint8_t leastSignificantBits =
             sensor_reading &
@@ -162,9 +168,9 @@ void LookAhead::getPoints(float points[][2], int &num_points, bool useNewIR) {
     points[num_points][1] = y_position;
     num_points++;
 
-    Serial.print("Buffer [");
+    Serial.print("Buffer \t[");
     Serial.print(index);
-    Serial.print("] = ");
+    Serial.print("] \t= ");
     if (!useNewIR) {
       uint8_t leastSignificantBits =
           sensor_reading & 0x3F; // Masking to get the 6 least significant bits
@@ -186,8 +192,8 @@ void LookAhead::getPoints(float points[][2], int &num_points, bool useNewIR) {
     Serial.println(")");
   }
 
-  //Serial.print("Number of points retrieved: ");
-  //Serial.println(num_points);
+  // Serial.print("Number of points retrieved: ");
+  // Serial.println(num_points);
 }
 
 /**
@@ -208,15 +214,6 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading, bool useNewIR) {
         sum_positions += positions[i];
       }
     }
-    // Serial.print("<call> calculateXPosition(");
-    // uint8_t leastSignificantBits =
-    //     sensor_reading & 0x3F; // Masking to get the 6 least significant bits
-    // for (int i = 5; i >= 0; i--) { // Loop to print each bit from MSB to LSB
-    //   Serial.print((leastSignificantBits >> i) & 0x01);
-    // }
-    // Serial.print(") <- contains ");
-    // Serial.print(count_ones);
-    // Serial.println(" ones.");
 
     if (count_ones > 3) {
       return sum_positions / count_ones;
@@ -256,15 +253,6 @@ float LookAhead::calculateXPosition(uint8_t sensor_reading, bool useNewIR) {
         sum_positions += positions[i];
       }
     }
-    // Serial.print("<call> calculateXPosition(");
-    // uint8_t leastSignificantBits =
-    //     sensor_reading & 0x1F; // Masking to get the 5 least significant bits
-    // for (int i = 4; i >= 0; i--) { // Loop to print each bit from MSB to LSB
-    //   Serial.print((leastSignificantBits >> i) & 0x01);
-    // }
-    // Serial.print(") <- contains ");
-    // Serial.print(count_ones);
-    // Serial.println(" ones.");
 
     if (count_ones > 3) {
       return sum_positions / count_ones;
@@ -380,37 +368,9 @@ bool LookAhead::linearRegression(const float points[][2], int num_points,
     return true;
   }
 
-  Serial.print("slope = (");
-  Serial.print(n);
-  Serial.print(" * ");
-  Serial.print(sum_xy);
-  Serial.print(" - ");
-  Serial.print(sum_x);
-  Serial.print(" * ");
-  Serial.print(sum_y);
-  Serial.print(") / ");
-  Serial.print(denominator);
-
   slope = (n * sum_xy - sum_x * sum_y) / denominator;
 
-  Serial.print(" -> ");
-  Serial.println(slope);
-
-  Serial.print("intercept = (");
-  Serial.print(sum_y);
-  Serial.print(" * ");
-  Serial.print(sum_xx);
-  Serial.print(" - ");
-  Serial.print(sum_x);
-  Serial.print(" * ");
-  Serial.print(sum_xy);
-  Serial.print(") / ");
-  Serial.print(denominator);
-
   intercept = (sum_y * sum_xx - sum_x * sum_xy) / denominator;
-
-  Serial.print(" -> ");
-  Serial.println(intercept);
 
   Serial.print("Calculated line: y = (");
   Serial.print(slope);
@@ -431,11 +391,11 @@ bool LookAhead::linearRegression(const float points[][2], int num_points,
 float LookAhead::predictX(float slope, float intercept, float y) {
   if (slope == INFINITY_VALUE) {
     // Handle vertical line case by returning the x-location stored in intercept
-    Serial.print("Vertical line detected, returning x-value: ");
+    Serial.print("Vertical line at x = ");
     Serial.println(intercept);
     return intercept;
   } else if (slope == 0) {
-    Serial.print("Slope is zero, returning intercept: ");
+    Serial.print("Slope is zero, returning intercept: x = ");
     Serial.println(intercept);
     return intercept;
   }

@@ -81,6 +81,17 @@ void MotorController::init() {
  * @param speed The desired speed for the servo.
  */
 void MotorController::servoDrive(SERVO whichServo, int speed) {
+  Serial.print("servoDrive: servo");
+  if (whichServo == SERVO_A) {
+    Serial.print("A ");
+  } else {
+    Serial.print("B ");
+  }
+  Serial.println(speed);
+  
+  if (whichServo == SERVO_B) {
+    speed *= -1;
+  }
   speed *= -1; // Invert speed for correct direction
   int *lastSpeed;
   void (DRV8833::*forward)(int);

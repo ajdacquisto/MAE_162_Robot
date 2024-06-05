@@ -122,7 +122,7 @@ private:
   /**
    * @brief The size of the buffer used in LookAhead.
    */
-  static const int BUFFER_SIZE = 10;
+  static const int BUFFER_SIZE = LA_BUFFER_SIZE;
 
   /**
    * @brief The buffer used for storing data.

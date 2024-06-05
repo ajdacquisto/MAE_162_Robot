@@ -35,14 +35,16 @@ const int DROPOFF_LOCATION = SECOND_ON_RIGHT;
 // ===== LOOK AHEAD SETTINGS =====
 // ===============================
 
-const int LA_BASE_SPEED = 120;
-const int LA_MIN_SPEED = 120;
-const int LA_UPPER_CONSTRAINT = 160;
-const int LA_LOWER_CONSTRAINT = -200;
+const int LA_BASE_SPEED = 140;
+const int LA_MIN_SPEED = 100;
+const int LA_UPPER_CONSTRAINT = 255;
+const int LA_LOWER_CONSTRAINT = -255;
 
-const float LA_KP = 15.0;
-const float LA_KI = 0.0;
-const float LA_KD = 1.5;
+const float LA_KP = 25.0;
+const float LA_KI = 0.1;
+const float LA_KD = 0.5;
+
+const int LA_BUFFER_SIZE = 30;
 
 // =============================
 // ===== SOFTWARE SETTINGS =====
@@ -62,9 +64,9 @@ const int STEPPER_A_MAX_SPEED = 1;
 const int STEPPER_B_MAX_SPEED = 1;
 
 // - Encoder PID drive parameters
-const float ENCODER_DRIVE_KP = 5.0;
-const float ENCODER_DRIVE_KI = 0.50;
-const float ENCODER_DRIVE_KD = 0.50;
+const float ENCODER_DRIVE_KP = 0.1;
+const float ENCODER_DRIVE_KI = 0.05;
+const float ENCODER_DRIVE_KD = 0.001;
 
 // - Line follow PID parameters
 const float LINE_FOLLOW_REGULAR_KP = 50.0;
@@ -120,17 +122,17 @@ const int LINE_SENSOR_PIN_B2 = A4;
 const int LINE_SENSOR_PIN_B3 = A3;
 
 // - Ultrasonic Sensor
-const int ULTRASONIC_TRIG_PIN = 46, ULTRASONIC_ECHO_PIN = 52;
+const int ULTRASONIC_TRIG_PIN = 52, ULTRASONIC_ECHO_PIN = 46;
 
 // =========================
 // ===== NEW IR SENSOR =====
 // =========================
 
-const int NEW_IR_PIN_1 = 22; // left
+const int NEW_IR_PIN_1 = 22; // right
 const int NEW_IR_PIN_2 = 23;
 const int NEW_IR_PIN_3 = 24;
 const int NEW_IR_PIN_4 = 25;
-const int NEW_IR_PIN_5 = 26; // right
+const int NEW_IR_PIN_5 = 26; // left
 
 // ==================================
 // ===== OUTPUT PIN ASSIGNMENTS =====
