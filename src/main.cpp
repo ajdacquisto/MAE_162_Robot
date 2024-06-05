@@ -38,11 +38,12 @@
 #include "LookAhead.h"
 
 // ===== GLOBAL VARIABLES =====
-SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
+SystemState::State DEFAULT_STATE = SystemState::FOUR_BAR_LOAD;
 
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LIFT;
-MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION =
-    MotorController::FORWARD;
+MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
+
+int counter = 0;
 
 // ===== CONTROL OBJECTS =====
 SystemStateHandler systemStateHandler =
@@ -104,7 +105,7 @@ void setup() {
   systemStateHandler.init(DEFAULT_STATE);
   motorController.disableSteppers();
 
-  // systemStateHandler.setStateFlowIndex(4);
+  systemStateHandler.setStateFlowIndex(4);
 }
 
 // ===== MAIN LOOP =====
@@ -161,20 +162,25 @@ void loop() {
     break;
   case 6:
     // Use ultrasonic sensor and encoder drive to back straight up
-    systemStateHandler.changeState(SystemState::ULTRASONIC_REVERSE);
+    systemStateHandler.changeState(SystemState::FOUR_BAR_LOAD);
+    // systemStateHandler.changeState(SystemState::ULTRASONIC_REVERSE);
     break;
   case 7:
+    systemStateHandler.changeState(SystemState::LIFT_RAISE);
     // Rotate to face front again.
-    calculateRotation(AWAY_FROM, PICKUP_LOCATION_1);
+    // calculateRotation(AWAY_FROM, PICKUP_LOCATION_1);
     break;
   case 8:
     // Line follow to pickup location 2
-    systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
-    branchHandler.setTargetNum(2);
+    systemStateHandler.changeState(SystemState::FOUR_BAR_UNLOAD);
+    // systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
+    // branchHandler.setTargetNum(2);
     break;
   case 9:
     // Rotate to face pickup location 2
-    calculateRotation(TOWARDS, PICKUP_LOCATION_2);
+    while (true)
+      ;
+    // calculateRotation(TOWARDS, PICKUP_LOCATION_2);
     break;
   case 10:
     // [SAME AS STEP 3]
@@ -272,16 +278,16 @@ void loop() {
     // Code for four-bar mechanism
     motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
     motorController.handleFourBar(MotorController::LOAD);
-    systemStateHandler.advanceStateFlowIndex();
     motorController.disableSteppers();
+    systemStateHandler.advanceStateFlowIndex();
     delay(1000);
     break;
   case SystemState::FOUR_BAR_UNLOAD:
     // Code for four-bar mechanism
     motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
     motorController.handleFourBar(MotorController::UNLOAD);
-    systemStateHandler.advanceStateFlowIndex();
     motorController.disableSteppers();
+    systemStateHandler.advanceStateFlowIndex();
     delay(1000);
     break;
   case SystemState::ROTATE_LEFT:
@@ -300,16 +306,16 @@ void loop() {
     // Lower the lift.
     motorController.enableStepper(MotorController::STEPPER_LIFT);
     handleLift(MotorController::DOWN);
-    systemStateHandler.advanceStateFlowIndex();
     motorController.disableSteppers();
+    systemStateHandler.advanceStateFlowIndex();
     delay(1000);
     break;
   case SystemState::LIFT_RAISE:
     // Raise the lift.
     motorController.enableStepper(MotorController::STEPPER_LIFT);
     handleLift(MotorController::UP);
-    systemStateHandler.advanceStateFlowIndex();
     motorController.disableSteppers();
+    systemStateHandler.advanceStateFlowIndex();
     delay(1000);
     break;
   default:
@@ -478,9 +484,12 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
       if (sensorController.readButton() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
         sensorController.turnLED(SensorController::ON);
-        motorController.stepperDrive(MotorController::STEPPER_FOUR_BAR, -10, 1);
-        // delay(10);
+        motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
+        motorController.stepperDrive(MotorController::STEPPER_FOUR_BAR, 1, 1);
+        // positive for loading.
+        delay(30);
       } else {
+        motorController.disableSteppers();
         sensorController.turnLED(SensorController::OFF);
       }
     } else if (FOUR_BAR_CALIBRATION_MODE == 2) {
@@ -490,7 +499,7 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
         motorController.stepperDrive(
             MotorController::STEPPER_FOUR_BAR, 1,
             motorController.degToSteps(360, MotorController::STEPPER_FOUR_BAR));
-        delay(10);
+        delay(20);
       } else {
         sensorController.turnLED(SensorController::OFF);
       }
@@ -498,32 +507,33 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
     break;
   }
   case MotorController::LIFT: {
-    int LIFT_CALIBRATION_MODE = 1;
+    int LIFT_CALIBRATION_MODE = 2;
 
     if (LIFT_CALIBRATION_MODE == 1) {
       if (sensorController.readButton() == SensorController::PRESSED) {
         // Hold down button until four-bar crank is in lowest position.
-        Serial.println("Calibrating lift...");
-        //motorController.enableStepper(MotorController::STEPPER_LIFT);
+        Serial.print("Calibrating lift... ");
+        motorController.enableStepper(MotorController::STEPPER_LIFT);
         sensorController.turnLED(SensorController::ON);
-        motorController.stepperDrive(MotorController::STEPPER_LIFT, -1, 1);
-        // negative for UP
-        delay(10);
+        motorController.stepperDrive(MotorController::STEPPER_LIFT, -1, 10);
+        // negative for DOWN
+        delay(1000);
+        // while(true);
+        counter++;
+        Serial.println(counter);
+
       } else {
-        //motorController.disableSteppers();
+        motorController.disableSteppers();
         sensorController.turnLED(SensorController::OFF);
       }
+
     } else if (LIFT_CALIBRATION_MODE == 2) {
-      if (sensorController.readButton() == SensorController::PRESSED) {
-        // Do a full rotation.
-        sensorController.turnLED(SensorController::ON);
-        motorController.stepperDrive(
-            MotorController::STEPPER_LIFT, 1,
-            motorController.degToSteps(360, MotorController::STEPPER_LIFT));
-        delay(10);
-      } else {
-        sensorController.turnLED(SensorController::OFF);
-      }
+      // Negative down, positive up
+      motorController.enableStepper(MotorController::STEPPER_LIFT);
+      motorController.stepperDrive(MotorController::STEPPER_LIFT, 1, 200);
+      motorController.disableSteppers();
+      while(true);
+      //delay(1000);
     }
     break;
   }
@@ -963,14 +973,14 @@ void handleUltrasonicReverse() {
  * MotorController::UP or MotorController::DOWN.
  */
 void handleLift(int direction) {
-  const int LIFT_SPEED = 1;     // from 0 to 255
-  const int LIFT_DISTANCE = 40; // steps
+  const float LIFT_SPEED = 1.0;  // from 0 to 255
+  const int LIFT_DISTANCE = 200; // steps
 
   switch (direction) {
   case MotorController::UP:
     // Move the lift up
     motorController.stepperDrive(MotorController::STEPPER_LIFT, LIFT_SPEED,
-                                 2 * LIFT_DISTANCE);
+                                 LIFT_DISTANCE);
     break;
   case MotorController::DOWN:
     // Move the lift down
@@ -980,8 +990,6 @@ void handleLift(int direction) {
   default:
     logError("Invalid direction");
     break;
-    while (true)
-      ;
   }
 }
 

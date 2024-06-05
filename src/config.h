@@ -168,6 +168,7 @@ const int STEPPER_A_ENABLE_PIN = 51;
 const int STEPPER_B_DIRECTION_PIN = 30;
 const int STEPPER_B_STEP_PIN = 31;
 const int STEPPER_B_ENABLE_PIN = 50;
+const int STEPS_PER_DISK_HEIGHT = 200;
 
 // ==================================
 // ==================================
