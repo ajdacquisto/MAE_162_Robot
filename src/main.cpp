@@ -40,7 +40,7 @@
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::LIFT;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION =
     MotorController::BACKWARD;
 
