@@ -1,35 +1,34 @@
 #ifndef MOTORCONTROLLER_H
 #define MOTORCONTROLLER_H
 
-//#include "DRV8825.h"
-#include "DRV8833.h"
-//#include "Stepper.h"
 #include "CustomStepper.h"
+#include "DRV8833.h"
 #include "config.h"
 
 class MotorController {
 private:
   bool hasLeftLineYet = false;
-  int lastSpeedA = 0;     // Last commanded speed for motor A
-  int lastSpeedB = 0;     // Last commanded speed for motor B
+  int lastSpeedA = 0;      // Last commanded speed for motor A
+  int lastSpeedB = 0;      // Last commanded speed for motor B
   const int rampRate = 15; // Tunable ramp rate (adjust as needed)
 
   int lastDesiredLeftSpeed = 0;
   int lastDesiredRightSpeed = 0;
 
 public:
-  DRV8833 motorDriver;
-  //DRV8825 stepperDriverA;
-  //DRV8825 stepperDriverB;
-  //Stepper stepperMotorA;
-  //Stepper stepperMotorB;
-  //Stepper stepperDriverLift;
+  DRV8833 motorDriverFront;
+  DRV8833 motorDriverRear;
   CustomStepper customStepperA;
   CustomStepper customStepperB;
 
   enum ROTATE_DIRECTION { LEFT, RIGHT };
-  enum COMPONENT { RIGHT_WHEEL, LEFT_WHEEL, FOUR_BAR, LIFT, BOTH_WHEELS };
-  enum SERVO { SERVO_A, SERVO_B };
+  enum COMPONENT { SINGLE_SERVO, FOUR_BAR, LIFT, ALL_WHEELS };
+  enum SERVO {
+    SERVO_FRONT_RIGHT,
+    SERVO_FRONT_LEFT,
+    SERVO_REAR_RIGHT,
+    SERVO_REAR_LEFT
+  };
   enum STEPPER { STEPPER_LIFT, STEPPER_FOUR_BAR };
   enum FOUR_BAR_DIRECTION { LOAD, UNLOAD };
   enum LIFT_DIRECTION { DOWN, UP };
@@ -44,14 +43,16 @@ public:
   void servoDrive(SERVO whichServo, int speed);
   void servosOff();
 
+  void raiseLift();
+  void lowerLift();
+
+  void raiseLift(int steps);
+  void lowerLift(int steps);
+
   // Steppers
   void stepperDrive(STEPPER whichStepper, int speed, int steps);
   int degToSteps(int degrees, STEPPER whichStepper);
 
-  //void rotateStepperAdeg(int degrees);
-  //void rotateStepperAsteps(int steps);
-  //void rotateStepperBdeg(int degrees);
-  //void rotateStepperBsteps(int steps);
   bool rotateRobot(ROTATE_DIRECTION direction, int interruptSensorVal);
   ROTATE_DIRECTION getDirectionToRotate(int pickupLocation);
   void handleFourBar(FOUR_BAR_DIRECTION direction);

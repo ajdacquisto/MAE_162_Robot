@@ -35,8 +35,9 @@ void CustomStepper::rotateCounterclockwise(int numSteps, float rpm) {
 
 // Method to calculate the delay in microseconds based on RPM
 int CustomStepper::calculateDelayMicroseconds(float rpm) {
-  float stepRate = (rpm * stepsPerRev) / 60; // Steps per second
-  return (int)(1000000.0 / stepRate); // Microseconds per step
+  float stepRate = (rpm * stepsPerRev) / 60.0; // Steps per second
+  float microstepsPerStep = 1000000.0 / stepRate; // Seconds per step
+  return (int)(microstepsPerStep);
 }
 
 // Method to step the motor

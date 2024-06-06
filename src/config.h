@@ -51,34 +51,30 @@ const int LA_BUFFER_SIZE = 30;
 // =============================
 
 const int LINE_SENSOR_THRESHOLD = 860;
-// - Line Sensor A (front)
-// const int LINE_SENSOR_A_THRESHOLD = 850;
-
-// - Line Sensor B (side)
-// const int LINE_SENSOR_B_THRESHOLD = 850;
 
 // - Stepper Motor A (four-bar)
-const int STEPPER_A_MAX_SPEED = 1;
+const int FOUR_BAR_SPEED = 0.25;
 
 // - Stepper Motor B (lift)
-const int STEPPER_B_MAX_SPEED = 1;
+const int LIFT_SPEED = 0.5;
+const int LIFT_DISTANCE = 220; // steps
 
-// - Encoder PID drive parameters
-const float ENCODER_DRIVE_KP = 0.1;
-const float ENCODER_DRIVE_KI = 0.05;
-const float ENCODER_DRIVE_KD = 0.001;
+// // - Encoder PID drive parameters
+// const float ENCODER_DRIVE_KP = 0.1;
+// const float ENCODER_DRIVE_KI = 0.05;
+// const float ENCODER_DRIVE_KD = 0.001;
 
-// - Line follow PID parameters
-const float LINE_FOLLOW_REGULAR_KP = 50.0;
-const float LINE_FOLLOW_REGULAR_KI = 1.0;
-const float LINE_FOLLOW_REGULAR_KD = 5.0;
+// // - Line follow PID parameters
+// const float LINE_FOLLOW_REGULAR_KP = 50.0;
+// const float LINE_FOLLOW_REGULAR_KI = 1.0;
+// const float LINE_FOLLOW_REGULAR_KD = 5.0;
 
-// - Other drive parameters
-const int REVERSE_SPEED = 100;
-const int BASE_SPEED = 100;
-const int CONSTRAINT = 250;
-const int LOWER_CONSTRAINT = -150;
-const float MIN_SPEED = 120;
+// // - Other drive parameters
+// const int REVERSE_SPEED = 100;
+// const int BASE_SPEED = 100;
+// const int CONSTRAINT = 250;
+// const int LOWER_CONSTRAINT = -150;
+// const float MIN_SPEED = 120;
 
 // - Stop lineFollow for obstacle avoidance
 const long OBSTACLE_DISTANCE_THRESHOLD = 10;
@@ -87,12 +83,6 @@ const long NINETY_DEGREE_TURN_DISTANCE = 29;
 // ===============================
 // ===== HARDWARE PARAMETERS =====
 // ===============================
-
-// - Stepper Motor A (four-bar)
-const int STEPPER_A_STEPS_PER_REVOLUTION = 200;
-
-// - Stepper Motor B (lift)
-const int STEPPER_B_STEPS_PER_REVOLUTION = 200;
 
 // - Encoder
 // const int ENCODER_MAX_SPEED = 4663;
@@ -110,6 +100,8 @@ const int BUTTON_PIN = 7;
 // - Encoders
 const int ENCODER_PIN_A1 = 18, ENCODER_PIN_A2 = 19;
 const int ENCODER_PIN_B1 = 20, ENCODER_PIN_B2 = 21;
+const int ENCODER_PIN_C1 = 0, ENCODER_PIN_C2 = 0;
+const int ENCODER_PIN_D1 = 0, ENCODER_PIN_D2 = 0;
 
 // - Line Sensor A (front)
 const int LINE_SENSOR_PIN_A1 = A2;
@@ -141,30 +133,26 @@ const int NEW_IR_PIN_5 = 26; // left
 // - LED
 const int LED_PIN = LED_BUILTIN;
 
-// - Servo Motor A (right)
+// - Servo Motor A (front right)
 const int SERVO_PIN_A1 = 11, SERVO_PIN_A2 = 12;
 
-// - Servo Motor B (left)
+// - Servo Motor B (front left)
 const int SERVO_PIN_B1 = 10, SERVO_PIN_B2 = 9;
 
-// - Stepper Motor A (four-bar)
-const int STEPPER_PIN_A1 = 40, STEPPER_PIN_A2 = 41;
-const int STEPPER_PIN_A3 = 42, STEPPER_PIN_A4 = 43;
+// - Servo Motor C (rear right)
+const int SERVO_PIN_C1 = 0, SERVO_PIN_C2 = 0;
 
-// - Stepper Motor B (lift)
-const int STEPPER_PIN_B1 = 30, STEPPER_PIN_B2 = 31;
-const int STEPPER_PIN_B3 = 32, STEPPER_PIN_B4 = 33;
+// - Servo Motor D (rear left)
+const int SERVO_PIN_D1 = 0, SERVO_PIN_D2 = 0;
 
-// ==============================
-// ===== NEW STEPPER DRIVER =====
-// ==============================
-
-// Four-bar
+// - Stepper - Four-bar
+const int STEPPER_A_STEPS_PER_REVOLUTION = 200;
 const int STEPPER_A_DIRECTION_PIN = 40;
 const int STEPPER_A_STEP_PIN = 41;
 const int STEPPER_A_ENABLE_PIN = 51;
 
-// Lift
+// - Stepper - Lift
+const int STEPPER_B_STEPS_PER_REVOLUTION = 200;
 const int STEPPER_B_DIRECTION_PIN = 30;
 const int STEPPER_B_STEP_PIN = 31;
 const int STEPPER_B_ENABLE_PIN = 50;

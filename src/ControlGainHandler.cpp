@@ -24,53 +24,28 @@ ControlGainHandler::~ControlGainHandler() {
   // Clean up any dynamically allocated resources here
 }
 
-// Reset the error term
-void ControlGainHandler::resetError() { lastError = 0; }
-
-// Reset the integral term
-void ControlGainHandler::resetIntegral() {
-  lastIntegralResetTime = millis();
-  integral = 0;
-}
-
 // Reset the error and integral terms
 void ControlGainHandler::reset() {
   lastError = 0;
   integral = 0;
 }
 
-// Set the last error
-void ControlGainHandler::setLastError(int error) { lastError = error; }
-
-// Get the last error
-int ControlGainHandler::getLastError() { return lastError; }
-
-// Get the integral term
-int ControlGainHandler::getIntegral() { return integral; }
-
-// Set the proportional gain
-void ControlGainHandler::setKp(float kp) { this->kp = kp; }
-
-// Set the integral gain
-void ControlGainHandler::setKi(float ki) { this->ki = ki; }
-
-// Set the derivative gain
-void ControlGainHandler::setKd(float kd) { this->kd = kd; }
-
-// Get the proportional gain
-float ControlGainHandler::getKp() { return kp; }
-
-// Get the integral gain
-float ControlGainHandler::getKi() { return ki; }
-
-// Get the derivative gain
-float ControlGainHandler::getKd() { return kd; }
-
-void ControlGainHandler::incrementIntegral(int error) {
-  // Increment the integral term
+float ControlGainHandler::calculatePID(float error) {
+  // Update the integral term
   integral += error;
-}
 
-unsigned long ControlGainHandler::getLastIntegralResetTime() {
-  return lastIntegralResetTime;
+  // Calculate the proportional term
+  float proportional = kp * error;
+
+  // Calculate the integral term
+  float integral = ki * this->integral;
+
+  // Calculate the derivative term
+  float derivative = kd * (error - lastError);
+
+  // Update the last error
+  lastError = error;
+
+  // Return the PID output
+  return proportional + integral + derivative;
 }

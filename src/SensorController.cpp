@@ -4,8 +4,10 @@
 SensorController::SensorController()
     : newIR(NEW_IR_PIN_1, NEW_IR_PIN_2, NEW_IR_PIN_3, NEW_IR_PIN_4,
             NEW_IR_PIN_5),
-      encoderA(ENCODER_PIN_A1, ENCODER_PIN_A2), // Encoder A
-      encoderB(ENCODER_PIN_B1, ENCODER_PIN_B2), // Encoder B
+      encFrontRight(ENCODER_PIN_C1, ENCODER_PIN_C2),
+      encFrontLeft(ENCODER_PIN_D1, ENCODER_PIN_D2),
+      encRearRight(ENCODER_PIN_A1, ENCODER_PIN_A2),
+      encRearLeft(ENCODER_PIN_B1, ENCODER_PIN_B2),
       lineSensorA1(LINE_SENSOR_PIN_A1),         // Line sensor A1
       lineSensorA2(LINE_SENSOR_PIN_A2),         // Line sensor A2
       lineSensorA3(LINE_SENSOR_PIN_A3),         // Line sensor A3
@@ -21,16 +23,7 @@ SensorController::~SensorController() {
   // Clean up any resources
 }
 
-// ===== SETUP FUNCTIONS =====
-void SensorController::zeroEncoders() {
-  encoderA.write(0);
-  encoderB.write(0);
-}
-
 // ===== SENSOR READINGS =====
-long SensorController::readEncoderA() { return encoderA.read(); }
-
-long SensorController::readEncoderB() { return encoderB.read(); }
 
 void SensorController::readLineSensorA() {
   lineSensorA1.read();
@@ -142,66 +135,46 @@ void SensorController::setLineSensorBThreshold(int threshold) {
   lineSensorBThreshold = threshold;
 }
 
-// ====== ENCODER MEMORY FUNCTIONS =====
-void SensorController::setEncoderALastValue(long value) {
-  encoderALastValue = value;
-}
-
-long SensorController::getEncoderALastValue() { return encoderALastValue; }
-
-void SensorController::setEncoderALastTime(long value) {
-  encoderALastTime = value;
-}
-
-long SensorController::getEncoderALastTime() { return encoderALastTime; }
-
-void SensorController::setEncoderBLastValue(long value) {
-  encoderBLastValue = value;
-}
-
-long SensorController::getEncoderBLastValue() { return encoderBLastValue; }
-
-void SensorController::setEncoderBLastTime(long value) {
-  encoderBLastTime = value;
-}
-
-long SensorController::getEncoderBLastTime() { return encoderBLastTime; }
-
 // ===== ENCODER SPEED STUFF =====
 
-float SensorController::getEncoderASpeed() {
+float SensorController::getEncFrontRightSpeed() {
   unsigned long currentTime = millis();
-  long encoderReading = encoderA.read();
-  float deltaTime = (currentTime - encoderALastTime) / 1000.0;
-  long deltaDistance = encoderReading - encoderALastValue;
-
-  setEncoderALastTime(currentTime);
-  setEncoderALastValue(encoderReading);
-
+  long encoderReading = encFrontRight.read();
+  float deltaTime = (currentTime - encFrontRightLastTime) / 1000.0;
+  long deltaDistance = encoderReading - encFrontRightLastVal;
+  encFrontRightLastTime = currentTime;
+  encFrontRightLastVal = encoderReading;
   return deltaDistance / deltaTime;
 }
 
-float SensorController::getEncoderBSpeed() {
+float SensorController::getEncFrontLeftSpeed() {
   unsigned long currentTime = millis();
-  long encoderReading = encoderB.read();
-  float deltaTime = (currentTime - encoderBLastTime) / 1000.0;
-  long deltaDistance = encoderReading - encoderBLastValue;
-
-  setEncoderBLastTime(currentTime);
-  setEncoderBLastValue(encoderReading);
-
+  long encoderReading = encFrontLeft.read();
+  float deltaTime = (currentTime - encFrontLeftLastTime) / 1000.0;
+  long deltaDistance = encoderReading - encFrontLeftLastVal;
+  encFrontLeftLastTime = currentTime;
+  encFrontLeftLastVal = encoderReading;
   return deltaDistance / deltaTime;
 }
 
-float SensorController::speedAdjust(int speedReading, float constraintValue) {
-  float quotient = speedReading / ENCODER_MAX_SPEED;
-  if (quotient > 1) {
-    return constraintValue;
-  } else if (quotient < -1) {
-    return -constraintValue;
-  } else {
-    return constraintValue * speedReading / ENCODER_MAX_SPEED;
-  }
+float SensorController::getEncRearRightSpeed() {
+  unsigned long currentTime = millis();
+  long encoderReading = encRearRight.read();
+  float deltaTime = (currentTime - encRearRightLastTime) / 1000.0;
+  long deltaDistance = encoderReading - encRearRightLastVal;
+  encRearRightLastTime = currentTime;
+  encRearRightLastVal = encoderReading;
+  return deltaDistance / deltaTime;
+}
+
+float SensorController::getEncRearLeftSpeed() {
+  unsigned long currentTime = millis();
+  long encoderReading = encRearLeft.read();
+  float deltaTime = (currentTime - encRearLeftLastTime) / 1000.0;
+  long deltaDistance = encoderReading - encRearLeftLastVal;
+  encRearLeftLastTime = currentTime;
+  encRearLeftLastVal = encoderReading;
+  return deltaDistance / deltaTime;
 }
 
 // Function to process the input binary number and return the desired output
@@ -271,7 +244,7 @@ void SensorController::init() {
   ultrasonicHandler.init();
 
   // Reset encoders
-  zeroEncoders();
+  zeroAllEncoders();
 
   // Initialize LED pin as an output
   pinMode(LED_PIN, OUTPUT);
@@ -340,3 +313,15 @@ NewIRSensor SensorController::getNewIRSensor() { return newIR; }
 UltrasonicHandler SensorController::getUltrasonicHandler() {
   return ultrasonicHandler;
 }
+
+void SensorController::zeroEncoder(Encoder &encoder) { encoder.write(0); }
+
+void SensorController::zeroAllEncoders() {
+  // Zero all encoders
+  zeroEncoder(encFrontRight);
+  zeroEncoder(encFrontLeft);
+  zeroEncoder(encRearRight);
+  zeroEncoder(encRearLeft);
+}
+
+long SensorController::readEncoder(Encoder &encoder) { return encoder.read(); }

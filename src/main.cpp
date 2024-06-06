@@ -40,25 +40,25 @@
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::BOTH_WHEELS;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::SINGLE_SERVO;
+MotorController::SERVO CALIBRATE_SERVO = MotorController::SERVO_FRONT_LEFT;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
-
-int counter = 0;
 
 // ===== CONTROL OBJECTS =====
 SystemStateHandler systemStateHandler =
-    SystemStateHandler();                               // System state handler
+    SystemStateHandler(); // System state handler
+
+SerialController serialController = SerialController(); // Serial controller
 MotorController motorController = MotorController();    // Motor controller
 SensorController sensorController = SensorController(); // Sensor controller
-ControlGainHandler lineSensorGainHandler =
-    ControlGainHandler(LINE_FOLLOW_REGULAR_KP, LINE_FOLLOW_REGULAR_KI,
-                       LINE_FOLLOW_REGULAR_KD); // Line sensor gain handler
-ControlGainHandler encoderGainHandler =
-    ControlGainHandler(ENCODER_DRIVE_KP, ENCODER_DRIVE_KI,
-                       ENCODER_DRIVE_KD);      // Encoder gain handler
+
 BranchHandler branchHandler = BranchHandler(); // Branch handler
-SerialController serialController = SerialController();
-LookAhead lookAhead = LookAhead();
+LookAhead lookAhead = LookAhead();             // Look-ahead controller
+
+ControlGainHandler encoderFrontRight = ControlGainHandler(1.0, 0.0, 0.0);
+ControlGainHandler encoderFrontLeft = ControlGainHandler(1.0, 0.0, 0.0);
+ControlGainHandler encoderRearRight = ControlGainHandler(1.0, 0.0, 0.0);
+ControlGainHandler encoderRearLeft = ControlGainHandler(1.0, 0.0, 0.0);
 
 // ===== ENUMS =====
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
@@ -73,7 +73,6 @@ void handleIRIdle();
 void handleUltraSonicIdle();
 void handleFollowLine(int mode);
 void handleCalibrate(MotorController::COMPONENT componentCode);
-void handlePIDEncoderDrive(int BASE_SPEED);
 void handleRotation(MotorController::ROTATE_DIRECTION direction);
 void handleUltrasonicApproach();
 void handleUltrasonicReverse();
@@ -81,9 +80,13 @@ void handleLift(int direction);
 void handleLookAheadLineFollow();
 void ultrasonicTurnCheck();
 void ultrasonicObstacleCheck();
+void calibrateFourBar(int mode);
+void drive(int leftSpeed, int rightSpeed);
+void speedAdjustRobust(int &speed);
+void calibrateAllWheels(MotorController::MOTOR_DIRECTION direction);
+void calibrateSingleServo(MotorController::SERVO whichServo);
 
 // Helper functions
-void resetAllPIDMemory();
 void calculateRotation(int rotationType, int targetLocation);
 
 // LOGGING
@@ -103,10 +106,10 @@ void setup() {
   serialController.init();
   sensorController.init();
   motorController.init();
-  systemStateHandler.init(DEFAULT_STATE);
   motorController.disableSteppers();
 
-  // systemStateHandler.setStateFlowIndex(4);
+  systemStateHandler.init(DEFAULT_STATE);
+  systemStateHandler.setStateFlowIndex(0);
 }
 
 // ===== MAIN LOOP =====
@@ -122,7 +125,6 @@ void loop() {
   if (systemStateHandler.isNewStateFlowIndex()) {
     serialController.printlnWithTimestamp("STATE CHANGE");
     // On state change.
-    resetAllPIDMemory();
     motorController.servosOff();
     // motorController.setStepperMotorSpeedsToMax();
     //  branchHandler.reset();
@@ -258,10 +260,6 @@ void loop() {
     handleUltraSonicIdle();
     // Code for idle state with ultrasonic sensor active
     break;
-  case SystemState::PID_ENCODER_DRIVE:
-    // Code for PID control of encoder drive
-    handlePIDEncoderDrive(255);
-    break;
   case SystemState::FOLLOW_LINE:
     // Code for simple line following
     handleFollowLine(REGULAR);
@@ -281,7 +279,6 @@ void loop() {
     motorController.handleFourBar(MotorController::LOAD);
     motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
-    delay(1000);
     break;
   case SystemState::FOUR_BAR_UNLOAD:
     // Code for four-bar mechanism
@@ -289,7 +286,6 @@ void loop() {
     motorController.handleFourBar(MotorController::UNLOAD);
     motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
-    delay(1000);
     break;
   case SystemState::ROTATE_LEFT:
     // Code for rotating the robot left
@@ -309,7 +305,6 @@ void loop() {
     handleLift(MotorController::DOWN);
     motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
-    delay(1000);
     break;
   case SystemState::LIFT_RAISE:
     // Raise the lift.
@@ -317,7 +312,6 @@ void loop() {
     handleLift(MotorController::UP);
     motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
-    delay(1000);
     break;
   default:
     // Error handling
@@ -384,26 +378,26 @@ void handleTest() {
         MOTOR_A_FWD_TEST_START + MOTOR_A_TEST_LENGTH) {
       Serial.print("Motor A Forward");
       // Test motor A (right) FORWARD
-      motorController.motorDriver.motorAForward();
-      motorController.motorDriver.motorBStop();
+      motorController.motorDriverFront.motorAForward();
+      motorController.motorDriverFront.motorBStop();
     } else if (millis() - myTimerStart <
                MOTOR_A_REV_TEST_START + MOTOR_A_TEST_LENGTH) {
       Serial.print("Motor A Reverse");
       // Test motor A (right) REVERSE
-      motorController.motorDriver.motorAReverse();
-      motorController.motorDriver.motorBStop();
+      motorController.motorDriverFront.motorAReverse();
+      motorController.motorDriverFront.motorBStop();
     } else if (millis() - myTimerStart <
                MOTOR_B_FWD_TEST_START + MOTOR_B_TEST_LENGTH) {
       Serial.print("Motor B Forward");
       // Test motor B (left) FORWARD
-      motorController.motorDriver.motorBForward();
-      motorController.motorDriver.motorAStop();
+      motorController.motorDriverFront.motorBForward();
+      motorController.motorDriverFront.motorAStop();
     } else if (millis() - myTimerStart <
                MOTOR_B_REV_TEST_START + MOTOR_B_TEST_LENGTH) {
       Serial.print("Motor B Reverse");
       // Test motor B (left) REVERSE
-      motorController.motorDriver.motorBReverse();
-      motorController.motorDriver.motorAStop();
+      motorController.motorDriverFront.motorBReverse();
+      motorController.motorDriverFront.motorAStop();
     } else if (millis() - myTimerStart <
                STEPPER_A_FWD_TEST_START + STEPPER_A_TEST_LENGTH) {
       Serial.print("Stepper A Forward");
@@ -460,13 +454,26 @@ void handleTest() {
  * the serial monitor, and the state flow index is advanced.
  */
 void handleIdle() {
+  // Disable everything.
+  motorController.disableSteppers();
   motorController.servosOff();
+
+  // Turn on LED.
   sensorController.turnLED(SensorController::ON);
+
+  // Wait for button press.
   if (sensorController.readButton() == SensorController::PRESSED) {
+    // Turn off LED.
     sensorController.turnLED(SensorController::OFF);
+
+    // Print message.
     serialController.printlnWithTimestamp("Exiting idle phase...");
+
+    // Wait for button release.
     while (sensorController.readButton() == SensorController::PRESSED)
       ;
+
+    // Advance state flow index.
     systemStateHandler.advanceStateFlowIndex();
   }
 }
@@ -479,32 +486,8 @@ void handleIdle() {
 void handleCalibrate(MotorController::COMPONENT componentCode) {
   switch (componentCode) {
   case MotorController::FOUR_BAR: {
-    int FOUR_BAR_CALIBRATION_MODE = 1;
-
-    if (FOUR_BAR_CALIBRATION_MODE == 1) {
-      if (sensorController.readButton() == SensorController::PRESSED) {
-        // Hold down button until four-bar crank is in lowest position.
-        sensorController.turnLED(SensorController::ON);
-        motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
-        motorController.stepperDrive(MotorController::STEPPER_FOUR_BAR, 1, 1);
-        // positive for loading.
-        delay(30);
-      } else {
-        motorController.disableSteppers();
-        sensorController.turnLED(SensorController::OFF);
-      }
-    } else if (FOUR_BAR_CALIBRATION_MODE == 2) {
-      if (sensorController.readButton() == SensorController::PRESSED) {
-        // Do a full rotation.
-        sensorController.turnLED(SensorController::ON);
-        motorController.stepperDrive(
-            MotorController::STEPPER_FOUR_BAR, 1,
-            motorController.degToSteps(360, MotorController::STEPPER_FOUR_BAR));
-        delay(20);
-      } else {
-        sensorController.turnLED(SensorController::OFF);
-      }
-    }
+    int calibrateMode = 1;
+    calibrateFourBar(calibrateMode);
     break;
   }
   case MotorController::LIFT: {
@@ -512,85 +495,83 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
 
     if (LIFT_CALIBRATION_MODE == 1) {
       if (sensorController.readButton() == SensorController::PRESSED) {
-        // Hold down button until four-bar crank is in lowest position.
-        Serial.print("Calibrating lift... ");
+        // Do ten steps at a time.
+        Serial.println("Calibrating lift... ");
         motorController.enableStepper(MotorController::STEPPER_LIFT);
         sensorController.turnLED(SensorController::ON);
-        motorController.stepperDrive(MotorController::STEPPER_LIFT, -1, 10);
-        // negative for DOWN
+        motorController.lowerLift(10);
+        motorController.disableSteppers();
         delay(1000);
-        // while(true);
-        counter++;
-        Serial.println(counter);
-
       } else {
         motorController.disableSteppers();
         sensorController.turnLED(SensorController::OFF);
       }
-
     } else if (LIFT_CALIBRATION_MODE == 2) {
-      // Negative down, positive up
-      motorController.enableStepper(MotorController::STEPPER_LIFT);
-      motorController.stepperDrive(MotorController::STEPPER_LIFT, 1, 200);
-      motorController.disableSteppers();
-      while (true)
-        ;
-      // delay(1000);
+      // Do the full range.
+      if (sensorController.readButton() == SensorController::PRESSED) {
+        motorController.enableStepper(MotorController::STEPPER_LIFT);
+        sensorController.turnLED(SensorController::ON);
+        motorController.lowerLift();
+        motorController.disableSteppers();
+        delay(1000);
+      } else {
+        motorController.disableSteppers();
+        sensorController.turnLED(SensorController::OFF);
+      }
     }
     break;
   }
-  case MotorController::RIGHT_WHEEL: {
-    motorController.servoDrive(MotorController::SERVO_A, -255); // full speed
-    int actualRightSpeed = sensorController.getEncoderASpeed();
-    Serial.print("Actual right speed: ");
-    Serial.println(actualRightSpeed);
+  case MotorController::ALL_WHEELS:
+    calibrateAllWheels(CALIBRATE_DIRECTION);
+  case MotorController::SINGLE_SERVO:
+    calibrateSingleServo(CALIBRATE_SERVO);
+  default:
+    logError("Invalid component code");
     break;
   }
-  case MotorController::LEFT_WHEEL: {
+}
+
+void calibrateSingleServo(MotorController::SERVO whichServo) {
+  motorController.servoDrive(whichServo, 255);
+}
+
+void calibrateAllWheels(MotorController::MOTOR_DIRECTION direction) {
+  if (direction == MotorController::FORWARD) {
+    drive(255, 255);
+  } else if (direction == MotorController::BACKWARD) {
+    drive(-255, -255);
+  } else {
+    logError("Invalid direction");
+  }
+}
+
+void calibrateFourBar(int mode) {
+  switch (mode) {
+  case 1:
     if (sensorController.readButton() == SensorController::PRESSED) {
-      // motorController.motorDriver.motorBForward(255); // full speed
-      motorController.servoDrive(MotorController::SERVO_B, 255); // full speed
-      int actualLeftSpeed = sensorController.getEncoderBSpeed();
-      Serial.print("Actual left speed: ");
-      Serial.println(actualLeftSpeed);
+      // Hold down button until four-bar crank is in lowest position.
       sensorController.turnLED(SensorController::ON);
+      motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
+      motorController.stepperDrive(MotorController::STEPPER_FOUR_BAR,
+                                   FOUR_BAR_SPEED, 1);
+      // positive for loading.
+      delay(30);
     } else {
-      motorController.servoDrive(MotorController::SERVO_B, 0); // full speed
-      // motorController.motorDriver.motorBStop();
+      motorController.disableSteppers();
       sensorController.turnLED(SensorController::OFF);
     }
     break;
-  }
-  case MotorController::BOTH_WHEELS: {
-    int speed = 255;
-    if (CALIBRATE_DIRECTION == MotorController::FORWARD) {
-
-      // if (millis() % 3000 < 1000) {
-      //   motorController.servoDrive(MotorController::SERVO_A, speed/2);
-      //   motorController.servoDrive(MotorController::SERVO_B, speed);
-      // } else if (millis() % 3000 < 2000) {
-      //   motorController.servoDrive(MotorController::SERVO_A, speed);
-      //   motorController.servoDrive(MotorController::SERVO_B, speed/2);
-      // } else {
-      //   motorController.servoDrive(MotorController::SERVO_A, speed);
-      //   motorController.servoDrive(MotorController::SERVO_B, speed);
-      // }
-      motorController.servoDrive(MotorController::SERVO_A, speed);
-      motorController.servoDrive(MotorController::SERVO_B, speed);
-
+  case 2:
+    if (sensorController.readButton() == SensorController::PRESSED) {
+      // Do a full rotation.
+      sensorController.turnLED(SensorController::ON);
+      motorController.stepperDrive(
+          MotorController::STEPPER_FOUR_BAR, FOUR_BAR_SPEED,
+          motorController.degToSteps(360, MotorController::STEPPER_FOUR_BAR));
+      delay(20);
     } else {
-      motorController.servoDrive(MotorController::SERVO_A, -speed);
-      motorController.servoDrive(MotorController::SERVO_B, -speed);
+      sensorController.turnLED(SensorController::OFF);
     }
-    while (sensorController.readButton() == SensorController::PRESSED) {
-      motorController.servosOff();
-      while (true)
-        ;
-    }
-    break;
-  }
-  default:
-    logError("Invalid component code");
     break;
   }
 }
@@ -656,265 +637,200 @@ void handleUltraSonicIdle() {
 }
 
 /**
- * Handles the PID control for encoder-based drive.
- *
- * @param BASE_SPEED The base speed for the motors.
- */
-void handlePIDEncoderDrive(int BASE_SPEED) {
-  // PID parameters
-  float Kp = encoderGainHandler.getKp();
-  float Ki = encoderGainHandler.getKi();
-  float Kd = encoderGainHandler.getKd();
-
-  // Debug messages.
-  Serial.print("<debug_PID> GAINS: [Kp:");
-  Serial.print(Kp);
-  Serial.print(", Ki:");
-  Serial.print(Ki);
-  Serial.print(", Kd:");
-  Serial.print(Kd);
-  Serial.println("]");
-
-  // Read encoder values
-  long encoderValueA = sensorController.readEncoderA();
-  long encoderValueB = sensorController.readEncoderB();
-
-  // Calculate error
-  long error = encoderValueA - encoderValueB;
-
-  // Update integral term.
-  encoderGainHandler.incrementIntegral(error);
-
-  // Calculate derivative term
-  float derivative = error - encoderGainHandler.getLastError();
-
-  // PID control
-  float output =
-      Kp * error + Ki * encoderGainHandler.getIntegral() + Kd * derivative;
-
-  // Update previous error.
-  encoderGainHandler.setLastError(error);
-
-  // Adjust motor speeds
-  int motorSpeedA = constrain(BASE_SPEED - output, 0, 255);
-  int motorSpeedB = constrain(BASE_SPEED + output, 0, 255);
-
-  // Enable motors.
-  motorController.servoDrive(MotorController::SERVO_A, motorSpeedA);
-  motorController.servoDrive(MotorController::SERVO_B, motorSpeedB);
-
-  // Debugging output
-  Serial.print("<debug_PID> Encoder values - Left: ");
-  Serial.print(encoderValueA);
-  Serial.print(", Right: ");
-  Serial.print(encoderValueB);
-  Serial.print(", Error: ");
-  Serial.println(error);
-
-  Serial.print("<debug_PID> EncoderDrive speeds - servoA: ");
-  Serial.print(motorSpeedA);
-  Serial.print(", servoB: ");
-  Serial.println(motorSpeedB);
-
-  // Short delay to avoid overwhelming the microcontroller
-  // delay(100);
-}
-
-/**
  * Handles the line following behavior based on the given mode.
  *
  * @param mode The mode of line following (PICKUP, REGULAR, DROPOFF).
  */
 void handleFollowLine(int mode) {
-  bool DO_LOOK_AHEAD = true;
 
   ultrasonicObstacleCheck();
 
-  if (DO_LOOK_AHEAD) {
-    handleLookAheadLineFollow();
-    return;
-  }
+  handleLookAheadLineFollow();
 
-  bool DO_ULTRASONIC_CHECK_OBSTACLE = false;
-  bool DO_ULTRASONIC_CHECK_TURN = false;
-  bool SHOW_RAW_IR_READINGS = true;
-  bool PRINT_DESIRED_SPEEDS = true;
-  bool PRINT_ACTUAL_SPEEDS = true;
-  bool PRINT_MOTOR_COMMAND = true;
-  bool DO_EMERGENCY_REVERSE = true;
+  return;
 
-  serialController.printlnWithTimestamp("Start of handleFollowLine.");
-  // Read the sensor values
+  // bool DO_ULTRASONIC_CHECK_OBSTACLE = false;
+  // bool DO_ULTRASONIC_CHECK_TURN = false;
+  // bool SHOW_RAW_IR_READINGS = true;
+  // bool PRINT_DESIRED_SPEEDS = true;
+  // bool PRINT_ACTUAL_SPEEDS = true;
+  // bool PRINT_MOTOR_COMMAND = true;
+  // bool DO_EMERGENCY_REVERSE = true;
 
-  bool SHOW_BINARY_READING = true;
+  // serialController.printlnWithTimestamp("Start of handleFollowLine.");
+  // // Read the sensor values
 
-  int lineSensorResults =
-      sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS, false);
+  // bool SHOW_BINARY_READING = true;
 
-  if (SHOW_BINARY_READING) {
-    serialController.printWithTimestamp("Sensor Mapping: { ");
-    serialController.printBinaryWithLeadingZeros(lineSensorResults);
-    Serial.println(" }\n");
-  }
+  // int lineSensorResults =
+  //     sensorController.getFullIRReadingResults(SHOW_RAW_IR_READINGS,
+  //     false);
 
-  switch (mode) {
-  case PICKUP: { // Code for line following in pickup mode
-    // Check if at target branch.
-    if ((millis() - systemStateHandler.getLastStateChangeTime()) > 1000 &&
-        branchHandler.isAtTargetLocation()) {
-      // STOP.
-      Serial.println("<debug> At branch, stopping.");
-      systemStateHandler.advanceStateFlowIndex();
-      return;
-    } else {
-      // Follow the line.
-    }
-    break;
-  }
-  case REGULAR: {
-    break;
-  }
-  case DROPOFF: {
-    break;
-  }
-  default:
-    logError("Invalid mode");
-    break;
-  }
+  // if (SHOW_BINARY_READING) {
+  //   serialController.printWithTimestamp("Sensor Mapping: { ");
+  //   serialController.printBinaryWithLeadingZeros(lineSensorResults);
+  //   Serial.println(" }\n");
+  // }
 
-  if (millis() - lineSensorGainHandler.getLastIntegralResetTime() > 5000) {
-    lineSensorGainHandler.resetIntegral();
-  }
+  // switch (mode) {
+  // case PICKUP: { // Code for line following in pickup mode
+  //   // Check if at target branch.
+  //   if ((millis() - systemStateHandler.getLastStateChangeTime()) > 1000 &&
+  //       branchHandler.isAtTargetLocation()) {
+  //     // STOP.
+  //     Serial.println("<debug> At branch, stopping.");
+  //     systemStateHandler.advanceStateFlowIndex();
+  //     return;
+  //   } else {
+  //     // Follow the line.
+  //   }
+  //   break;
+  // }
+  // case REGULAR: {
+  //   break;
+  // }
+  // case DROPOFF: {
+  //   break;
+  // }
+  // default:
+  //   logError("Invalid mode");
+  //   break;
+  // }
 
-  // PID Line stuff...
-  int lineError = -sensorController.determineError(lineSensorResults);
+  // if (millis() - lineSensorGainHandler.getLastIntegralResetTime() > 5000) {
+  //   lineSensorGainHandler.resetIntegral();
+  // }
 
-  if (lineError == 0) {
-    lineSensorGainHandler.resetIntegral();
-  }
+  // // PID Line stuff...
+  // int lineError = -sensorController.determineError(lineSensorResults);
 
-  serialController.printWithTimestamp("Line error: ");
-  Serial.println(lineError);
+  // if (lineError == 0) {
+  //   lineSensorGainHandler.resetIntegral();
+  // }
 
-  // ============================
-  // ===== ULTRASONIC CHECK =====s
-  if (DO_ULTRASONIC_CHECK_OBSTACLE) {
-    if (sensorController.getUltrasonicHandler().isObstacle(
-            OBSTACLE_DISTANCE_THRESHOLD)) {
-      serialController.printlnWithTimestamp("<!> Obstacle detected.");
-      motorController.servosOff();
-      delay(100);
-      return;
-    }
-  } else if (DO_ULTRASONIC_CHECK_TURN) {
-    ultrasonicTurnCheck();
-  }
-  // ============================
-  // ============================
+  // serialController.printWithTimestamp("Line error: ");
+  // Serial.println(lineError);
 
-  // =====================================
-  // ===== EMERGENCY REVERSE COMMAND =====
-  if (DO_EMERGENCY_REVERSE && lineError == 99) {
-    serialController.printlnWithTimestamp("<!> Reverse command");
-    motorController.servosOff();
-    motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
-    motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
-    delay(100);
-    return;
-  } else if (!DO_EMERGENCY_REVERSE) {
-    lineError = lineSensorGainHandler.getLastError();
-  }
-  // =====================================
-  // =====================================
+  // // ============================
+  // // ===== ULTRASONIC CHECK =====s
+  // if (DO_ULTRASONIC_CHECK_OBSTACLE) {
+  //   if (sensorController.getUltrasonicHandler().isObstacle(
+  //           OBSTACLE_DISTANCE_THRESHOLD)) {
+  //     serialController.printlnWithTimestamp("<!> Obstacle detected.");
+  //     motorController.servosOff();
+  //     delay(100);
+  //     return;
+  //   }
+  // } else if (DO_ULTRASONIC_CHECK_TURN) {
+  //   ultrasonicTurnCheck();
+  // }
+  // // ============================
+  // // ============================
 
-  // PID Line stuff cont'd...
-  lineSensorGainHandler.incrementIntegral(lineError);
-  float derivative = lineError - lineSensorGainHandler.getLastError();
+  // // =====================================
+  // // ===== EMERGENCY REVERSE COMMAND =====
+  // if (DO_EMERGENCY_REVERSE && lineError == 99) {
+  //   serialController.printlnWithTimestamp("<!> Reverse command");
+  //   motorController.servosOff();
+  //   motorController.servoDrive(MotorController::SERVO_A, -REVERSE_SPEED);
+  //   motorController.servoDrive(MotorController::SERVO_B, -REVERSE_SPEED);
+  //   delay(100);
+  //   return;
+  // } else if (!DO_EMERGENCY_REVERSE) {
+  //   lineError = lineSensorGainHandler.getLastError();
+  // }
+  // // =====================================
+  // // =====================================
 
-  float P = lineError;
-  float I = lineSensorGainHandler.getIntegral();
-  float D = derivative;
+  // // PID Line stuff cont'd...
+  // lineSensorGainHandler.incrementIntegral(lineError);
+  // float derivative = lineError - lineSensorGainHandler.getLastError();
 
-  float output = lineSensorGainHandler.getKp() * P +
-                 lineSensorGainHandler.getKi() * I +
-                 lineSensorGainHandler.getKd() * D;
-  lineSensorGainHandler.setLastError(lineError);
+  // float P = lineError;
+  // float I = lineSensorGainHandler.getIntegral();
+  // float D = derivative;
 
-  serialController.printWithTimestamp("PID: P(");
-  Serial.print(P);
-  Serial.print("), I(");
-  Serial.print(I);
-  Serial.print("), D(");
-  Serial.print(D);
-  Serial.print("), Output(");
-  Serial.print(output);
-  Serial.println(")");
+  // float output = lineSensorGainHandler.getKp() * P +
+  //                lineSensorGainHandler.getKi() * I +
+  //                lineSensorGainHandler.getKd() * D;
+  // lineSensorGainHandler.setLastError(lineError);
 
-  // Motor command calcs
+  // serialController.printWithTimestamp("PID: P(");
+  // Serial.print(P);
+  // Serial.print("), I(");
+  // Serial.print(I);
+  // Serial.print("), D(");
+  // Serial.print(D);
+  // Serial.print("), Output(");
+  // Serial.print(output);
+  // Serial.println(")");
 
-  int desiredLeftSpeed = BASE_SPEED - output;
-  int desiredRightSpeed = BASE_SPEED + output;
+  // // Motor command calcs
 
-  if (PRINT_DESIRED_SPEEDS) {
-    serialController.printWithTimestamp("Desired speeds: L(");
-    Serial.print(desiredLeftSpeed);
-    Serial.print("), R(");
-    Serial.print(desiredRightSpeed);
-    Serial.println(")");
-  }
+  // int desiredLeftSpeed = BASE_SPEED - output;
+  // int desiredRightSpeed = BASE_SPEED + output;
 
-  // Calculate actual speed using encoders
-  int actualLeftSpeed = sensorController.getEncoderBSpeed();
-  int actualRightSpeed = sensorController.getEncoderASpeed();
+  // if (PRINT_DESIRED_SPEEDS) {
+  //   serialController.printWithTimestamp("Desired speeds: L(");
+  //   Serial.print(desiredLeftSpeed);
+  //   Serial.print("), R(");
+  //   Serial.print(desiredRightSpeed);
+  //   Serial.println(")");
+  // }
 
-  actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed, MIN_SPEED);
-  actualRightSpeed = sensorController.speedAdjust(actualRightSpeed, MIN_SPEED);
+  // // Calculate actual speed using encoders
+  // int actualLeftSpeed = sensorController.getEncoderBSpeed();
+  // int actualRightSpeed = sensorController.getEncoderASpeed();
 
-  if (PRINT_ACTUAL_SPEEDS) {
-    serialController.printWithTimestamp("Actual speeds: L(");
-    Serial.print(actualLeftSpeed);
-    Serial.print("), R(");
-    Serial.print(actualRightSpeed);
-    Serial.println(")");
-  }
+  // actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed,
+  // MIN_SPEED); actualRightSpeed =
+  // sensorController.speedAdjust(actualRightSpeed, MIN_SPEED);
 
-  // Adjust motor speed based on encoder feedback
+  // if (PRINT_ACTUAL_SPEEDS) {
+  //   serialController.printWithTimestamp("Actual speeds: L(");
+  //   Serial.print(actualLeftSpeed);
+  //   Serial.print("), R(");
+  //   Serial.print(actualRightSpeed);
+  //   Serial.println(")");
+  // }
 
-  float kP_encoder = encoderGainHandler.getKp();
+  // // Adjust motor speed based on encoder feedback
 
-  int Enc_error = desiredLeftSpeed - actualLeftSpeed;
-  int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
-  int leftMotorSpeed =
-      constrain(adjustedSpeed, LOWER_CONSTRAINT,
-                CONSTRAINT); // Ensure speed stays within valid range
+  // float kP_encoder = encoderGainHandler.getKp();
 
-  Enc_error = desiredRightSpeed - actualRightSpeed;
-  adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
-  int rightMotorSpeed =
-      constrain(adjustedSpeed, LOWER_CONSTRAINT,
-                CONSTRAINT); // Ensure speed stays within valid range
+  // int Enc_error = desiredLeftSpeed - actualLeftSpeed;
+  // int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
+  // int leftMotorSpeed =
+  //     constrain(adjustedSpeed, LOWER_CONSTRAINT,
+  //               CONSTRAINT); // Ensure speed stays within valid range
 
-  // Ensure minimum speed
-  if (abs(leftMotorSpeed) < MIN_SPEED && leftMotorSpeed != 0) {
-    leftMotorSpeed = (leftMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
-  }
-  if (abs(rightMotorSpeed) < MIN_SPEED && rightMotorSpeed != 0) {
-    rightMotorSpeed = (rightMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
-  }
+  // Enc_error = desiredRightSpeed - actualRightSpeed;
+  // adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
+  // int rightMotorSpeed =
+  //     constrain(adjustedSpeed, LOWER_CONSTRAINT,
+  //               CONSTRAINT); // Ensure speed stays within valid range
 
-  // Enable motors.
-  motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
-  motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
+  // // Ensure minimum speed
+  // if (abs(leftMotorSpeed) < MIN_SPEED && leftMotorSpeed != 0) {
+  //   leftMotorSpeed = (leftMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
+  // }
+  // if (abs(rightMotorSpeed) < MIN_SPEED && rightMotorSpeed != 0) {
+  //   rightMotorSpeed = (rightMotorSpeed < 0) ? -MIN_SPEED : MIN_SPEED;
+  // }
 
-  if (PRINT_MOTOR_COMMAND) {
-    serialController.printWithTimestamp("Motor command: L(");
-    Serial.print(leftMotorSpeed);
-    Serial.print("), R(");
-    Serial.print(rightMotorSpeed);
-    Serial.println(")");
-  }
+  // // Enable motors.
+  // motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
+  // motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
 
-  serialController.printlnWithTimestamp("End of handleFollowLine.");
+  // if (PRINT_MOTOR_COMMAND) {
+  //   serialController.printWithTimestamp("Motor command: L(");
+  //   Serial.print(leftMotorSpeed);
+  //   Serial.print("), R(");
+  //   Serial.print(rightMotorSpeed);
+  //   Serial.println(")");
+  // }
+
+  // serialController.printlnWithTimestamp("End of handleFollowLine.");
 }
 
 /**
@@ -931,8 +847,8 @@ void handleRotation(MotorController::ROTATE_DIRECTION direction) {
 
 /**
  * Handles the ultrasonic approach behavior.
- * Reads the ultrasonic sensor, prints the distance, and performs actions based
- * on the distance.
+ * Reads the ultrasonic sensor, prints the distance, and performs actions
+ * based on the distance.
  */
 void handleUltrasonicApproach() {
   // Read the ultrasonic sensor
@@ -961,11 +877,11 @@ void handleUltrasonicApproach() {
  * Handles the reverse movement based on the ultrasonic sensor reading.
  * If the distance measured by the ultrasonic sensor is less than the stored
  * ultrasonic memory, the robot will move in reverse at a predefined speed.
- * Otherwise, the motor servos will be turned off and the state flow index will
- * be advanced.
+ * Otherwise, the motor servos will be turned off and the state flow index
+ * will be advanced.
  */
 void handleUltrasonicReverse() {
-  int REVERSE_SPEED = 64;
+  // int REVERSE_SPEED = 64;
 
   long distance = sensorController.getUltrasonicHandler().getDist();
 
@@ -974,7 +890,8 @@ void handleUltrasonicReverse() {
   Serial.println(distance);
 
   if (distance < sensorController.getUltrasonicHandler().getMemory()) {
-    handlePIDEncoderDrive(-REVERSE_SPEED);
+    // handlePIDEncoderDrive(-REVERSE_SPEED);
+    ;
   } else {
     motorController.servosOff();
     systemStateHandler.advanceStateFlowIndex();
@@ -988,19 +905,14 @@ void handleUltrasonicReverse() {
  * MotorController::UP or MotorController::DOWN.
  */
 void handleLift(int direction) {
-  const float LIFT_SPEED = 1.0;  // from 0 to 255
-  const int LIFT_DISTANCE = 220; // steps
-
   switch (direction) {
   case MotorController::UP:
     // Move the lift up
-    motorController.stepperDrive(MotorController::STEPPER_LIFT, LIFT_SPEED,
-                                 LIFT_DISTANCE);
+    motorController.raiseLift();
     break;
   case MotorController::DOWN:
     // Move the lift down
-    motorController.stepperDrive(MotorController::STEPPER_LIFT, -LIFT_SPEED,
-                                 LIFT_DISTANCE);
+    motorController.lowerLift();
     break;
   default:
     logError("Invalid direction");
@@ -1011,8 +923,8 @@ void handleLift(int direction) {
 /**
  * Performs line following using look-ahead control.
  * This function reads sensor data, performs linear regression on the data
- * points, calculates the error, applies PID control, adjusts motor speeds based
- * on encoder feedback, and drives the motors accordingly.
+ * points, calculates the error, applies PID control, adjusts motor speeds
+ * based on encoder feedback, and drives the motors accordingly.
  */
 void handleLookAheadLineFollow() {
   // Check for a 90 degree turn based on the ultrasonic sensor readings.
@@ -1070,106 +982,15 @@ void handleLookAheadLineFollow() {
     motorController.setLastDesiredSpeeds(desiredLeftSpeed, desiredRightSpeed);
   }
 
+  // Switch the speeds.
   if (doNewIR) {
-    //desiredLeftSpeed = -desiredLeftSpeed;
-    //desiredRightSpeed = -desiredRightSpeed;
-
     int temp = desiredLeftSpeed;
-
     desiredLeftSpeed = desiredRightSpeed;
     desiredRightSpeed = temp;
   }
 
-  // Calculate actual speed using encoders
-  int actualLeftSpeed = sensorController.getEncoderBSpeed();
-  int actualRightSpeed = sensorController.getEncoderASpeed();
-
-  // // Keep the actual speeds within above a minimum speed threshold.
-  // actualLeftSpeed = sensorController.speedAdjust(actualLeftSpeed,
-  // LA_MIN_SPEED); actualRightSpeed =
-  //     sensorController.speedAdjust(actualRightSpeed, LA_MIN_SPEED);
-
-  // Adjust motor speeds based on encoder feedback
-  float kP_encoder = encoderGainHandler.getKp();
-
-  // Left PID
-  int Enc_error = desiredLeftSpeed - actualLeftSpeed;
-
-  Serial.print("Enc_error(");
-  Serial.print(Enc_error);
-  Serial.print(") = desiredLeftSpeed(");
-  Serial.print(desiredLeftSpeed);
-  Serial.print(") - actualLeftSpeed(");
-  Serial.print(actualLeftSpeed);
-  Serial.println(")");
-
-  int adjustedSpeed = desiredLeftSpeed + kP_encoder * Enc_error;
-
-  Serial.print("adjustedSpeed(");
-  Serial.print(adjustedSpeed);
-  Serial.print(") = desiredLeftSpeed(");
-  Serial.print(desiredLeftSpeed);
-  Serial.print(") + kP_encoder(");
-  Serial.print(kP_encoder);
-  Serial.print(") * Enc_error(");
-  Serial.print(Enc_error);
-  Serial.println(")");
-
-  int leftMotorSpeed =
-      constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
-
-  Serial.print("After constraint: leftMotorSpeed(");
-  Serial.print(leftMotorSpeed);
-  Serial.println(")");
-
-  // Right PID
-  Enc_error = desiredRightSpeed - actualRightSpeed;
-
-  Serial.print("Enc_error(");
-  Serial.print(Enc_error);
-  Serial.print(") = desiredRightSpeed(");
-  Serial.print(desiredRightSpeed);
-  Serial.print(") - actualRightSpeed(");
-  Serial.print(actualRightSpeed);
-  Serial.println(")");
-
-  adjustedSpeed = desiredRightSpeed + kP_encoder * Enc_error;
-
-  Serial.print("adjustedSpeed(");
-  Serial.print(adjustedSpeed);
-  Serial.print(") = desiredRightSpeed(");
-  Serial.print(desiredRightSpeed);
-  Serial.print(") + kP_encoder(");
-  Serial.print(kP_encoder);
-  Serial.print(") * Enc_error(");
-  Serial.print(Enc_error);
-  Serial.println(")");
-
-  int rightMotorSpeed =
-      constrain(adjustedSpeed, LA_LOWER_CONSTRAINT, LA_UPPER_CONSTRAINT);
-
-  Serial.print("After constraint: rightMotorSpeed(");
-  Serial.print(rightMotorSpeed);
-  Serial.println(")");
-
-  // Ensure minimum speed
-  if (abs(leftMotorSpeed) < LA_MIN_SPEED && leftMotorSpeed != 0) {
-    leftMotorSpeed = (leftMotorSpeed < 0) ? -LA_MIN_SPEED : LA_MIN_SPEED;
-  }
-  if (abs(rightMotorSpeed) < LA_MIN_SPEED && rightMotorSpeed != 0) {
-    rightMotorSpeed = (rightMotorSpeed < 0) ? -LA_MIN_SPEED : LA_MIN_SPEED;
-  }
-
-  // Enable motors with adjusted speeds
-  motorController.servoDrive(MotorController::SERVO_A, rightMotorSpeed);
-  motorController.servoDrive(MotorController::SERVO_B, leftMotorSpeed);
-
-  // Debugging output
-  serialController.printWithTimestamp("\n\tMotor command: L(");
-  Serial.print(leftMotorSpeed);
-  Serial.print("), R(");
-  Serial.print(rightMotorSpeed);
-  Serial.println(")\n");
+  // Adjust the motor speeds.
+  drive(desiredLeftSpeed, desiredRightSpeed);
 }
 
 // ===== HELPER FUNCTIONS =====
@@ -1177,8 +998,8 @@ void handleLookAheadLineFollow() {
 /**
  * Checks if a 90 degree turn is required based on the ultrasonic sensor
  * readings. If a turn is required, it stops the servo motors and enters an
- * infinite loop. This function has a grace period of 40 seconds before checking
- * for a turn.
+ * infinite loop. This function has a grace period of 40 seconds before
+ * checking for a turn.
  */
 void ultrasonicTurnCheck() {
   int numSecondsGracePeriod = 40;
@@ -1227,18 +1048,6 @@ void logError(const char *message) {
 }
 
 /**
- * @brief Resets the memory of all PID controllers.
- *
- * This function resets the memory of the line sensor gain handler and the
- * encoder gain handler. It is used to clear any accumulated error or state in
- * the PID controllers.
- */
-void resetAllPIDMemory() {
-  lineSensorGainHandler.reset();
-  encoderGainHandler.reset();
-}
-
-/**
  * Calculates the rotation direction based on the rotation type and target
  * location. Updates the system state accordingly.
  *
@@ -1274,4 +1083,120 @@ void calculateRotation(int rotationType, int targetLocation) {
   }
 
   systemStateHandler.changeState(outputRotationState);
+}
+
+void drive(int leftSpeed, int rightSpeed) {
+  Serial.print("Desired motor commands: ");
+  Serial.print(leftSpeed);
+  Serial.print(", ");
+  Serial.println(rightSpeed);
+
+  // Measure encoder speeds.
+  float encFrontRightSpeed = sensorController.getEncFrontRightSpeed();
+  float encFrontLeftSpeed = sensorController.getEncFrontLeftSpeed();
+  float encRearRightSpeed = sensorController.getEncRearRightSpeed();
+  float encRearLeftSpeed = sensorController.getEncRearLeftSpeed();
+
+  // Calculate encoder speed errors.
+  float encFrontRightErr = rightSpeed - encFrontRightSpeed;
+  float encFrontLeftErr = leftSpeed - encFrontLeftSpeed;
+  float encRearRightErr = rightSpeed - encRearRightSpeed;
+  float encRearLeftErr = leftSpeed - encRearLeftSpeed;
+
+  // Calculate PID corrections.
+  float encFrontRightCorr = encoderFrontRight.calculatePID(encFrontRightErr);
+  float encFrontLeftCorr = encoderFrontLeft.calculatePID(encFrontLeftErr);
+  float encRearRightCorr = encoderRearRight.calculatePID(encRearRightErr);
+  float encRearLeftCorr = encoderRearLeft.calculatePID(encRearLeftErr);
+
+  // Adjust speeds.
+  int frontRightAdjusted = rightSpeed + encFrontRightCorr;
+  int frontLeftAdjusted = leftSpeed + encFrontLeftCorr;
+  int rearRightAdjusted = rightSpeed + encRearRightCorr;
+  int rearLeftAdjusted = leftSpeed + encRearLeftCorr;
+
+  // Ensure speeds are within constraints.
+  speedAdjustRobust(frontRightAdjusted);
+  speedAdjustRobust(frontLeftAdjusted);
+  speedAdjustRobust(rearRightAdjusted);
+  speedAdjustRobust(rearLeftAdjusted);
+
+  // Debug messages.
+  Serial.print("EncFrontRight: ");
+  Serial.print(encFrontRightSpeed);
+  Serial.print(" is off by ");
+  Serial.print(encFrontRightErr);
+  Serial.print(" and corrected by ");
+  Serial.println(encFrontRightCorr);
+
+  Serial.print("EncFrontLeft: ");
+  Serial.print(encFrontLeftSpeed);
+  Serial.print(" is off by ");
+  Serial.print(encFrontLeftErr);
+  Serial.print(" and corrected by ");
+  Serial.println(encFrontLeftCorr);
+
+  Serial.print("EncRearRight: ");
+  Serial.print(encRearRightSpeed);
+  Serial.print(" is off by ");
+  Serial.print(encRearRightErr);
+  Serial.print(" and corrected by ");
+  Serial.println(encRearRightCorr);
+
+  Serial.print("EncRearLeft: ");
+  Serial.print(encRearLeftSpeed);
+  Serial.print(" is off by ");
+  Serial.print(encRearLeftErr);
+  Serial.print(" and corrected by ");
+  Serial.println(encRearLeftCorr);
+
+  // Drive motors.
+  motorController.servoDrive(MotorController::SERVO_FRONT_RIGHT,
+                             frontRightAdjusted);
+  motorController.servoDrive(MotorController::SERVO_FRONT_LEFT,
+                             frontLeftAdjusted);
+  motorController.servoDrive(MotorController::SERVO_REAR_RIGHT,
+                             rearRightAdjusted);
+  motorController.servoDrive(MotorController::SERVO_REAR_LEFT,
+                             rearLeftAdjusted);
+
+  // Log speeds.
+  Serial.print("Actual motor commands: ");
+  Serial.print(frontRightAdjusted);
+  Serial.print(", ");
+  Serial.print(frontLeftAdjusted);
+  Serial.print(", ");
+  Serial.print(rearRightAdjusted);
+  Serial.print(", ");
+  Serial.println(rearLeftAdjusted);
+}
+
+void speedAdjustRobust(int &speed) {
+  // Speed = 0 case.
+  if (speed == 0) {
+    return;
+  }
+
+  // Determine direction.
+  bool backwards = false;
+  if (speed < 0) {
+    backwards = true;
+    speed = -speed;
+  }
+
+  // Ensure minimum speed is met.
+  if (speed < LA_MIN_SPEED) {
+    speed = LA_MIN_SPEED;
+  }
+
+  if (backwards) {
+    speed = -speed;
+  }
+
+  // Ensure requested speed is within constraints.
+  if (speed > LA_UPPER_CONSTRAINT) {
+    speed = LA_UPPER_CONSTRAINT;
+  } else if (speed < LA_LOWER_CONSTRAINT) {
+    speed = LA_LOWER_CONSTRAINT;
+  }
 }

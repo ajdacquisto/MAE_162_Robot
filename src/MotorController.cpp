@@ -9,20 +9,7 @@
  * necessary pins and parameters for controlling the stepper motors.
  */
 MotorController::MotorController()
-    : motorDriver(), // Motor driver,
-                     // stepperDriverA(), stepperDriverB(), // Stepper motor
-                     // drivers stepperMotorA(STEPPER_A_STEPS_PER_REVOLUTION,
-                     // STEPPER_PIN_A1,
-                     //               STEPPER_PIN_A2, STEPPER_PIN_A3,
-                     //               STEPPER_PIN_A4), // Stepper motor A
-                     //               (four-bar)
-                     // stepperMotorB(STEPPER_B_STEPS_PER_REVOLUTION,
-                     // STEPPER_PIN_B1,
-                     //               STEPPER_PIN_B2, STEPPER_PIN_B3,
-                     //               STEPPER_PIN_B4), // Stepper motor B (lift)
-                     // stepperDriverLift(STEPPER_B_STEPS_PER_REVOLUTION,
-                     // STEPPER_B_STEP_PIN,
-                     //                   STEPPER_B_DIRECTION_PIN),
+    : motorDriverFront(), motorDriverRear(),
       customStepperA(STEPPER_A_DIRECTION_PIN, STEPPER_A_STEP_PIN,
                      STEPPER_A_ENABLE_PIN, STEPPER_A_STEPS_PER_REVOLUTION),
       customStepperB(STEPPER_B_DIRECTION_PIN, STEPPER_B_STEP_PIN,
@@ -49,23 +36,13 @@ MotorController::~MotorController() {
  * motor's direction pin.
  */
 void MotorController::init() {
-  motorDriver.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
-  motorDriver.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
+  motorDriverFront.attachMotorA(SERVO_PIN_A1, SERVO_PIN_A2);
+  motorDriverFront.attachMotorB(SERVO_PIN_B1, SERVO_PIN_B2);
+
+  motorDriverRear.attachMotorA(SERVO_PIN_C1, SERVO_PIN_C2);
+  motorDriverRear.attachMotorB(SERVO_PIN_D1, SERVO_PIN_D2);
+
   servosOff();
-
-  // stepperMotorA.setSpeed(STEPPER_A_MAX_SPEED);
-  // stepperMotorB.setSpeed(STEPPER_B_MAX_SPEED);
-
-  // stepperDriverA.begin(STEPPER_A_DIRECTION_PIN, STEPPER_A_STEP_PIN);
-  // stepperDriverA.setDirection(DRV8825_CLOCK_WISE);
-  // stepperDriverA.setStepsPerRotation(STEPPER_A_STEPS_PER_REVOLUTION);
-
-  // stepperDriverB.begin(STEPPER_B_DIRECTION_PIN, STEPPER_B_STEP_PIN);
-  // stepperDriverB.setDirection(DRV8825_CLOCK_WISE);
-  // stepperDriverB.setStepsPerRotation(STEPPER_B_STEPS_PER_REVOLUTION);
-
-  // stepperDriverLift.setSpeed(STEPPER_B_MAX_SPEED);
-  // pinMode(STEPPER_B_DIRECTION_PIN, OUTPUT);
 
   pinMode(STEPPER_A_ENABLE_PIN, OUTPUT);
   pinMode(STEPPER_B_ENABLE_PIN, OUTPUT);
@@ -81,76 +58,39 @@ void MotorController::init() {
  * @param speed The desired speed for the servo.
  */
 void MotorController::servoDrive(SERVO whichServo, int speed) {
-
-  Serial.print("servoDrive: servo");
-  if (whichServo == SERVO_A) {
-    Serial.print("A ");
-  } else {
-    Serial.print("B ");
-  }
-  Serial.println(speed);
-
-  if (whichServo == SERVO_A) {
-    if (speed > 0) {
-      motorDriver.motorAForward(speed);
-    } else {
-      motorDriver.motorAReverse(-speed);
+  if (speed >= 0) {
+    if (whichServo == SERVO_FRONT_RIGHT) {
+      motorDriverFront.motorAForward(speed);
+    } else if (whichServo == SERVO_FRONT_LEFT) {
+      motorDriverFront.motorBForward(speed);
+    } else if (whichServo == SERVO_REAR_RIGHT) {
+      motorDriverRear.motorAForward(speed);
+    } else if (whichServo == SERVO_REAR_LEFT) {
+      motorDriverRear.motorBForward(speed);
     }
   } else {
-    if (speed > 0) {
-      motorDriver.motorBForward(speed);
-    } else {
-      motorDriver.motorBReverse(-speed);
+    if (whichServo == SERVO_FRONT_RIGHT) {
+      motorDriverFront.motorAReverse(speed);
+    } else if (whichServo == SERVO_FRONT_LEFT) {
+      motorDriverFront.motorBReverse(speed);
+    } else if (whichServo == SERVO_REAR_RIGHT) {
+      motorDriverRear.motorAReverse(speed);
+    } else if (whichServo == SERVO_REAR_LEFT) {
+      motorDriverRear.motorBReverse(speed);
     }
   }
-
-  // if (whichServo == SERVO_B) {
-  //   speed *= -1;
-  // }
-  // speed *= -1; // Invert speed for correct direction
-  // int *lastSpeed;
-  // void (DRV8833::*forward)(int);
-  // void (DRV8833::*reverse)(int);
-
-  // if (whichServo == SERVO_A) {
-  //   lastSpeed = &lastSpeedA;
-  //   forward = &DRV8833::motorAForward;
-  //   reverse = &DRV8833::motorAReverse;
-  // } else {
-  //   lastSpeed = &lastSpeedB;
-  //   forward = &DRV8833::motorBForward;
-  //   reverse = &DRV8833::motorBReverse;
-  // }
-
-  // while (*lastSpeed != speed) {
-  //   if (*lastSpeed < speed) {
-  //     *lastSpeed += rampRate;
-  //     if (*lastSpeed > speed) {
-  //       *lastSpeed = speed;
-  //     }
-  //   } else {
-  //     *lastSpeed -= rampRate;
-  //     if (*lastSpeed < speed) {
-  //       *lastSpeed = speed;
-  //     }
-  //   }
-
-  //   if (*lastSpeed < 0) {
-  //     (motorDriver.*reverse)(-*lastSpeed);
-  //   } else {
-  //     (motorDriver.*forward)(*lastSpeed);
-  //   }
 
   delay(50); // Small delay for smooth ramping (adjust as needed)
-  // }
 }
 
 /**
  * Turns off the servos by stopping both motor A and motor B.
  */
 void MotorController::servosOff() {
-  motorDriver.motorAStop();
-  motorDriver.motorBStop();
+  motorDriverFront.motorAStop();
+  motorDriverFront.motorBStop();
+  motorDriverRear.motorAStop();
+  motorDriverRear.motorBStop();
 }
 
 /**
@@ -218,7 +158,7 @@ int MotorController::degToSteps(int degrees, STEPPER whichStepper) {
  */
 bool MotorController::rotateRobot(ROTATE_DIRECTION direction,
                                   int interruptSensorVal) {
-  int ROTATION_SPEED = 255;
+  // int ROTATION_SPEED = 255;
 
   // Get the middle digit of the interrupt sensor value
   int middleDigit = (interruptSensorVal >> 1) & 0b1;
@@ -237,13 +177,13 @@ bool MotorController::rotateRobot(ROTATE_DIRECTION direction,
   if (direction == ROTATE_DIRECTION::RIGHT) {
     // CLOCKWISE
     // Right (A) backwards, while Left (B) forwards
-    motorDriver.motorAReverse(ROTATION_SPEED);
-    motorDriver.motorBForward(ROTATION_SPEED);
+    // motorDriver.motorAReverse(ROTATION_SPEED);
+    // motorDriver.motorBForward(ROTATION_SPEED);
   } else {
     // COUNTERCLOCKWISE
     // Right (A) forwards, while Left (B) backwards
-    motorDriver.motorAForward(ROTATION_SPEED);
-    motorDriver.motorBReverse(ROTATION_SPEED);
+    // motorDriver.motorAForward(ROTATION_SPEED);
+    // motorDriver.motorBReverse(ROTATION_SPEED);
   }
 
   return false;
@@ -335,4 +275,20 @@ void MotorController::enableStepper(STEPPER whichStepper) {
 void MotorController::disableSteppers() {
   digitalWrite(STEPPER_A_ENABLE_PIN, HIGH); // DISABLE
   digitalWrite(STEPPER_B_ENABLE_PIN, HIGH); // DISABLE
+}
+
+void MotorController::raiseLift() {
+  stepperDrive(STEPPER_LIFT, LIFT_SPEED, LIFT_DISTANCE);
+}
+
+void MotorController::raiseLift(int steps) {
+  stepperDrive(STEPPER_LIFT, LIFT_SPEED, steps);
+}
+
+void MotorController::lowerLift() {
+  stepperDrive(STEPPER_LIFT, -LIFT_SPEED, LIFT_DISTANCE);
+}
+
+void MotorController::lowerLift(int steps) {
+  stepperDrive(STEPPER_LIFT, -LIFT_SPEED, steps);
 }

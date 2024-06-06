@@ -21,17 +21,26 @@ public:
 
 private:
   NewIRSensor newIR; // IR sensor
-  Encoder encoderA; // Encoder A
-  Encoder encoderB; // Encoder B
   UltrasonicHandler ultrasonicHandler; // Ultrasonic sensor
+
+  Encoder encFrontRight;
+  Encoder encFrontLeft;
+  Encoder encRearRight;
+  Encoder encRearLeft;
 
   int lineSensorAThreshold;
   int lineSensorBThreshold;
 
-  long encoderALastValue = 0;
-  long encoderALastTime = 0;
-  long encoderBLastValue = 0;
-  long encoderBLastTime = 0;
+  // Encoder values
+  long encFrontRightLastVal = 0;
+  long encFrontLeftLastVal = 0;
+  long encRearRightLastVal = 0;
+  long encRearLeftLastVal = 0;
+
+  long encFrontRightLastTime = 0;
+  long encFrontLeftLastTime = 0;
+  long encRearRightLastTime = 0;
+  long encRearLeftLastTime = 0;
 
   LED_STATE currentLEDstate = OFF;
 
@@ -43,9 +52,15 @@ public:
   SimpleSensor lineSensorB2; // Line sensor B2
   SimpleSensor lineSensorB3; // Line sensor B3
 
-  void zeroEncoders();
-  long readEncoderA();
-  long readEncoderB();
+  void zeroEncoder(Encoder &encoder);
+  void zeroAllEncoders();
+  long readEncoder(Encoder &encoder);
+
+  float getEncFrontRightSpeed();
+  float getEncFrontLeftSpeed();
+  float getEncRearRightSpeed();
+  float getEncRearLeftSpeed();
+
   int determineError(int lineSensorValue);
 
   void readLineSensorA();
@@ -58,19 +73,6 @@ public:
 
   int getLineSensorBThreshold();
   void setLineSensorBThreshold(int threshold);
-
-  long getEncoderALastValue();
-  long getEncoderALastTime();
-  long getEncoderBLastValue();
-  long getEncoderBLastTime();
-  void setEncoderALastValue(long value);
-  void setEncoderALastTime(long value);
-  void setEncoderBLastValue(long value);
-  void setEncoderBLastTime(long value);
-
-  float getEncoderASpeed();
-  float getEncoderBSpeed();
-  float speedAdjust(int speedReading, float constraintValue);
 
   int processBinaryNumber(int binaryNumber[]);
   void intToBinaryArray(int num, int binaryArray[]);
