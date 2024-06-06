@@ -1089,6 +1089,14 @@ void drive(int leftSpeed, int rightSpeed) {
   Serial.print(", ");
   Serial.println(rightSpeed);
 
+  // Convert to linear velocity for smaller wheels.
+  float leftSpeedRear = leftSpeed;
+  float leftSpeedLinear = leftSpeedRear * REAR_WHEEL_RADIUS;
+  float leftSpeedFront = leftSpeedLinear / FRONT_WHEEL_RADIUS;
+  float rightSpeedRear = rightSpeed;
+  float rightSpeedLinear = rightSpeedRear * REAR_WHEEL_RADIUS;
+  float rightSpeedFront = rightSpeedLinear / FRONT_WHEEL_RADIUS;
+
   // Measure encoder speeds.
   float encFrontRightSpeed = sensorController.getEncFrontRightSpeed();
   float encFrontLeftSpeed = sensorController.getEncFrontLeftSpeed();
@@ -1096,10 +1104,10 @@ void drive(int leftSpeed, int rightSpeed) {
   float encRearLeftSpeed = sensorController.getEncRearLeftSpeed();
 
   // Calculate encoder speed errors.
-  float encFrontRightErr = rightSpeed - encFrontRightSpeed;
-  float encFrontLeftErr = leftSpeed - encFrontLeftSpeed;
-  float encRearRightErr = rightSpeed - encRearRightSpeed;
-  float encRearLeftErr = leftSpeed - encRearLeftSpeed;
+  float encFrontRightErr = rightSpeedFront - encFrontRightSpeed;
+  float encFrontLeftErr = leftSpeedFront - encFrontLeftSpeed;
+  float encRearRightErr = rightSpeedRear - encRearRightSpeed;
+  float encRearLeftErr = leftSpeedRear - encRearLeftSpeed;
 
   // Calculate PID corrections.
   float encFrontRightCorr = encoderFrontRight.calculatePID(encFrontRightErr);
@@ -1108,10 +1116,10 @@ void drive(int leftSpeed, int rightSpeed) {
   float encRearLeftCorr = encoderRearLeft.calculatePID(encRearLeftErr);
 
   // Adjust speeds.
-  int frontRightAdjusted = rightSpeed + encFrontRightCorr;
-  int frontLeftAdjusted = leftSpeed + encFrontLeftCorr;
-  int rearRightAdjusted = rightSpeed + encRearRightCorr;
-  int rearLeftAdjusted = leftSpeed + encRearLeftCorr;
+  int frontRightAdjusted = rightSpeedFront + encFrontRightCorr;
+  int frontLeftAdjusted = leftSpeedFront + encFrontLeftCorr;
+  int rearRightAdjusted = rightSpeedRear + encRearRightCorr;
+  int rearLeftAdjusted = leftSpeedRear + encRearLeftCorr;
 
   // Ensure speeds are within constraints.
   speedAdjustRobust(frontRightAdjusted);

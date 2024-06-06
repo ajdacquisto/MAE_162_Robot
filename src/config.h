@@ -90,6 +90,9 @@ const long NINETY_DEGREE_TURN_DISTANCE = 29;
 // const int ENCODER_MAX_SPEED LEFT = 6773; //ish
 const int ENCODER_MAX_SPEED = 6800;
 
+const float FRONT_WHEEL_RADIUS = 0.065; // meters
+const float REAR_WHEEL_RADIUS = 0.065; // meters
+
 // =================================
 // ===== INPUT PIN ASSIGNMENTS =====
 // =================================
@@ -156,7 +159,6 @@ const int STEPPER_B_STEPS_PER_REVOLUTION = 200;
 const int STEPPER_B_DIRECTION_PIN = 30;
 const int STEPPER_B_STEP_PIN = 31;
 const int STEPPER_B_ENABLE_PIN = 50;
-const int STEPS_PER_DISK_HEIGHT = 200;
 
 // ==================================
 // ==================================
