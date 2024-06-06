@@ -41,7 +41,7 @@
 SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
 
 MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::SINGLE_SERVO;
-MotorController::SERVO CALIBRATE_SERVO = MotorController::SERVO_FRONT_LEFT;
+MotorController::SERVO CALIBRATE_SERVO = MotorController::SERVO_FRONT_RIGHT;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
 // ===== CONTROL OBJECTS =====
@@ -515,8 +515,10 @@ void handleCalibrate(MotorController::COMPONENT componentCode) {
   }
   case MotorController::ALL_WHEELS:
     calibrateAllWheels(CALIBRATE_DIRECTION);
+    break;
   case MotorController::SINGLE_SERVO:
     calibrateSingleServo(CALIBRATE_SERVO);
+    break;
   default:
     logError("Invalid component code");
     break;

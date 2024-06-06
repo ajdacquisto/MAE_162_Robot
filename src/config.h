@@ -103,8 +103,8 @@ const int BUTTON_PIN = 7;
 // - Encoders
 const int ENCODER_PIN_A1 = 18, ENCODER_PIN_A2 = 19;
 const int ENCODER_PIN_B1 = 20, ENCODER_PIN_B2 = 21;
-const int ENCODER_PIN_C1 = 0, ENCODER_PIN_C2 = 0;
-const int ENCODER_PIN_D1 = 0, ENCODER_PIN_D2 = 0;
+const int ENCODER_PIN_C1 = 2, ENCODER_PIN_C2 = 36;
+const int ENCODER_PIN_D1 = 3, ENCODER_PIN_D2 = 37;
 
 // - Line Sensor A (front)
 const int LINE_SENSOR_PIN_A1 = A2;
@@ -143,10 +143,10 @@ const int SERVO_PIN_A1 = 11, SERVO_PIN_A2 = 12;
 const int SERVO_PIN_B1 = 10, SERVO_PIN_B2 = 9;
 
 // - Servo Motor C (rear right)
-const int SERVO_PIN_C1 = 0, SERVO_PIN_C2 = 0;
+const int SERVO_PIN_C1 = 5, SERVO_PIN_C2 = 4;
 
 // - Servo Motor D (rear left)
-const int SERVO_PIN_D1 = 0, SERVO_PIN_D2 = 0;
+const int SERVO_PIN_D1 = 8, SERVO_PIN_D2 = 6;
 
 // - Stepper - Four-bar
 const int STEPPER_A_STEPS_PER_REVOLUTION = 200;
