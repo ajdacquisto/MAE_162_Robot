@@ -60,6 +60,8 @@ ControlGainHandler encoderFrontLeft = ControlGainHandler(1.0, 0.0, 0.0);
 ControlGainHandler encoderRearRight = ControlGainHandler(1.0, 0.0, 0.0);
 ControlGainHandler encoderRearLeft = ControlGainHandler(1.0, 0.0, 0.0);
 
+unsigned long timeSlot = 0;
+
 // ===== ENUMS =====
 enum LINE_FOLLOW_MODE { PICKUP, REGULAR, DROPOFF };
 enum ROTATE_TYPE { TOWARDS, AWAY_FROM };
@@ -85,6 +87,8 @@ void drive(int leftSpeed, int rightSpeed);
 void speedAdjustRobust(int &speed);
 void calibrateAllWheels(MotorController::MOTOR_DIRECTION direction);
 void calibrateSingleServo(MotorController::SERVO whichServo);
+void stateChangeScript();
+bool doTimeCheck(int numMilliseconds);
 
 // Helper functions
 void calculateRotation(int rotationType, int targetLocation);
@@ -122,15 +126,11 @@ void setup() {
  * for each state.
  */
 void loop() {
-  if (systemStateHandler.isNewStateFlowIndex()) {
-    serialController.printlnWithTimestamp("STATE CHANGE");
-    // On state change.
-    motorController.servosOff();
-    // motorController.setStepperMotorSpeedsToMax();
-    //  branchHandler.reset();
-    delay(2000);
-  }
+  // Check if the state flow index has changed.
+  if (systemStateHandler.isNewStateFlowIndex())
+    stateChangeScript();
 
+  // Get the current state.
   SystemState::State currentState = systemStateHandler.getCurrentState();
 
   // Order of operations
@@ -142,7 +142,6 @@ void loop() {
   case 1:
     // Line follow to pickup location 1
     if (currentState != SystemState::LINE_FOLLOW_PICKUP) {
-      serialController.printlnWithTimestamp("changeState call.");
       systemStateHandler.changeState(SystemState::LINE_FOLLOW_PICKUP);
       branchHandler.setTargetNum(1);
     }
@@ -239,6 +238,7 @@ void loop() {
     break;
   }
 
+  // Handle the current state.
   switch (systemStateHandler.getCurrentState()) {
   case SystemState::TEST:
     // Code for testing
@@ -260,7 +260,7 @@ void loop() {
     handleUltraSonicIdle();
     // Code for idle state with ultrasonic sensor active
     break;
-  case SystemState::FOLLOW_LINE:
+  case SystemState::LINE_FOLLOW_REGULAR:
     // Code for simple line following
     handleFollowLine(REGULAR);
     break;
@@ -275,16 +275,12 @@ void loop() {
     break;
   case SystemState::FOUR_BAR_LOAD:
     // Code for four-bar mechanism
-    motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
     motorController.handleFourBar(MotorController::LOAD);
-    motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
     break;
   case SystemState::FOUR_BAR_UNLOAD:
     // Code for four-bar mechanism
-    motorController.enableStepper(MotorController::STEPPER_FOUR_BAR);
     motorController.handleFourBar(MotorController::UNLOAD);
-    motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
     break;
   case SystemState::ROTATE_LEFT:
@@ -301,16 +297,12 @@ void loop() {
     break;
   case SystemState::LIFT_LOWER:
     // Lower the lift.
-    motorController.enableStepper(MotorController::STEPPER_LIFT);
     handleLift(MotorController::DOWN);
-    motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
     break;
   case SystemState::LIFT_RAISE:
     // Raise the lift.
-    motorController.enableStepper(MotorController::STEPPER_LIFT);
     handleLift(MotorController::UP);
-    motorController.disableSteppers();
     systemStateHandler.advanceStateFlowIndex();
     break;
   default:
@@ -905,6 +897,7 @@ void handleUltrasonicReverse() {
  * MotorController::UP or MotorController::DOWN.
  */
 void handleLift(int direction) {
+  motorController.enableStepper(MotorController::STEPPER_LIFT);
   switch (direction) {
   case MotorController::UP:
     // Move the lift up
@@ -915,9 +908,10 @@ void handleLift(int direction) {
     motorController.lowerLift();
     break;
   default:
-    logError("Invalid direction");
+    logError("Invalid lift direction");
     break;
   }
+  motorController.disableSteppers();
 }
 
 /**
@@ -929,6 +923,10 @@ void handleLift(int direction) {
 void handleLookAheadLineFollow() {
   // Check for a 90 degree turn based on the ultrasonic sensor readings.
   ultrasonicTurnCheck();
+
+  // Check to see whether it's been 10ms yet.
+  if (!(doTimeCheck(10)))
+    return;
 
   // Decide whether to use the new IR sensor.
   bool doNewIR = true;
@@ -1199,4 +1197,26 @@ void speedAdjustRobust(int &speed) {
   } else if (speed < LA_LOWER_CONSTRAINT) {
     speed = LA_LOWER_CONSTRAINT;
   }
+}
+
+/**
+ * Executes a script when the state changes.
+ * This function turns off the servos, adds a timestamped message to the serial
+ * output, and introduces a delay of 2000 milliseconds.
+ */
+void stateChangeScript() {
+  // On state change.
+  serialController.printlnWithTimestamp("STATE CHANGE");
+  motorController.servosOff();
+  // motorController.setStepperMotorSpeedsToMax();
+  //  branchHandler.reset();
+  delay(1000);
+}
+
+bool doTimeCheck(int numMilliseconds) {
+  if (millis() - timeSlot < (unsigned long)(numMilliseconds)) {
+    return false;
+  }
+  timeSlot = millis();
+  return true;
 }

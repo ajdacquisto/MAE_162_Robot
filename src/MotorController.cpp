@@ -221,6 +221,7 @@ MotorController::getDirectionToRotate(int pickupLocation) {
  *                  Possible values are LOAD or UNLOAD.
  */
 void MotorController::handleFourBar(FOUR_BAR_DIRECTION direction) {
+  enableStepper(STEPPER_FOUR_BAR);
   const int SPEED = 1;
   if (direction == LOAD) {
     // Load the four-bar mechanism
@@ -231,6 +232,7 @@ void MotorController::handleFourBar(FOUR_BAR_DIRECTION direction) {
   } else {
     Serial.println("Invalid four-bar direction");
   }
+  disableSteppers();
 }
 
 /**

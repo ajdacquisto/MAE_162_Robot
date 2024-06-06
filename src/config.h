@@ -44,7 +44,7 @@ const float LA_KP = 25.0;
 const float LA_KI = 0.1;
 const float LA_KD = 0.5;
 
-const int LA_BUFFER_SIZE = 30;
+const int LA_BUFFER_SIZE = 10;
 
 // =============================
 // ===== SOFTWARE SETTINGS =====

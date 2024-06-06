@@ -6,7 +6,7 @@ namespace SystemState {
 enum State {
   TEST,
   IDLE,
-  FOLLOW_LINE,
+  LINE_FOLLOW_REGULAR,
   IR_IDLE,
   ULTRASONIC_IDLE,
   CALIBRATE,
