@@ -40,7 +40,7 @@
 // ===== GLOBAL VARIABLES =====
 SystemState::State DEFAULT_STATE = SystemState::CALIBRATE;
 
-MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::SINGLE_SERVO;
+MotorController::COMPONENT CALIBRATE_COMPONENT = MotorController::FOUR_BAR;
 MotorController::SERVO CALIBRATE_SERVO = MotorController::SERVO_FRONT_RIGHT;
 MotorController::MOTOR_DIRECTION CALIBRATE_DIRECTION = MotorController::FORWARD;
 
@@ -478,7 +478,7 @@ void handleIdle() {
 void handleCalibrate(MotorController::COMPONENT componentCode) {
   switch (componentCode) {
   case MotorController::FOUR_BAR: {
-    int calibrateMode = 1;
+    int calibrateMode = 2;
     calibrateFourBar(calibrateMode);
     break;
   }
